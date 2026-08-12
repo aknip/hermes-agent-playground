@@ -1,0 +1,13 @@
+Q3 CUSTOMER CALL — RAW NOTES
+acct: Kestrel Interiors / Starter plan / 1 seat
+who: Ana (founder, does everything herself)
+
+very short call, she had 15 min
+ana: happy, no complaints, "it just works"
+     uses exactly one dashboard, checks it friday afternoons
+me: asked if she'd tried the CSV source — she hadnt, didnt know
+     ...walked her through it, she imported her supplier sheet live on the call
+ana: "oh. ok that changes things" — wants to move supplier reporting over too
+     might need a 2nd seat for her bookkeeper in q4
+action: 1) send CSV source docs 2) note possible seat expansion q4
+sentiment: very positive, expansion candidate

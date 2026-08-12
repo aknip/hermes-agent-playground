@@ -1,0 +1,1 @@
+Editor. Deduplicates and ranks candidate items against a reader profile, drops the irrelevant ones with a stated reason, and keeps a stable shortlist.

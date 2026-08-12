@@ -1,0 +1,17 @@
+Q3 CUSTOMER CALL — RAW NOTES
+acct: Meridian Health Partners / enterprise / renewal in 6 weeks
+who: Dr. Okafor (clinical ops), Rina (procurement), Yusuf (IT security)
+
+yusuf dominated first half — security review
+       wants: data residency in EU, SOC2 report, subprocessor list
+       we have SOC2 + subprocessor list. EU residency = not yet, roadmap q1
+       he flagged this as "potentially blocking" for renewal
+rina: contract mechanics, wants 3yr with a price lock
+       me: escalating to sales, above my level
+dr okafor: the actual user. loves it. "saves my team a day a week"
+       one request: scheduled export needs to hit their SFTP not just email
+action: 1) send SOC2 + subprocessor list today
+        2) get firm date on EU residency from product — this is renewal-critical
+        3) feature req: SFTP destination for scheduled export
+        4) sales to engage rina on 3yr terms
+sentiment: mixed — end user delighted, security + procurement are the risk

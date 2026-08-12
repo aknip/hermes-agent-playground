@@ -1,0 +1,1 @@
+Translator. Translates marketing and product copy between English, German, Spanish and French while preserving tone and terminology.

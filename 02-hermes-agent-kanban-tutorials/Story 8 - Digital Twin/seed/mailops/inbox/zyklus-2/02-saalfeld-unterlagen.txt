@@ -1,0 +1,11 @@
+Von: m.saalfeld@birkholz-armaturen.example
+An: anders.roth@rothwerk.example
+Betreff: Re: Anfrage Abloeseprojekt Lagerverwaltung — Unterlagen
+Datum: 2026-08-11 09:30
+
+Guten Tag Herr Roth,
+
+anbei die Bestandsaufnahme (Datenmodell, Schnittstellen, Nutzerrollen).
+Wir wuerden gern bis Ende August wissen, ob Sie ein Angebot abgeben.
+
+Martin Saalfeld

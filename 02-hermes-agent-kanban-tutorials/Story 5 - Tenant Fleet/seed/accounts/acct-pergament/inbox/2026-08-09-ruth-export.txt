@@ -1,0 +1,9 @@
+Von: ruth.amsel@pergament-verlag.example
+An: support@example-saas.test
+Betreff: Datenexport vor Vertragsende
+Datum: 2026-08-09 08:15
+
+Wie kommen wir an unsere Daten? Wir brauchen die Titelstammdaten und die
+Verkaufszahlen der letzten 24 Monate, am liebsten als CSV.
+
+Ruth

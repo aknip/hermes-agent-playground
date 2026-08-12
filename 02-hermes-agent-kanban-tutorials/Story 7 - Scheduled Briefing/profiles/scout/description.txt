@@ -1,0 +1,1 @@
+Scout. Sweeps incoming feeds and raw source drops, extracts the candidate items relevant to a defined topic, and hands them on as structured records without judging them.

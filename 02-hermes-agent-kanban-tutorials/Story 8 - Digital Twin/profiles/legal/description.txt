@@ -1,0 +1,1 @@
+Legal reviewer. Reviews contract clauses, terms and liability language referred by other agents, and returns a decision with the specific clauses that drive it.

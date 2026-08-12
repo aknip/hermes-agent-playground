@@ -1,0 +1,12 @@
+commit 8a9fe6bc4f0e9a15905da395077966cf4e36dd2a
+Author: kb-ingestor <kb-ingestor@localhost>
+Date:   Tue Aug 11 18:52:46 2026 +0200
+
+    lint kanban-board-0-20-x: 5 ERROR-Befunde behoben
+
+ index.md                   |  1 +
+ pages/cron-und-zeitplan.md |  8 +++----
+ pages/kanban-board.md      |  3 +--
+ pages/memory-system.md     |  1 +
+ pages/skills-system.md     | 57 ++++++++++++++++++++++++++++++++++++++++++++++
+ 5 files changed, 64 insertions(+), 6 deletions(-)

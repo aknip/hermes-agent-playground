@@ -1,0 +1,18 @@
+gesammelte Erwaehnungen, 2026-08-10, roh
+
+@nordic_vc: heard Kaskade closed 4.2M seed, Northzone leading. big for data
+provenance in EU.
+
+@vienna_startups: Feldspat AI raised 900k pre-seed. speedinvest. agent
+observability. small round, interesting team.
+
+@random_person: AI is a bubble
+
+@fintech_daily: Torvald Systems 65M series B — index. industrial sensing, not
+really AI infra despite the pitch deck
+
+@k_aalborg: reminder to self — look at whoever is doing eval tooling for
+agents. everything else is noise right now.
+
+@hn_mirror: "Ask HN: is anyone actually paying for LLM observability?" 340
+comments

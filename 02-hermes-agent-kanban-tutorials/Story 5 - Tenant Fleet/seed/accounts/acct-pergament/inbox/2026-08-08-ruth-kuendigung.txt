@@ -1,0 +1,12 @@
+Von: ruth.amsel@pergament-verlag.example
+An: support@example-saas.test
+Betreff: Kuendigung zum Monatsende
+Datum: 2026-08-08 18:30
+
+wir stellen zum 31.08. ein. Der Hauptgrund ist nicht der Preis, sondern dass
+wir die Importe fuer unsere Backlist nicht abgebildet bekommen — ISBN-Varianten
+mit mehreren Bindungen laufen bei uns immer wieder in Duplikate.
+
+Ich haette das gern anders geloest, aber wir haben es dreimal versucht.
+
+Ruth Amsel

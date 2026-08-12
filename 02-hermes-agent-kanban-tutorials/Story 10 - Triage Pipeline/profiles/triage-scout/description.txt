@@ -1,0 +1,1 @@
+Scout for a triage pipeline. Sweeps one assigned source surface, extracts concrete pain-point candidates with quotes and source URLs, writes an intake report. Detects only — never dedups, scores or routes.

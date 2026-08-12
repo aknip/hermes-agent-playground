@@ -1,0 +1,57 @@
+* 95f7dc7 ingest-log kanban-board-0-20-x: Tor-2-Entscheidung (merge) eingetragen
+|  log/ingest-log.md | 17 ++++++++++++++++-
+|  1 file changed, 16 insertions(+), 1 deletion(-)
+*   2ab112a merge kb/ingest-kanban-board-0-20-x
+|\  
+| * 30ddf75 kanban-board-0-20-x: vier der sechs Aussagen in kanban-board.md, swarm-Signatur in release-historie.md
+|/  
+|    log/ingest-log.md         | 20 ++++++++++++++++++++
+|    pages/kanban-board.md     | 19 +++++++++++++++++--
+|    pages/release-historie.md |  7 ++++---
+|    3 files changed, 41 insertions(+), 5 deletions(-)
+*   f27ab15 merge kb/ingest-block-semantik-0-20-x
+|\  
+| * f84386f ingest-log block-semantik-0-20-x: Tor-2-Entscheidung (merge) eingetragen
+|/  
+|    log/ingest-log.md | 2 +-
+|    1 file changed, 1 insertion(+), 1 deletion(-)
+*   06a55f7 merge kb/ingest-block-semantik-0-20-x
+|\  
+| * 8bd9ad0 block-semantik-0-20-x: Grund positional, kein --reason; vier Ergaenzungen, Prune der --reason-Zeile
+|/  
+|    log/ingest-log.md              | 21 ++++++++++++++-
+|    pages/kanban-block-semantik.md | 53 ++++++++++++++++++++++++++++----------
+|    pages/kanban-board.md          | 15 ++++++++---
+|    3 files changed, 71 insertions(+), 18 deletions(-)
+*   96cbdac merge kb/ingest-skills-system
+|\  
+| * 7d241f4 ingest-log skills-system: Tor-2-Entscheidung (merge) eingetragen
+|/  
+|    log/ingest-log.md | 2 +-
+|    1 file changed, 1 insertion(+), 1 deletion(-)
+*   d2eb209 merge kb/ingest-skills-system
+|\  
+| * e49faa1 lint skills-system: 4 vorbestehende ERROR-Befunde behoben
+| |  index.md                   | 1 +
+| |  pages/cron-und-zeitplan.md | 8 ++++----
+| |  pages/kanban-board.md      | 3 +--
+| |  pages/memory-system.md     | 1 +
+| |  4 files changed, 7 insertions(+), 6 deletions(-)
+| * 0020d6f skills-system: neue Seite + Index-Stub geschlossen + Verlinkung in profile-system
+|/  
+|    log/ingest-log.md       | 12 +++++++
+|    pages/profile-system.md |  1 +
+|    pages/skills-system.md  | 80 +++++++++++++++++++++++++++++++++++++++++++++
+|    3 files changed, 93 insertions(+)
+* 4052eda seed: Wissensbasis im Ausgangszustand
+   AGENTS.md                       | 192 ++++++++++++++++++++++++++++++++++++++
+   index.md                        |  31 ++++++
+   log/ingest-log.md               |  18 ++++
+   pages/cron-und-zeitplan.md      |  55 +++++++++++
+   pages/gateway-und-dispatcher.md |  71 ++++++++++++++
+   pages/kanban-block-semantik.md  |  61 ++++++++++++
+   pages/kanban-board.md           |  72 ++++++++++++++
+   pages/memory-system.md          |  53 +++++++++++
+   pages/profile-system.md         |  59 ++++++++++++
+   pages/release-historie.md       |  54 +++++++++++
+   10 files changed, 666 insertions(+)

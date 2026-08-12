@@ -1,0 +1,9 @@
+'kb/ingest-kanban-board-0-20-x' gegenueber main:
+  M	index.md
+  M	log/ingest-log.md
+  M	pages/cron-und-zeitplan.md
+  M	pages/kanban-board.md
+  M	pages/memory-system.md
+  M	pages/release-historie.md
+  A	pages/skills-system.md
+  7 files changed, 98 insertions(+), 12 deletions(-)

@@ -1,0 +1,1 @@
+Frontend engineer for parallel worktree pipelines. Implements the client-side surface — templates, forms, client-side validation — on an isolated git branch and commits its own work.

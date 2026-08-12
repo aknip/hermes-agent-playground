@@ -1,0 +1,10 @@
+kb_lint — workspace/wiki  (8 Seiten, Bezugsdatum 2026-08-11)
+==============================================================================
+
+  STALE           pages/profile-system.md:1          [freshness] updated 2026-01-20 ist 203 Tage alt (Grenze 180) — pruefen, nicht loeschen (AGENTS.md 5)
+
+------------------------------------------------------------------------------
+ERROR: 0  STALE: 1  PRUNE-VORSCHLAG: 0
+
+BESTANDEN — keine ERROR-Befunde. Ein Merge ist erlaubt.
+Es liegen Prune-Kandidaten vor. Darueber entscheidet ein Mensch (AGENTS.md 6).

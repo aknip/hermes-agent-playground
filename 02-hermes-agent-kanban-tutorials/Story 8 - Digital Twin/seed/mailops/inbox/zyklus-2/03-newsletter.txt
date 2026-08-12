@@ -1,0 +1,5 @@
+Von: news@cloudwoche.example
+Betreff: Cloudwoche #241: Was 2027 wirklich zaehlt
+
+Die Themen dieser Woche: Serverless ist tot, es lebe Serverless. Ausserdem:
+5 Dinge, die jeder CTO ueber Vektordatenbanken wissen muss.

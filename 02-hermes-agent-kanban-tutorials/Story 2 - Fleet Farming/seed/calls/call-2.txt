@@ -1,0 +1,16 @@
+Q3 CUSTOMER CALL — RAW NOTES
+acct: Halden Logistics / enterprise trial, day 19 of 30
+who: Tobias (head of data eng), Sam (analyst)
+
+tobias opens with: "we're not going to buy this if the API rate limit stays"
+       — hitting 429s on backfill, 5k events/min ceiling
+       their backfill is 40M events, math doesnt work
+me: explained burst allowance, he says burst is 10min, not enough
+sam: separately, likes the plain-language readout a lot
+     "its the only thing my CFO actually reads"
+tobias: also wants SSO before signing. okta.
+me: SSO is on enterprise tier, confirmed available
+action: 1) eng to confirm if backfill endpoint can bypass the 5k limit
+        2) send okta setup guide
+        3) extend trial by 14 days so backfill question can be resolved
+sentiment: at risk — technical blocker is real, not a negotiating tactic

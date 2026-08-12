@@ -1,0 +1,9 @@
+Von: nils.paulsen@torfhaus-reisen.example
+An: support@example-saas.test
+Betreff: Rechnung August doppelt abgebucht
+Datum: 2026-08-09 07:50
+
+Uns wurde die Augustrechnung zweimal abgebucht (je 89,00 EUR, 04.08. und 06.08.).
+Bitte einmal erstatten.
+
+Nils

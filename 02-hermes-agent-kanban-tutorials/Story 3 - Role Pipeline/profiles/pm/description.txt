@@ -1,0 +1,1 @@
+Product manager. Turns rough feature ideas into concrete specs with goal, scope, user-visible behaviour and testable acceptance criteria.

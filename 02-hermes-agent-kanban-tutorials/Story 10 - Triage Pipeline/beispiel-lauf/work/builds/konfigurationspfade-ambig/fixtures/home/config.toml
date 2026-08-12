@@ -1,0 +1,11 @@
+title = "Home Config"
+approve_required = true
+theme = "dark"
+
+[server]
+host = "127.0.0.1"
+port = 8080
+
+[secrets]
+api_key = "sk-live-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+password = "hunter2"

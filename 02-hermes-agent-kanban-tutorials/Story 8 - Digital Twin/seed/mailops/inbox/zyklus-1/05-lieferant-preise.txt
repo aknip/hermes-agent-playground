@@ -1,0 +1,13 @@
+Von: vertrieb@nordhost.example
+An: anders.roth@rothwerk.example
+Betreff: Preisanpassung Hosting zum 01.10.2026
+Datum: 2026-08-09 16:40
+
+Sehr geehrter Herr Roth,
+
+zum 01.10.2026 passen wir die Preise fuer Managed-Kubernetes um 9 % an.
+Ihr aktueller Tarif steigt damit von 1.840 EUR auf 2.006 EUR monatlich.
+Ein Sonderkuendigungsrecht besteht bis zum 31.08.2026.
+
+Mit freundlichen Gruessen
+Nordhost Vertrieb

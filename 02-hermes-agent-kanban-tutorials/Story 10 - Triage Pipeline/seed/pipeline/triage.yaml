@@ -1,0 +1,176 @@
+# ===========================================================================
+# triage.yaml — die EINE Datei, die diese Pipeline definiert.
+#
+# Uebernommen aus https://github.com/tonbistudio/hermes-multi-agent-workflow
+# und auf Hermes-Bordmittel umgeschrieben: dort liest eine Python-Engine
+# (engine/) diese Datei ein, hier lesen die Worker sie direkt. Der Aufbau ist
+# absichtlich derselbe geblieben — wer das Original kennt, findet sich wieder.
+#
+# Die Form der Pipeline ist fest:
+#
+#   Quellen -> Intake -> Dedup -> Bewertung -> Recherche (parallel) -> Route
+#                                                                      |
+#                        +----------------+----------------+-----------+
+#                      Pfad build      Pfad video       shelve (automatisch)
+#                        +-------+--------+
+#                          -- MENSCHLICHES TOR --   approve | shelve | modify
+#                        +-------+--------+
+#                        Umsetzung      Umsetzung
+#
+# Was durch sie hindurchfliesst, steht hier. Nur hier.
+# ===========================================================================
+
+name: ki-agenten-schmerzpunkte
+board: kanban-story-10
+tenant: triage
+
+# Alle Pfadangaben sind relativ zum Workspace ($HERMES_KANBAN_WORKSPACE).
+workspace_root: work
+
+# ---------------------------------------------------------------------------
+# QUELLEN — die Scouts. Im Original sind das Cron-Jobs, die live auf X, Reddit
+# und im Web suchen. Hier lesen sie ein eingefrorenes Korpus unter sources/,
+# damit die Story reproduzierbar ist und ohne Web-Zugang laeuft.
+#
+# Ein Scout ERKENNT nur. Er dedupliziert nicht, bewertet nicht, routet nicht.
+# ---------------------------------------------------------------------------
+sources:
+  - id: x
+    profile: triage-scout
+    verzeichnis: sources/x
+    bericht: intake/x.md
+    auftrag: |
+      Suche nach Leuten, die konkreten, aktuellen Schmerz mit KI-Coding-Agenten
+      beschreiben — verlorene Stunden, aufgegeben, kaputter Ablauf. Zitiere sie.
+      Ueberspringe vages Marketing.
+  - id: web
+    profile: triage-scout
+    verzeichnis: sources/web
+    bericht: intake/web.md
+    auftrag: |
+      Suche in Foren-, Reddit- und YouTube-Mitschriften nach Nutzern, die
+      konkrete Reibung oder Verwirrung beschreiben. Bevorzuge Faeden, in denen
+      mehrere Stimmen dasselbe bestaetigen.
+
+# ---------------------------------------------------------------------------
+# ITEM-SCHEMA — die Felder, die ein Scout je Kandidat liefert. Sie speisen
+# Dedup, Bewertung und Routing. titel, behauptung und quellen sind Pflicht.
+# ---------------------------------------------------------------------------
+item_schema:
+  felder:
+    - titel
+    - behauptung
+    - quellen
+    - warum_relevant
+    - loesbar_oder_erklaerbar
+    - loesungsluecke
+    - strategische_passung
+
+# ---------------------------------------------------------------------------
+# DEDUP — dasselbe Thema nicht zweimal erforschen. Es wird gegen die bereits
+# angelegten Item-Dateien unter vault/items/ verglichen, nicht gegen die Quellen.
+#
+#   duplikat        -> Quelle an das vorhandene Item anhaengen, Schluss
+#   moeglich        -> vermerken, trotzdem weiterlaufen lassen
+#   neu             -> neue Item-Datei anlegen
+# ---------------------------------------------------------------------------
+dedup:
+  verfahren: inhaltlich          # im Original: token-cosine bzw. Embeddings
+  hinweis: |
+    Zwei Kandidaten sind dasselbe Item, wenn sie denselben Fehlermechanismus
+    beschreiben — auch bei anderer Wortwahl, anderer Oberflaeche und anderer
+    Quelle. Unterschiedliche Symptome derselben Ursache sind EIN Item.
+
+# ---------------------------------------------------------------------------
+# RUBRIK — wie ein Item bewertet wird. Der Orchestrator vergibt je Dimension
+# 0..max, die Summe wird gegen die Schwelle geprueft. Alles unter der Schwelle
+# wird ARCHIVIERT, ohne dass ein Mensch je davon erfaehrt.
+# ---------------------------------------------------------------------------
+rubrik:
+  schwelle: 65                   # Maximum ist 100
+  dimensionen:
+    - {key: haeufigkeit,             max: 25, hinweis: "wie viele unabhaengige Quellen, wie oft wiederkehrend"}
+    - {key: schmerzintensitaet,      max: 20, hinweis: "wie akut — verlorene Stunden, blockiert, aufgegeben"}
+    - {key: loesbar_oder_erklaerbar, max: 25, hinweis: "kann ein Agent eine Loesung bauen ODER es sauber erklaeren"}
+    - {key: loesungsluecke,          max: 15, hinweis: "gibt es noch keine gute Loesung"}
+    - {key: strategische_passung,    max: 15, hinweis: "passt es zum Publikum des Kanals"}
+
+# ---------------------------------------------------------------------------
+# RECHERCHE-BAHNEN — parallele Untersuchung vor dem Routing. ALLE Bahnen
+# muessen fertig sein, bevor die Route-Karte feuert (Fan-in). Die
+# Klassifikator-Bahn liefert den Wert, den die Route-Tabelle unten liest.
+# ---------------------------------------------------------------------------
+recherche_bahnen:
+  rolle: triage-researcher
+  bahnen:
+    - quellen-pruefen            # ist der Schmerz echt, belegbar, nicht ein Einzelfrust?
+    - kontext                    # was ist zum Umfeld bereits bekannt?
+    - loesungs-audit             # was loest das heute schon? -> liefert die Klassifikation
+  klassifikator_bahn: loesungs-audit
+
+# ---------------------------------------------------------------------------
+# ROUTE — Klassifikation auf Pfad abbilden. Jeder Wert rechts MUSS ein
+# Schluessel unter paths: sein. Routing aendern heisst: diese Tabelle aendern.
+# ---------------------------------------------------------------------------
+route:
+  klassifikator: loesungs-audit.loesungsqualitaet
+  tabelle:
+    fehlt:            build      # es gibt gar nichts
+    kaputt:           build      # es gibt etwas, es funktioniert nicht
+    verwirrend:       video      # es gibt etwas, es versteht nur niemand
+    schlecht_erklaert: video     # es gibt etwas, es ist mies dokumentiert
+    veraltet:         video      # es gab etwas, es stimmt nicht mehr
+    gut:              shelve     # geloest — kein Handlungsbedarf
+
+# ---------------------------------------------------------------------------
+# PFADE — was je Route-Ergebnis passiert.
+#
+#   prep     Stufen VOR dem Tor
+#   propose  wer den Vorschlag schreibt und das Tor haelt
+#   fulfill  Stufen NACH der Freigabe — laufen alle im SELBEN dauerhaften
+#            Verzeichnis work/<unterverzeichnis>/<slug>/
+#   rails    harte Grenzen, werden in den Auftrag des Workers hineinkopiert
+#   spec     Ausgabeformat, wird ebenso hineinkopiert
+# ---------------------------------------------------------------------------
+paths:
+  build:
+    prep:
+      - {stufe: synthese, rolle: triage-analyst}
+    propose:
+      rolle: triage-orchestrator
+      vorlage: pipeline/proposals/build.md
+    fulfill:
+      - {stufe: prototyp, rolle: triage-builder}
+      - {stufe: test,     rolle: triage-tester}
+    unterverzeichnis: builds
+    rails: pipeline/rails/build.md
+
+  video:
+    prep:
+      - {stufe: outline, rolle: triage-producer}
+    propose:
+      rolle: triage-orchestrator
+      vorlage: pipeline/proposals/video.md
+    fulfill:
+      - {stufe: folien,  rolle: triage-producer}
+      - {stufe: skript,  rolle: triage-producer}
+    unterverzeichnis: videos
+    spec: pipeline/specs/video.md
+
+  shelve:
+    auto: true                   # Endstation, keine Arbeit
+
+# ---------------------------------------------------------------------------
+# TOR — der einzige menschliche Entscheidungspunkt der ganzen Pipeline.
+#
+# Im Original laeuft er ueber Telegram. Hier laeuft er ueber das Board selbst:
+# die Vorschlagskarte blockiert sich mit kanban_block(kind="needs_input"), du
+# antwortest mit `hermes kanban unblock <id> --reason "<verb> …"`, und derselbe
+# Worker liest deine Antwort in seinem zweiten Versuch.
+# ---------------------------------------------------------------------------
+gate:
+  kanal: kanban-block
+  verben:
+    approve: Umsetzung starten
+    shelve:  ablegen, nichts bauen
+    modify:  mit der genannten Aenderung umsetzen

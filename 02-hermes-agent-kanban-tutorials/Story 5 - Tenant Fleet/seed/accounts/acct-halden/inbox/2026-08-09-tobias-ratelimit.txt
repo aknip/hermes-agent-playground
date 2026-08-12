@@ -1,0 +1,13 @@
+Von: tobias.krenz@halden-logistics.example
+An: support@example-saas.test
+Betreff: Re: Rate Limit beim Backfill
+Datum: 2026-08-09 16:42
+
+wir haengen weiter bei 5.000 Events/Minute. Der Backfill sind 40 Mio Events,
+das laeuft damit 5,5 Tage. Ich habe das Ticket #4471 vor neun Tagen aufgemacht
+und seitdem eine Eingangsbestaetigung bekommen.
+
+Wenn wir bis zum 20.08. keine belastbare Aussage haben, gehen wir mit dem
+Vertrag nicht in die Verlaengerung. Das ist keine Drohung, das ist Planung.
+
+Tobias

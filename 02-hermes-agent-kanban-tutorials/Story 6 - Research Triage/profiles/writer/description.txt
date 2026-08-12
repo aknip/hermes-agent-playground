@@ -1,0 +1,1 @@
+Writer. Turns a ranked analysis into a short decision-ready brief for a named audience, with a recommendation and the open questions.

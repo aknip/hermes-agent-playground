@@ -1,0 +1,37 @@
+--- skills/kb-linter/kb-lint/SKILL.md	2026-08-11 17:35:06
++++ ~/.hermes/profiles/kb-linter/skills/kb-lint/SKILL.md	2026-08-11 19:09:51
+@@ -1,7 +1,7 @@
+ ---
+ name: kb-lint
+ description: "Ablauf des Lint-Schritts fuer die Wissensbasis: bin/kb_lint.py als Arbeitsliste nehmen, ERROR-Befunde reparieren, STALE und Prune-Vorschlaege sammeln ohne zu loeschen, erneut linten und beide Zahlen berichten. Enthaelt die zwei ehrlichen Reparaturen fuer einen toten Link und die Regel, warum der Linter nie angepasst wird."
+-version: 1.0.0
++version: 1.1.0
+ platforms: [linux, macos, windows]
+ ---
+ 
+@@ -57,9 +57,24 @@
+ | Weg | Wann |
+ |---|---|
+ | **Link entfernen** | Die verlinkte Seite ist nicht geplant. Der Satz wird so umformuliert, dass er ohne den Link vollständig ist. |
+-| **Seite schreiben** | Der Inhalt existiert als Wissen und gehört ohnehin hierher. |
++| **Seite schreiben** | Nur wenn die verlinkte Seite das Ergebnis **genau dieses Items** ist: der Ingestor schreibt sie in diesem Item laut Vorschlag, bzw. sie gehört zur Seitensatz dieses einen Items und soll hier den toten Link auflösen. Der Inhalt stammt aus den Quellen/Dem Vorschlag dieses Items — nie aus einer fremden Seite. |
+ | ~~Stub-Seite anlegen~~ | **Nie.** `AGENTS.md` 3 nennt einen Stub-Link genau deshalb einen Fehler: eine leere Seite macht den Linter still, ohne die Lücke zu schließen. |
+ 
++**Seite schreiben ist kein Tor-1-Loch.** Ein Linter schreibt niemals neue Seiten
++ausserhalb des Seitensatzes, den der Ingestor für genau dieses Item vorgegeben
++hat. Zeigt der tote Link auf eine Seite, die als **separates Peer-Item** in einer
++eigenen, gated Ingest-Kette ansteht (eigener Tor 1, eigenes `## Quellen`), dann
++darfst du deren Inhalt **nicht** hierher kopieren: das wäre Inhalt aus einer
++fremden Seite, der Tor 1 umginge und eine Herkunftslücke im Ingest-Log
++hinterliesse. In diesem Fall gibt es nur zwei Wege:
++
++- **Link entfernen**, falls der Link im Satz nicht zwingend ist; oder
++- **Befund unrepariert lassen** (`status: nicht repariert`) und im Bericht
++  vermerken, dass die Peer-Kette den Link später füllt (dort schreibt deren
++  Ingestor die Seite). Das ist ein gültiges `errors_after`-Ergebnis — die
++  Summary sagt dann in einem Satz, warum nur die Peer-Kette diesen Link auflösen
++  kann.
++
+ **Sage im Bericht, welchen Weg du gewählt hast, und warum.** Das ist die einzige
+ Stelle des Lint-Schritts, an der wirklich eine Entscheidung fällt.
+ 

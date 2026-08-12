@@ -1,0 +1,7 @@
+date,metric,value
+2026-08-03,active_users,27
+2026-08-05,active_users,29
+2026-08-07,active_users,31
+2026-08-09,active_users,30
+2026-08-08,webhook_failures,14
+2026-08-09,webhook_failures,0

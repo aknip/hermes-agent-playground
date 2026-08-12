@@ -1,0 +1,1 @@
+Analyst. Aggregates findings from several parallel researchers, deduplicates and ranks them by evidence strength, and resolves contradictions between sources.

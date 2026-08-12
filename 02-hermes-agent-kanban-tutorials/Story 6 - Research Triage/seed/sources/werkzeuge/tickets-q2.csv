@@ -1,0 +1,10 @@
+ticket,kunde,thema,schwere,status,tage_offen
+T-4310,Pergament Verlag,Import erzeugt ISBN-Duplikate,hoch,offen,59
+T-4471,Halden Logistics,Rate Limit blockiert Backfill,kritisch,offen,10
+T-4402,Alpsteg Handel,SDK python 3.12 inkompatibel,hoch,geschlossen,21
+T-4418,Quellwerk GmbH,Webhook-Signatur aendert sich,mittel,geschlossen,9
+T-4433,Birkenhof Media,Terraform-Provider fehlt fuer M2,mittel,offen,34
+T-4440,Nordwind Energie,CSV-Export bricht bei 5 Mio Zeilen ab,hoch,offen,28
+T-4455,Steinbach Kliniken,Aufbewahrungsfrist undokumentiert,mittel,offen,9
+T-4460,Alpsteg Handel,Migrationsskript ohne Trockenlauf,hoch,offen,17
+T-4466,Pergament Verlag,kein Rollback nach Teilmigration,kritisch,offen,14

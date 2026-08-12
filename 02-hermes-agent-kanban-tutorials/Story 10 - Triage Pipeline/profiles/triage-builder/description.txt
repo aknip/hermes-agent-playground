@@ -1,0 +1,1 @@
+Builder in a triage pipeline. Implements the approved tool as a single small Python file inside the item's persistent workspace, strictly within the scope rails, and hands it to the tester.

@@ -1,0 +1,1 @@
+Account manager. Runs the recurring per-customer routine: reads that account's inbox, activity log and open items, writes the daily account digest, and appends every action to the account journal.

@@ -1,0 +1,38 @@
+*   68369a6 merge kb/ingest-kanban-block-semantik-korrektur
+|\  
+| * 5f323e4 kanban-block-semantik: Grund positional statt --reason, --kind-vor-ID, Haltekraft, initial-status, Schleifendetail (Route konflikt, Quellen-Aussage gewinnt)
+|/  
+|    log/ingest-log.md              | 23 ++++++++++++++++
+|    pages/kanban-block-semantik.md | 54 +++++++++++++++++++++++++++++---------
+|    2 files changed, 65 insertions(+), 12 deletions(-)
+*   7e9d2e6 merge kb/ingest-dispatcher-reclaim-und-tick
+|\  
+| * 3f11e96 ingest: dispatcher-reclaim-und-tick
+|/  
+|    log/ingest-log.md               | 18 ++++++++++++++++++
+|    pages/gateway-und-dispatcher.md | 14 +++++++++-----
+|    2 files changed, 27 insertions(+), 5 deletions(-)
+*   0107cc2 merge kb/ingest-skills-system
+|\  
+| * b1ca3be ingest: skills-system
+|/  
+|    index.md                   |  1 +
+|    log/ingest-log.md          | 18 ++++++++++
+|    pages/cron-und-zeitplan.md |  8 ++---
+|    pages/kanban-board.md      |  3 +-
+|    pages/memory-system.md     |  1 +
+|    pages/profile-system.md    |  2 +-
+|    pages/skills-system.md     | 82 ++++++++++++++++++++++++++++++++++++++++++
+|    7 files changed, 108 insertions(+), 7 deletions(-)
+* 6a67a2b seed: Wissensbasis im Ausgangszustand
+   AGENTS.md                       | 192 ++++++++++++++++++++++++++++++++++++++
+   index.md                        |  31 ++++++
+   log/ingest-log.md               |  18 ++++
+   pages/cron-und-zeitplan.md      |  55 +++++++++++
+   pages/gateway-und-dispatcher.md |  71 ++++++++++++++
+   pages/kanban-block-semantik.md  |  61 ++++++++++++
+   pages/kanban-board.md           |  72 ++++++++++++++
+   pages/memory-system.md          |  53 +++++++++++
+   pages/profile-system.md         |  59 ++++++++++++
+   pages/release-historie.md       |  54 +++++++++++
+   10 files changed, 666 insertions(+)

@@ -1,0 +1,1 @@
+Orchestrator and judge of a triage pipeline. Deduplicates scout candidates, scores them against the rubric, builds the research fan-out, resolves the route, drafts the proposal and holds the single human approval gate. Spawns the follow-up cards itself.

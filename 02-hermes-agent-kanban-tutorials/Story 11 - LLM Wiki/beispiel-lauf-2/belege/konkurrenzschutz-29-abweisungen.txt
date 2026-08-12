@@ -1,0 +1,19 @@
+=== Konkurrenzschutz, Code-Ebene: 29 Abweisungen ===
+
+Karte t_0f946269 'Ingest: block-semantik-0-20-x'
+{"parents":["t_6abd06fe"]}
+Karte t_a49aaf79 'Ingest: skills-system'
+{"parents":["t_6abd06fe"]}
+
+-> beide haengen an t_6abd06fe (Commit + Tor 2: kanban-board-0-20-x)
+-> nach dessen Abschluss wurden beide gleichzeitig lauffaehig
+
+=== outcome-Verteilung aller 65 Runs ===
+  36 blocked
+  29 completed
+
+=== die Abweisungsgruende (erste 4 von 29) ===
+Branch kb/ingest-block-semantik-0-20-x abgewiesen: offener Ingest kb/ingest-skills-system (Commit 0020d6f, ungemergt, main=4052eda). Gemeinsamer dir-Workspace erzwingt eine Serialisierung. Warte auf skills-system-Kette (Lint t_02c13c3d → Commit+Tor2 t_d14180d5), die den Branch nach main bringt, bevor dieser Ingest anlegen kann.
+Branch kb/ingest-block-semantik-0-20-x weiterhin abgewiesen: offener Ingest kb/ingest-skills-system (Commit 0020d6f ungemergt, main=4052eda). Deren Kette ist noch nicht durch: Lint t_02c13c3d laeuft, Commit+Tor2 t_d14180d5 ist todo. main wird erst frei, wenn die skills-system-Kette nach main gemergt ist; dieser Ingest wartet darauf (gemeinsamer dir-Workspace erzwingt Serialisierung).
+Branch kb/ingest-block-semantik-0-20-x weiterhin abgewiesen: offener Ingest kb/ingest-skills-system (Commit 0020d6f ungemergt, main=4052eda). Deren Kette ist noch nicht durch: Lint t_02c13c3d laeuft gerade, Commit+Tor2 t_d14180d5 ist todo. main wird erst frei, wenn die skills-system-Kette nach Tor 2 nach main gemergt ist; dieser Ingest wartet darauf (gemeinsamer dir-Workspace erzwingt Serialisierung).
+Branch kb/ingest-block-semantik-0-20-x weiterhin abgewiesen: offener Ingest kb/ingest-skills-system (Commit 0020d6f ungemergt, main=4052eda). Deren Kette ist noch nicht durch: Lint t_02c13c3d laeuft gerade, Commit+Tor2 t_d14180d5 ist todo. main wird erst frei, wenn die skills-system-Kette nach Tor 2 nach main gemergt ist; dieser Ingest wartet darauf (gemeinsamer dir-Workspace erzwingt Serialisierung).

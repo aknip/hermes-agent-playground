@@ -1,0 +1,10 @@
+Von: c.behrens@steinbach-kliniken.example
+An: support@example-saas.test
+Betreff: Auditnachweis Zugriffsprotokolle
+Datum: 2026-08-09 10:40
+
+Fuer das interne Audit am 26.08. brauchen wir einen Nachweis, wie lange
+Zugriffsprotokolle aufbewahrt werden und wer sie einsehen kann.
+Bitte schriftlich, es geht in die Pruefakte.
+
+Dr. Behrens

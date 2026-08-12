@@ -1,0 +1,1 @@
+Backend engineer. Designs database schemas, writes migrations, implements REST/HTTP API endpoints in Python and TypeScript, and handles auth, sessions and tokens.

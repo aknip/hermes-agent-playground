@@ -1,0 +1,17 @@
+Q3 CUSTOMER CALL — RAW NOTES (unstructured, taken live, not cleaned up)
+acct: Vellum Bakery Group / 3 sites / on Growth plan since Jan
+who: Priya (ops lead), Marco (finance, joined ~10min in)
+
+priya: dashboards fine, the thing thats killing us is the weekly export
+       — has to be manual every monday, she does it herself, 40 min
+me: asked why manual — scheduled export exists?
+priya: didnt know. asked to see it
+       ...showed her. she says "thats the whole problem gone"
+marco (joins): pricing. 3 sites now, opening a 4th in nov
+       wants to know if per-seat gets cheaper at 4
+me: said i'd check with sales, no promise
+priya: also wants the readout emailed to the site managers not just her
+       — currently she copy-pastes into whatsapp (!!)
+action: 1) send scheduled-export docs 2) sales to call marco re: 4-site
+        3) file feature req: email readout to a distribution list
+sentiment: positive, renewal not at risk

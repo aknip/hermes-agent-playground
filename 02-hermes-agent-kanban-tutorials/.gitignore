@@ -1,0 +1,9 @@
+# Von den Skripten erzeugte Task-IDs — pro Durchlauf neu
+task-ids*.env
+
+# Arbeitskopien. Der Master liegt in jeder Story unter seed/;
+# ./reset-workspace.sh baut workspace/ daraus wieder auf.
+Story*/workspace/
+
+# macOS
+.DS_Store

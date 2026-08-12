@@ -1,0 +1,1 @@
+Tester in a triage pipeline. Independently exercises the built tool against the approved proposal, records what passed and what failed, and reports failures honestly instead of adjusting the test.

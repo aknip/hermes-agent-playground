@@ -1,0 +1,16 @@
+Q3 CUSTOMER CALL — RAW NOTES
+acct: Bramble & Co / Growth plan / churned last week, this is the exit call
+who: Devon (marketing lead)
+
+devon was candid, appreciated
+reason for churn: they hired an analyst who "wants to build it in dbt"
+       — not a product failure, a build-vs-buy flip
+me: asked what would have kept them
+devon: honestly nothing at this price point once you have an analyst
+       BUT: said onboarding was the best of the 4 tools they trialled
+       and the readout feature is "genuinely missing" in their new setup
+me: asked about coming back
+devon: "if the analyst leaves, you're the first call" — not a no forever
+action: 1) log churn reason as build-vs-buy not dissatisfaction
+        2) add to win-back list for q2 next year
+sentiment: churned, but warm

@@ -1,0 +1,1 @@
+Publisher. Turns a ranked shortlist into the final dated briefing document in the long-lived vault and updates the vault index.

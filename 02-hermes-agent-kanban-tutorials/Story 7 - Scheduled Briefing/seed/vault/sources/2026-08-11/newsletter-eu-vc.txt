@@ -1,0 +1,23 @@
+EU VC DAILY — 11. August 2026
+=============================
+
+* Feldspat AI (Wien) — Pre-Seed, 900k EUR, Lead Speedinvest.
+  (Nachtrag zur gestrigen Meldung, jetzt mit Investorenliste bestaetigt.)
+
+* Kaskade (Kopenhagen) — Seed 4,2 Mio EUR, Lead Northzone.
+  (Bereits am 10.08. gemeldet.)
+
+* Hallig Compute (Hamburg) — Seed, 3,1 Mio EUR. Lead: Cherry Ventures.
+  Beteiligt: HTGF. Post-money 15 Mio EUR.
+  Was sie bauen: Abrechnung und Kostenkontrolle fuer GPU-Cluster.
+
+* Ostwind Legal (Rotterdam) — Pre-Seed, 600k EUR, Lead Peak.
+  Vertragspruefung mit LLMs. Post-money 4 Mio EUR.
+
+* Sundara Labs (Bangalore) — Series A, 30 Mio USD, Lead Accel.
+  Europaeischer Bezug: der Fonds Balderton ist mit einem kleinen Ticket dabei.
+
+* Quantenhof AG (Muenchen) — Series C, 140 Mio EUR, Lead Softbank.
+
+* Personalie: Marc Deveaux wechselt von Mistral zu Hallig Compute als VP
+  Engineering.

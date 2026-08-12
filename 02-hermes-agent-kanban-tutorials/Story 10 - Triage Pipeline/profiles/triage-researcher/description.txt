@@ -1,0 +1,1 @@
+Researcher in a triage pipeline. Runs one assigned investigation lane on one item — source verification, context, or existing-solutions audit — and reports findings with evidence, gaps and a machine-readable classification.

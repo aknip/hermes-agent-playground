@@ -1,0 +1,1 @@
+Video producer in a triage pipeline. Researches an approved explainer topic, builds the outline, then produces slides, speaker script and a fact check inside the item's persistent workspace.

@@ -1,0 +1,282 @@
+# ===========================================================================
+# ingest.yaml — die EINE Datei, die diese Pipeline definiert.
+#
+# Nachgebaut aus https://github.com/tonbistudio/llm-wiki und
+# https://github.com/tonbistudio/hermes-multi-agent-workflow, umgeschrieben auf
+# Hermes-Bordmittel: dort liest eine Python-Engine die Konfiguration ein, hier
+# lesen die Worker sie direkt. Der Aufbau ist absichtlich derselbe geblieben.
+#
+#   sources/ -> Scout -> Triage (Dedup gegen die WISSENSBASIS + Rubrik)
+#                          |
+#                          +-- unter der Schwelle -> geshelved. Ende.
+#                          |
+#                       2 Recherche-Bahnen (parallel)
+#                          |
+#                        Route: neue_seite | update | konflikt | shelve
+#                          |
+#                   == TOR 1 ==  approve | shelve | modify
+#                          |
+#                       Ingest  (Branch anlegen, Seiten schreiben)
+#                          |
+#                       Lint    (bin/kb_lint.py — deterministisch)
+#                          |
+#                   == TOR 2 ==  merge | merge-ohne-prune | discard
+#                          |
+#                       Merge nach main (bin/kb_git.py)
+#
+# ZWEI Unterschiede zu Story 10, die hier alles bestimmen:
+#
+#   1. Es gibt ZWEI Tore. Das zweite entscheidet ueber das LOESCHEN von Wissen
+#      und ueber den Merge nach main. Warum das nicht dasselbe Tor sein darf,
+#      steht in wiki/AGENTS.md, Abschnitt 6.
+#   2. Der autoritative Vertrag ist wiki/AGENTS.md, und ein deterministischer
+#      Linter (bin/kb_lint.py) prueft ihn. Was hier in Prosa steht, steht dort
+#      als Code — genau der Tausch, den Story 10 als offene Rechnung hinterlaesst.
+# ===========================================================================
+
+name: hermes-agent-wissensbasis
+board: kanban-story-11
+tenant: wiki
+
+# Alle Pfade sind relativ zum Workspace ($HERMES_KANBAN_WORKSPACE).
+wissensbasis: wiki                  # das Git-Repository
+vertrag:      wiki/AGENTS.md        # die autoritative Datei
+linter:       bin/kb_lint.py        # die maschinelle Fassung des Vertrags
+git_helfer:   bin/kb_git.py         # sechs geprueft Verben, kein freies git
+
+# ---------------------------------------------------------------------------
+# QUELLEN — die Scouts. Im Original suchen sie live: GitHub-Releases, der
+# eigene YouTube-Kanal, spaeter Community-Ressourcen und X. Hier lesen sie ein
+# eingefrorenes Korpus, damit die Story ohne Netz und ohne API-Schluessel laeuft
+# und zwei Durchlaeufe vergleichbar bleiben.
+#
+# Die Rohquellen liegen ABSICHTLICH ausserhalb von wiki/ — also ausserhalb des
+# Git-Repositorys. Ein falscher Ingest ist damit immer zurueckzunehmen: git
+# stellt die Wissensbasis wieder her, sources/ war nie angetastet.
+# ---------------------------------------------------------------------------
+sources:
+  - id: releases
+    profile: kb-scout
+    verzeichnis: sources/releases
+    bericht: intake/releases.md
+    auftrag: |
+      Werte Changelogs und Release-Notes aus. Jede inhaltliche Aenderung, die
+      eine Aussage in der Wissensbasis betrifft, ist ein Kandidat: neue
+      Funktion, geaendertes Verhalten, Deprecation, korrigierte Dokumentation.
+      Halte fest, welche Version und welches Datum die Aenderung traegt.
+  - id: transcripts
+    profile: kb-scout
+    verzeichnis: sources/transcripts
+    bericht: intake/transcripts.md
+    auftrag: |
+      Werte Video-Transkripte aus. Ein Kandidat ist eine ueberpruefbare Aussage
+      ueber Hermes Agent — ein gemessenes Verhalten, eine korrigierte Annahme,
+      eine erklaerte Mechanik. Zitiere mit Zeitmarke. Reine Ankuendigungen,
+      Kanal-Neuigkeiten und Meinungen sind KEINE Kandidaten.
+
+# ---------------------------------------------------------------------------
+# ITEM-SCHEMA — was ein Scout je Kandidat liefert.
+# ---------------------------------------------------------------------------
+item_schema:
+  felder:
+    - titel
+    - aussage                # was genau behauptet wird, in einem Satz
+    - quellen                # Datei + Zeitmarke/Abschnitt + woertliches Zitat
+    - version                # auf welche Hermes-Version es sich bezieht
+    - betrifft_vermutlich    # welche Wiki-Seiten es beruehren koennte
+    - neuheit_vermutet       # steht das schon in der Wissensbasis? Vermutung genuegt
+
+# ---------------------------------------------------------------------------
+# DEDUP — hier anders als in Story 10: verglichen wird nicht gegen andere
+# Kandidaten, sondern gegen die WISSENSBASIS SELBST. Die Frage ist nicht
+# "haben wir das schon gemeldet", sondern "wissen wir das schon".
+#
+# Das ist der Mechanismus, der im Original den Beweis liefert, dass die
+# Pipeline funktioniert: sie shelved ein Release, das der Mensch selbst schon
+# von Hand eingepflegt hatte.
+# ---------------------------------------------------------------------------
+dedup:
+  gegen: wiki/pages           # NICHT gegen die anderen Kandidaten
+  verfahren: inhaltlich
+  hinweis: |
+    Lies die betroffenen Seiten unter wiki/pages/ WIRKLICH, bevor du
+    "neu" sagst. Ein Kandidat ist abgedeckt, wenn die Aussage dort in
+    gleicher Genauigkeit schon steht — nicht, wenn das Thema dort
+    vorkommt. "Die Seite erwaehnt Blocks" ist keine Abdeckung fuer
+    "der Grund ist positional".
+
+# BUENDELUNG — mehrere Quellen, die dieselben Seiten betreffen und erst
+# zusammen eine Aussage ergeben, werden zu EINEM Item. Im Original wird genau
+# so aus zwei Patch-Releases eine einzige Ingest-Proposal.
+buendelung:
+  kriterium: |
+    Zwei Kandidaten gehoeren in dasselbe Item, wenn sie dieselbe Seitengruppe
+    betreffen UND aus derselben Release-Linie bzw. demselben Vorgang stammen.
+    Zwei Patch-Releases derselben Hauptversion sind EIN Item.
+  slug_hinweis: |
+    Der Slug beschreibt das Item, nicht die Quelle:
+    'patch-releases-0-20-x', nicht 'changelog-0-20-1'.
+
+# ---------------------------------------------------------------------------
+# RUBRIK — die fuenf Kriterien aus dem Original, Schwelle 65 von 100.
+# Alles darunter wird geshelved, ohne dass ein Mensch je davon erfaehrt.
+# ---------------------------------------------------------------------------
+rubrik:
+  schwelle: 65
+
+  # DECKEL AUF DIE AUFMERKSAMKEIT. Die Schwelle sortiert nach Wichtigkeit, aber
+  # sie begrenzt die MENGE nicht: ein reiches Korpus kann ein Dutzend Items ueber
+  # 65 liefern, und jedes davon kostet den Menschen ZWEI Entscheidungen.
+  #
+  # Real gemessen (siehe TUTORIAL.md, "Was dieser Lauf ueber die Menge gezeigt
+  # hat"): das eingefrorene Korpus dieser Story ergab 15 Items, davon SECHS ueber
+  # der Schwelle — also zwoelf Torfragen aus einem einzigen Sweep.
+  #
+  # Deshalb gehen je Lauf nur die besten `max_pro_lauf` Items in den Fan-out.
+  # Der Rest wird NICHT verworfen, sondern auf `zurueckgestellt` gesetzt und
+  # liegt im Vault, bis der naechste Sweep ihn aufnimmt.
+  #
+  # Die knappe Ressource dieser Pipeline sind nicht Tokens, sondern die
+  # Aufmerksamkeit des Menschen am Tor. Ein Tor, an dem zwoelf Karten warten,
+  # wird nicht sorgfaeltiger beantwortet als eines mit drei — es wird
+  # unsorgfaeltiger.
+  max_pro_lauf: 3
+
+  dimensionen:
+    - {key: neuheit,          max: 25, hinweis: "steht es noch nicht in der Wissensbasis — geprueft, nicht vermutet"}
+    - {key: quellenvertrauen, max: 20, hinweis: "offizieller Changelog > gemessene Demo > Behauptung > Ankuendigung"}
+    - {key: themenbezug,      max: 25, hinweis: "direkter Bezug zu Hermes Agent, nicht zum Umfeld"}
+    - {key: versionsrelevanz, max: 15, hinweis: "betrifft es die aktuelle Version oder eine ueberholte"}
+    - {key: klarheitsgewinn,  max: 15, hinweis: "wird eine Antwort dadurch praeziser oder nur laenger"}
+
+# ---------------------------------------------------------------------------
+# RECHERCHE-BAHNEN — zwei parallele Bahnen je Item, Fan-in auf die Route-Karte.
+# Die Klassifikator-Bahn liefert den Wert, den route.tabelle nachschlaegt.
+# ---------------------------------------------------------------------------
+recherche_bahnen:
+  rolle: kb-researcher
+  bahnen:
+    - verifikation        # stimmt die Aussage? ist die Quelle belastbar?
+    - seiten-abgleich     # welche Seiten sind betroffen? -> liefert die Klassifikation
+  klassifikator_bahn: seiten-abgleich
+  klassifikator_feld: wissensstand
+
+# ---------------------------------------------------------------------------
+# ROUTE — Klassifikation auf Pfad abbilden. Jeder Wert rechts MUSS ein
+# Schluessel unter paths: sein. Routing aendern heisst: diese Tabelle aendern.
+# ---------------------------------------------------------------------------
+route:
+  klassifikator: seiten-abgleich.wissensstand
+  tabelle:
+    fehlt:        neue_seite   # kein Platz in der Wissensbasis hat es aufgenommen
+    unvollstaendig: update     # Seite existiert, Aussage fehlt oder ist ungenau
+    widerspruch:  konflikt     # Seite existiert und sagt etwas ANDERES
+    abgedeckt:    shelve       # steht schon da, in gleicher Genauigkeit
+
+# ---------------------------------------------------------------------------
+# PFADE — was je Route-Ergebnis passiert.
+#
+#   prep     Stufen VOR Tor 1
+#   propose  wer den Vorschlag schreibt und Tor 1 haelt
+#   fulfill  Stufen NACH der Freigabe — laufen alle im SELBEN Verzeichnis,
+#            naemlich dem Workspace, weil die Wissensbasis dort liegt
+# ---------------------------------------------------------------------------
+paths:
+  neue_seite:
+    prep: []                              # der Seiten-Abgleich hat genug geliefert
+    propose:
+      rolle: kb-orchestrator
+      vorlage: proposals/neue-seite.md
+    fulfill:
+      - {stufe: ingest, rolle: kb-ingestor}
+      - {stufe: lint,   rolle: kb-linter}
+      - {stufe: commit, rolle: kb-orchestrator}
+
+  update:
+    prep: []
+    propose:
+      rolle: kb-orchestrator
+      vorlage: proposals/update.md
+    fulfill:
+      - {stufe: ingest, rolle: kb-ingestor}
+      - {stufe: lint,   rolle: kb-linter}
+      - {stufe: commit, rolle: kb-orchestrator}
+
+  konflikt:
+    # Der bemerkenswerteste Pfad. Neue Information widerspricht einer
+    # bestehenden Seite. Das Erkennen ist die eigentliche Bewertungsarbeit;
+    # alles danach sind deterministische Linter-Checks.
+    prep:
+      - {stufe: konflikt-dossier, rolle: kb-researcher}
+    propose:
+      rolle: kb-orchestrator
+      vorlage: proposals/konflikt.md
+    fulfill:
+      - {stufe: ingest, rolle: kb-ingestor}
+      - {stufe: lint,   rolle: kb-linter}
+      - {stufe: commit, rolle: kb-orchestrator}
+
+  shelve:
+    auto: true                            # Endstation, keine Arbeit, kein Tor
+
+# ---------------------------------------------------------------------------
+# DIE ZWEI TORE
+#
+# Jedes Tor ist eine EIGENE Karte. Das ist keine Stilfrage:
+# BLOCK_RECURRENCE_LIMIT ist 2 und wird PRO BLOCK-ART gezaehlt. Blockiert ein
+# Worker seine Karte nach einem unblock ein zweites Mal mit derselben Art,
+# landet sie in der TRIAGE statt in blocked (Ereignis: block_loop_detected).
+# Zwei Tore auf einer Karte gehen also nur mit zwei verschiedenen Arten und
+# genau einmal je Art — zwei Karten gehen immer.
+# ---------------------------------------------------------------------------
+tore:
+  tor1:
+    karte: "Vorschlag + Tor 1"
+    kind: needs_input
+    frage: "Soll dieses Wissen in die Wissensbasis?"
+    verben:
+      approve: "Ingest starten"
+      shelve:  "ablegen, nichts schreiben"
+      modify:  "mit der genannten Aenderung ingesten"
+  tor2:
+    karte: "Commit + Tor 2"
+    kind: capability
+    frage: "Soll dieser Branch nach main — samt der vorgeschlagenen Prunes?"
+    verben:
+      merge:              "committen und nach main verschmelzen, Prunes inklusive"
+      merge-ohne-prune:   "Inhalt uebernehmen, aber nichts loeschen"
+      discard:            "Branch wegwerfen, main bleibt unveraendert"
+
+# ---------------------------------------------------------------------------
+# GIT — Branch je Ingest. Der Helfer ist der einzige erlaubte Weg.
+#
+# KONKURRENZSCHUTZ: Alle Ingests arbeiten im SELBEN Arbeitsbaum. Zwei
+# gleichzeitig wuerden sich ueberschreiben. Zwei Ebenen verhindern das:
+#   1. kooperativ  — die Ingest-Karte eines Items bekommt die Commit-Karte des
+#                    vorherigen Items als parent (der Orchestrator findet sie
+#                    mit kanban_list).
+#   2. deterministisch — kb_git.py branch WEIST AB, solange ein anderer
+#                    Ingest-Branch offen ist. Das haelt auch dann, wenn Ebene 1
+#                    versagt.
+# ---------------------------------------------------------------------------
+git:
+  hauptbranch: main
+  branch_muster: "kb/ingest-<slug>"
+  konkurrenz: seriell
+  merge_bedingung: |
+    kb_git.py merge fuehrt kb_lint.py auf dem Branch aus und weist den Merge
+    ab, wenn ein ERROR-Befund vorliegt. In main landet nur eine Wissensbasis,
+    die den Vertrag erfuellt. Das ist kein Ratschlag, sondern eine
+    Vorbedingung im Code.
+
+# ---------------------------------------------------------------------------
+# LINT — der deterministische Teil. 14 Regeln, alle aus wiki/AGENTS.md.
+# ---------------------------------------------------------------------------
+lint:
+  aufruf: "python3 bin/kb_lint.py wiki"
+  severities:
+    ERROR:           "sperrt den Merge"
+    STALE:           "Aktualitaet abgelaufen — pruefen, NICHT loeschen"
+    PRUNE-VORSCHLAG: "Loeschkandidat. Entscheidet ausschliesslich Tor 2."
+  freshness_tage: 180
+  max_zeilen: 120

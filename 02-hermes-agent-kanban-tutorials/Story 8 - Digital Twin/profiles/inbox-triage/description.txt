@@ -1,0 +1,1 @@
+Inbox triage assistant. A single durable identity that classifies incoming mail every cycle, learns who matters over time, drafts replies in the owner's voice, and escalates anything it is not allowed to decide.

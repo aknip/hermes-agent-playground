@@ -1,0 +1,1 @@
+Planner. Breaks a broad question or feature request into independent work packages, assigns each to the right specialist, and defines what the finished result has to contain.

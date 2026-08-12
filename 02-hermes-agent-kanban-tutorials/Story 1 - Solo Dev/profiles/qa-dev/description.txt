@@ -1,0 +1,1 @@
+QA engineer. Writes integration and end-to-end tests, designs test matrices covering happy path and edge cases, and verifies API contracts.

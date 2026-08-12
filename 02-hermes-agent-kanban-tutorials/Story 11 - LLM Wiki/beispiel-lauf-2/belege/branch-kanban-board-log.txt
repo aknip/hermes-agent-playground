@@ -1,0 +1,24 @@
+* 8a9fe6b lint kanban-board-0-20-x: 5 ERROR-Befunde behoben
+|  index.md                   |  1 +
+|  pages/cron-und-zeitplan.md |  8 +++----
+|  pages/kanban-board.md      |  3 +--
+|  pages/memory-system.md     |  1 +
+|  pages/skills-system.md     | 57 ++++++++++++++++++++++++++++++++++++++++++++
+|  5 files changed, 64 insertions(+), 6 deletions(-)
+* f45add9 kanban-board-0-20-x: vier 0.20.x-Board-Verhalten ergaenzt, swarm-Signatur in release-historie nachgezogen
+|  log/ingest-log.md         | 13 +++++++++++++
+|  pages/kanban-board.md     | 21 ++++++++++++++++++---
+|  pages/release-historie.md |  6 +++---
+|  3 files changed, 34 insertions(+), 6 deletions(-)
+* 4052eda seed: Wissensbasis im Ausgangszustand
+   AGENTS.md                       | 192 ++++++++++++++++++++++++++++++++++++++
+   index.md                        |  31 ++++++
+   log/ingest-log.md               |  18 ++++
+   pages/cron-und-zeitplan.md      |  55 +++++++++++
+   pages/gateway-und-dispatcher.md |  71 ++++++++++++++
+   pages/kanban-block-semantik.md  |  61 ++++++++++++
+   pages/kanban-board.md           |  72 ++++++++++++++
+   pages/memory-system.md          |  53 +++++++++++
+   pages/profile-system.md         |  59 ++++++++++++
+   pages/release-historie.md       |  54 +++++++++++
+   10 files changed, 666 insertions(+)

@@ -1,0 +1,1 @@
+Analyst in a triage pipeline. Synthesizes the parallel research lanes of one item into a single decision-ready brief for the build path: what the problem is, what a tool would have to do, and what it must not do.

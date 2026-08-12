@@ -1,0 +1,1 @@
+Copywriter. Writes short product descriptions, marketing headlines and e-commerce copy from product attribute data.

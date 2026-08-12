@@ -1,0 +1,10 @@
+Von: mika.brand@quellwerk.example
+An: support@example-saas.test
+Betreff: Frage zu Webhook-Retries
+Datum: 2026-08-09 14:20
+
+Wie oft wiederholt ihr einen fehlgeschlagenen Webhook und mit welchem Backoff?
+Wir haben gestern ein Deployment-Fenster gehabt und wollen wissen, ob wir
+Ereignisse verloren haben.
+
+Mika

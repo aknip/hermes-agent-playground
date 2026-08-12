@@ -1,0 +1,6 @@
+title = "Project Config"
+theme = "light"
+approve_required = false
+
+[server]
+port = 9090

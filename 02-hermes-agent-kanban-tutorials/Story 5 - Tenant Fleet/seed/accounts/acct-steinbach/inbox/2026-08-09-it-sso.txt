@@ -1,0 +1,9 @@
+Von: it-betrieb@steinbach-kliniken.example
+An: support@example-saas.test
+Betreff: SSO-Zertifikat laeuft ab
+Datum: 2026-08-09 13:55
+
+Unser IdP-Zertifikat laeuft am 2026-08-22 ab. Wie tauschen wir das aus, ohne
+dass die Anmeldung fuer 900 Nutzer ausfaellt? Gibt es ein Wartungsfenster?
+
+IT-Betrieb

@@ -1,0 +1,10 @@
+Von: sam.oduya@halden-logistics.example
+An: support@example-saas.test
+Betreff: Dashboard laedt langsam
+Datum: 2026-08-09 09:12
+
+Das Ops-Dashboard braucht seit Montag ~14 s bis es steht, vorher ~2 s.
+Betrifft nur die Ansicht "Fleet Live", die anderen sind normal.
+Kein Blocker, aber es nervt die Disponenten.
+
+Sam

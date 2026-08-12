@@ -1,0 +1,1 @@
+"""minibuch — winziges Buchhaltungsmodul."""
