@@ -7,6 +7,15 @@ gelassen hat.
 
 Basiert auf `/Docs/Hermes Agent Kanban Workflow - LLM Wiki - Video und Github-Repo.md`
 
+
+Quelle:
+https://www.youtube.com/watch?v=hbKvO5MWq08
+https://github.com/tonbistudio/llm-wiki
+Basiert auf:
+https://www.youtube.com/watch?v=EKVRqcpTT6s&t=881s
+https://github.com/tonbistudio/hermes-multi-agent-workflow
+
+
 | | |
 |---|---|
 | Board | `kanban-story-11` |

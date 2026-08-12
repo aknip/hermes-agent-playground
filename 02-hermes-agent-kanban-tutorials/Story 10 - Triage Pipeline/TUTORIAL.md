@@ -5,6 +5,10 @@ vollständig; keine andere Story wird vorausgesetzt.
 
 Baiert auf "/Docs/Hermes Agent Kanban Workflow - Video und Github-Repo.md"
 
+Quellen:
+https://www.youtube.com/watch?v=EKVRqcpTT6s
+https://github.com/tonbistudio/hermes-multi-agent-workflow
+
 | | |
 |---|---|
 | Board | `kanban-story-10` |
