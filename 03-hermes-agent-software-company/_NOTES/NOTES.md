@@ -41,7 +41,10 @@ Nutze als Modell "deepseek/deepseek-v4-flash-0731" über OpenRouter.
 Bitte regelmässig nach git committen, so dass auch jederzeit zurückgerollt werden kann.
 
 
-
+Weiter mit "03-hermes-agent-software-company/KONZEPT.html", Kapitel 12, Phase 2. Repo : "/Users/aknipschild/github/hermes-agent-playground/04-hermes-agent-software-company-test-kaneo". 
+Nutze als Modell "deepseek/deepseek-v4-flash-0731" über OpenRouter.
+Übernimm auch für diesen Teil der Umsetzung bitte die Rolle des CEO und "ent-blocke" alle Tickets im Kanban-Board nach eigener Einschätzung. Beantworte auch alle anderen Rückfragen werden der Entwicklung selbstständig.
+Bitte regelmässig nach git committen, so dass auch jederzeit zurückgerollt werden kann.
 
 
 

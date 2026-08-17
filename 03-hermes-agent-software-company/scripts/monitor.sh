@@ -177,15 +177,17 @@ fi
 # "S<nr> ", das der Chief of Staff setzt. Nur so zählt eine offene Karte
 # überhaupt mit — sonst gälte ein Sprint als voll, sobald seine erste Karte
 # fertig ist.
-sprint_von_titel() { printf '%s' "$1" | sed -n 's/^\(S[0-9][0-9]*\) .*/\1/p'; }
-
 for sprint in $(printf '%s' "$liste" | jq -r '.[].title' | sed -n 's/^\(S[0-9][0-9]*\) .*/\1/p' | sort -u); do
+    klein="$(printf '%s' "$sprint" | tr 'A-Z' 'a-z')"
     gesamt="$(printf '%s' "$liste" | jq --arg s "$sprint" '[.[] | select(.title | startswith($s + " "))] | length')"
     fertig="$(printf '%s' "$liste" | jq --arg s "$sprint" '[.[] | select((.title | startswith($s + " ")) and .status=="done")] | length')"
     if [ "$gesamt" -gt 0 ] && [ "$gesamt" -eq "$fertig" ]; then
         abschluss="$(printf '%s' "$liste" | jq -r --arg s "$sprint" \
             '[.[] | select(.title | startswith("Sprint-Abschluss " + $s))] | length')"
         if [ "$abschluss" -eq 0 ]; then
+            # Der Idempotenzschlüssel ist derselbe, den create-sprint.sh benutzt.
+            # Legt der Graph seine Abschluss-Karte selbst an, ist dieser Aufruf
+            # ein No-op — statt einer zweiten Karte für dieselbe Sache.
             k create "Sprint-Abschluss $sprint" \
                 --assignee esf-chief-of-staff \
                 --workspace "dir:$VAULT" \
@@ -195,15 +197,47 @@ for sprint in $(printf '%s' "$liste" | jq -r '.[].title' | sed -n 's/^\(S[0-9][0
 
 Schliesse den Sprint ab:
 1. scripts/check-sprint.sh $sprint laufen lassen — der Check entscheidet, nicht du.
-2. Sprint-Report nach reports/sprint-$sprint-report.html (AGENTS.md 5).
-3. Für jede Karte das (Schätzung, Ist)-Paar an esf-controller übergeben.
-4. Nächsten Sprint aus der Roadmap planen — oder, wenn der Härtungs-Sprint
-   fertig ist, die Release-Abschluss-Karte anlegen." >/dev/null 2>&1 \
+2. Sprint-Report nach reports/sprint-$klein-report.html (AGENTS.md 5; Dateinamen
+   sind klein mit Bindestrich, AGENTS.md 2.3).
+3. Die Tabelle der (Schätzung, Ist)-Paare aus ledger/estimates.jsonl in den
+   Report übernehmen — sie ist der Grund, warum es diesen Report gibt.
+
+Du legst KEINE Karten für den nächsten Sprint und KEINE Release-Abschluss-Karte
+an. Ob eine Ebene voll ist, prüft Code (Kapitel 9): den nächsten Sprint legt
+./create-sprint.sh an, den Release-Abschluss ./create-release.sh — beide prüfen
+ihre Vorbedingungen selbst." >/dev/null 2>&1 \
                 && melde INFO "Sprint $sprint ist voll — Abschluss-Karte angelegt" "" \
                 || true
         fi
     fi
 done
+
+# Release-Ebene: alle Sprint-Abschlüsse fertig, aber kein Release-Abschluss da.
+#
+# Anders als beim Sprint legt der Monitor hier KEINE Karte an, sondern meldet.
+# Grund: Welche Sprints zu einem Release gehören, steht in der freigegebenen
+# Roadmap und nicht im Kartentitel — ein jq-Ausdruck könnte es nur raten. Die
+# Vorbedingung prüft create-release.sh, das die Roadmap kennt; der Monitor sagt
+# nur, dass es an der Zeit ist. Ein Melder, der raten muss, legt sonst Karten
+# für Releases an, die es nicht gibt.
+sprint_abschluesse="$(printf '%s' "$liste" | jq '[.[] | select(.title | startswith("Sprint-Abschluss "))] | length')"
+sa_fertig="$(printf '%s' "$liste" | jq '[.[] | select((.title | startswith("Sprint-Abschluss ")) and .status=="done")] | length')"
+release_karten="$(printf '%s' "$liste" | jq '[.[] | select(.title | startswith("Release-Abschluss "))] | length')"
+
+if [ "$sprint_abschluesse" -gt 0 ] && [ "$sprint_abschluesse" -eq "$sa_fertig" ] \
+   && [ "$release_karten" -eq 0 ]; then
+    melde INFO "$sa_fertig Sprint-Abschluss/Abschlüsse fertig, kein Release-Abschluss offen — ./create-release.sh R<n> prüft, ob das Release voll ist" ""
+fi
+
+# Und die Gegenprobe, die leichter vergessen wird als sie wehtut: ein
+# Release-Abschluss ist fertig, aber niemand hat den CEO gefragt. Das wäre eine
+# Freigabe, die nie stattgefunden hat — und der Autonomie-Horizont 'release'
+# sagt genau das Gegenteil.
+ra_fertig="$(printf '%s' "$liste" | jq -r '[.[] | select((.title | startswith("Release-Abschluss ")) and .status=="done")] | length')"
+gate_karten="$(printf '%s' "$liste" | jq '[.[] | select(.title | startswith("GATE Release"))] | length')"
+if [ "$ra_fertig" -gt 0 ] && [ "$gate_karten" -eq 0 ]; then
+    melde ERROR "Release-Abschluss ist fertig, aber es gibt keine 'GATE Release'-Karte — ein Release ohne CEO-Freigabe widerspricht autonomie_horizont: release" ""
+fi
 
 # ---------------------------------------------------------------------------
 # Ausgabe
