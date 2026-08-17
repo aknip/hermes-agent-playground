@@ -1,0 +1,32 @@
+# ESF — Markt-Quellen des Ziel-Produkts (Kaneo, Projektmanagement/Kanban)
+#
+# Format:  <dateiname> | <url>
+# Zeilen mit # sind Kommentare.
+#
+# tick.sh holt diese Quellen täglich per curl nach
+# company/sources/<datum>/<dateiname>. Der esf-market-scout liest
+# ausschliesslich dieses Verzeichnis — Worker haben keinen Webzugriff.
+#
+# Eine Quelle, die nicht antwortet, hinterlässt eine <dateiname>.fehler-Datei.
+# Das ist Absicht: Ein stillschweigend fehlender Tag macht den Korpus zur Lüge.
+#
+# Auswahl: direkte Wettbewerber von Kaneo (einfache, oft selbst-gehostete
+# Kanban-/Projektplanung) plus die zwei Kategorieführer, an denen der
+# Erwartungshorizont der Käufer hängt.
+
+# --- Open Source, direkte Wettbewerber -------------------------------------
+plane-releases.json      | https://api.github.com/repos/makeplane/plane/releases
+vikunja-releases.json    | https://api.github.com/repos/go-vikunja/vikunja/releases
+kanboard-releases.json   | https://api.github.com/repos/kanboard/kanboard/releases
+focalboard-releases.json | https://api.github.com/repos/mattermost/focalboard/releases
+wekan-releases.json      | https://api.github.com/repos/wekan/wekan/releases
+taiga-releases.json      | https://api.github.com/repos/kaleidos-ventures/taiga/releases
+openproject-releases.json| https://api.github.com/repos/opf/openproject/releases
+huly-releases.json       | https://api.github.com/repos/hcengineering/platform/releases
+
+# --- Kategorieführer: der Erwartungshorizont --------------------------------
+linear-changelog.html    | https://linear.app/changelog
+height-startseite.html   | https://height.app
+
+# --- Das eigene Produkt zum Abgleich ----------------------------------------
+kaneo-releases.json      | https://api.github.com/repos/usekaneo/kaneo/releases
