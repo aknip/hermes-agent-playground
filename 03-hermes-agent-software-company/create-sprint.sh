@@ -1103,11 +1103,19 @@ ledger/estimates.jsonl. Danach prüfst du das Ergebnis, statt es zu glauben:
 
     $HERE/scripts/check-sprint.sh $S
 
-Der Check entscheidet, ob der Sprint messbar ist — nicht du. Schlägt er fehl,
-ist das dein wichtigstes Ergebnis: Er schlägt genau dann fehl, wenn eine
-Umsetzungs-, Review- oder Merge-Karte einen Istwert ohne bezifferte Schätzung
-trägt, also wenn das (Schätzung, Ist)-Paar zerrissen ist. Dann steht im Report,
-welche Karte und woran es lag — nicht ein grünes Bild über einer Lücke.
+Der Check entscheidet, ob der Sprint messbar ist — nicht du.
+
+FÜR DICH ZÄHLT PRÜFUNG 3: '(Schätzung, Ist)-Paare'. Sie ist der Riegel dieses
+Sprints. Sie schlägt genau dann fehl, wenn eine Umsetzungs-, Review- oder
+Merge-Karte einen Istwert ohne bezifferte Schätzung trägt — dann ist das Paar
+zerrissen und die Kalibrierung steht auf Sand. Ist sie rot, ist das dein
+wichtigstes Ergebnis und gehört in den Report: welche Karte, woran es lag. Nicht
+ein grünes Bild über einer Lücke.
+
+Prüfung 6 (Berichte im Vault) KANN bei deinem ersten Aufruf nicht grün sein —
+reports/controller-$(echo "$S" | tr 'A-Z' 'a-z').html schreibst du ja erst, und
+den Sprint-Report schreibt danach der esf-chief-of-staff. Das ist kein Befund,
+sondern die Reihenfolge. Lauf den Check nach deinem Report gern ein zweites Mal.
 
 SCHRITT 2 — der Controller-Report: reports/controller-$(echo "$S" | tr 'A-Z' 'a-z').html
 
