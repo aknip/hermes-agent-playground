@@ -1,0 +1,64 @@
+# company/cadence.yaml — die Kadenz-Limits der ESF
+#
+# Bei der Projektinitialisierung festgelegt, mit der ersten Roadmap vom CEO
+# freigegeben. Die Kadenz ist INHALTSGETRIEBEN: Jede Ebene ist über die Anzahl
+# ihrer Elemente limitiert, nicht über den Kalender, und schließt ab, sobald ihr
+# Inhalt fertig ist. Solange Hermes läuft, arbeitet die Organisation bis zum
+# Rand ihres Autonomie-Horizonts durch — unabhängig von Wochentag oder Uhrzeit.
+#
+# Diese Datei ist für jedes planende Profil verbindlich. Ein Limit, das ein
+# Modell "im Kopf" hat, gilt nicht; es gilt, was hier steht.
+
+# --- Mengen-Limits der vier Ebenen ------------------------------------------
+releases_pro_quartal: 3
+sprints_pro_release: 4          # Plan · Umsetzung · Umsetzung · Härtung
+features_pro_release: 5
+karten_pro_feature: 8           # Deckel für den Planungsgraphen je Feature
+
+# --- Wie weit die Organisation ohne den CEO läuft ---------------------------
+# release (Default): vollautomatisch bis zum Abschluss des aktuellen Release;
+#                    dort blockiert das Release-Gate.
+# quartal:           nur auf explizite Anweisung am Roadmap-Gate
+#                    (unblock --reason "approve horizont: quartal"). Dann laufen
+#                    alle drei Releases durch, die inneren Release-Gates werden
+#                    zu nicht-blockierenden Update-Infos. Das Mandat erlischt
+#                    mit dem Quartals-Gate.
+autonomie_horizont: release
+
+# --- Aufmerksamkeits-Deckel -------------------------------------------------
+# Die knappe Ressource ist die Aufmerksamkeit des CEO, nicht das Token-Budget.
+# Ein Gate mit zwölf wartenden Karten wird nicht sorgfältiger beantwortet,
+# sondern durchgewinkt.
+gate_fragen_pro_tag: 3
+
+# --- Rubrik für die Signalbewertung (esf-market-analyst) --------------------
+# Score = Summe der gewichteten Dimensionen, 0-5 je Dimension.
+# Ab der Schwelle wird aus einem Signal eine Feature-Hypothese; darunter wird
+# es geshelved — mit Begründung, ohne den CEO zu fragen.
+rubrik:
+  schwelle: 12
+  max_pro_lauf: 8               # Mengen-Deckel; der wirksamste Kostenhebel
+  dimensionen:
+    nutzen_endanwender:         # Wird eine echte Nutzeraufgabe einfacher?
+      gewicht: 2.0
+    marktdruck:                 # Setzen Wettbewerber oder Kategoriestandard es voraus?
+      gewicht: 1.5
+    aufwand_invers:             # Wenig Aufwand = hohe Punktzahl
+      gewicht: 1.0
+    risiko_invers:              # Wenig Irreversibilität/Bruchgefahr = hohe Punktzahl
+      gewicht: 1.0
+
+# --- Budget-Eskalation ------------------------------------------------------
+# Reißt ein Feature oder Sprint diesen Anteil seiner P90-Schätzung, geht ein
+# Gate an den CEO: Lage, Optionen, Empfehlung.
+budget_eskalation_bei: 1.5
+
+# --- Das Ziel-Repo ----------------------------------------------------------
+produkt:
+  name: Kaneo
+  repo: /Users/aknipschild/github/hermes-agent-playground/04-hermes-agent-software-company-test-kaneo
+  branch_praefix: feat/
+  e2e_verzeichnis: tests/e2e/journeys
+  # Vorbedingung jedes E2E-Laufs: Postgres im Container.
+  e2e_vorbedingung: docker compose -f compose.yml up -d postgres
+  e2e_befehl: pnpm exec playwright test
