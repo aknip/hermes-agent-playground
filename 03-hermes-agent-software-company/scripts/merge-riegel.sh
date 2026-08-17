@@ -63,6 +63,42 @@ E2E_BEFEHL="$(sed -n 's/^[[:space:]]*e2e_befehl:[[:space:]]*//p' "$CADENCE" | he
 E2E_VORBED="$(sed -n 's/^[[:space:]]*e2e_vorbedingung:[[:space:]]*//p' "$CADENCE" | head -1)"
 [ -d "$REPO/.git" ] || { echo "FEHLER: '$REPO' ist kein Git-Repo (cadence.yaml: produkt.repo)"; exit 2; }
 
+# ---------------------------------------------------------------------------
+# Der Riegel serialisiert seine eigenen Prüfungen — sonst schlägt er sich selbst
+# ---------------------------------------------------------------------------
+# Real gemessen am 17.08.2026 beim ersten echten Merge (R1-F5):
+#
+#   Branch allein, volle Unit-Suite   374/374 grün, import  6,81 s
+#   main allein, volle Unit-Suite     374/374 grün
+#   Riegel-Lauf                       2 rot,          import 107,74 s
+#
+# Faktor 16 in der Importzeit. `pnpm test` ist `turbo test`, und turbo fährt die
+# Paket-Tasks parallel; kommt die Last der übrigen ESF-Worker dazu, dauert der
+# Modulimport so lange, dass tests/api/mcp-internal-api-url.test.ts an einer
+# Aufrufzahl scheitert (`toHaveBeenCalledOnce`, bekommt 2) — ein Retry im
+# langsamen Pfad feuert einen zweiten Aufruf.
+#
+# Das ist der unangenehme Teil: Der Riegel erzeugt die Last, an der er scheitert,
+# und sein Urteil hing damit davon ab, wie viele andere Karten gerade liefen.
+# „Code entscheidet, kein Modell" trägt nur, wenn der Code deterministisch ist.
+# Ein Riegel, dessen Ergebnis vom Betriebszustand abhängt, ist ein Würfel mit
+# Protokoll.
+#
+# Deshalb: Prüfungen, die durch turbo laufen, bekommen `--concurrency=1`.
+# Das kostet Minuten je Merge und ist es wert — der Riegel läuft einmal je
+# Feature, nicht einmal je Commit. Wer die Serialisierung nicht will, setzt
+# ESF_RIEGEL_SERIELL=0.
+SERIELL="${ESF_RIEGEL_SERIELL:-1}"
+turbo_seriell() { # <pnpm-skript>
+    if [ "$SERIELL" = "1" ] && grep -q "\"$1\": *\"turbo " "$REPO/package.json" 2>/dev/null; then
+        printf 'pnpm exec turbo %s --concurrency=1' "$1"
+    else
+        printf 'pnpm %s' "$1"
+    fi
+}
+TYPECHECK_BEFEHL="$(turbo_seriell typecheck)"
+UNIT_BEFEHL="$(turbo_seriell test)"
+
 cd "$REPO" || exit 2
 
 zeile()  { printf '%s\n' "$*" | tee -a "${PROTOKOLL:-/dev/null}"; }
@@ -176,7 +212,8 @@ fi
 # ---------------------------------------------------------------------------
 titel "4/6  Typecheck"
 # ---------------------------------------------------------------------------
-if pnpm typecheck > /tmp/esf-riegel-tc.$$ 2>&1; then
+zeile "  Befehl: $TYPECHECK_BEFEHL"
+if eval "$TYPECHECK_BEFEHL" > /tmp/esf-riegel-tc.$$ 2>&1; then
     zeile "  grün"
     rm -f /tmp/esf-riegel-tc.$$
 else
@@ -188,7 +225,8 @@ fi
 # ---------------------------------------------------------------------------
 titel "5/6  Unit-Tests"
 # ---------------------------------------------------------------------------
-if pnpm test > /tmp/esf-riegel-ut.$$ 2>&1; then
+zeile "  Befehl: $UNIT_BEFEHL"
+if eval "$UNIT_BEFEHL" > /tmp/esf-riegel-ut.$$ 2>&1; then
     zeile "  grün"
     rm -f /tmp/esf-riegel-ut.$$
 else
