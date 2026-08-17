@@ -54,3 +54,7 @@ compose.override.yml
 
 # TanStack Router generated cache
 apps/web/.tanstack/
+
+# Playwright E2E
+test-results/
+playwright-report/

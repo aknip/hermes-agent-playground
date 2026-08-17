@@ -1,7 +1,14 @@
 # macOS
 .DS_Store
 
-# Das Ziel-Repo der ESF ist ein eigenstaendiges Git-Repository (Produkt-Repo).
-# Es wird vom Playground-Repo bewusst NICHT mitverwaltet: Die ESF arbeitet dort
-# mit eigenen Branches und Git-Worktrees.
-04-hermes-agent-software-company-test-kaneo/
+# Das Ziel-Repo der ESF (04-…) ist ZUSAETZLICH ein eigenstaendiges Git-Repo:
+# Die ESF entwickelt dort in Branches und Git-Worktrees, das setzt eine eigene
+# Historie voraus. Die Dateien bleiben trotzdem hier mitverwaltet (Commit
+# a76e6a4), damit ein Rollback des Playgrounds auch den Produktstand zuruecknimmt.
+# Ausgenommen ist nur, was pro Lauf neu entsteht:
+04-hermes-agent-software-company-test-kaneo/test-results/
+04-hermes-agent-software-company-test-kaneo/playwright-report/
+
+# Die Wegwerfkopie der ESF — seed/ ist der Master.
+03-hermes-agent-software-company/workspace/
+03-hermes-agent-software-company/task-ids*.env
