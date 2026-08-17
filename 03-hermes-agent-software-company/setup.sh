@@ -170,9 +170,16 @@ for name in "${PROFILE_NAMES[@]}"; do
 done
 
 # ---------------------------------------------------------------------------
-say "5/6  Firmen-Vault"
+say "5/6  Firmen-Vault und Produkt-Repo"
 # ---------------------------------------------------------------------------
 "$HERE/reset-workspace.sh"
+
+# Der schlanke Pre-Commit-Hook im Produkt-Repo. Ohne ihn scheitert jeder
+# Worker-Commit an Kaneos eigenem Hook (biome über alles + voller Build, auf
+# dem Ausgangs-Commit bereits rot) und lernt dabei --no-verify.
+# ./teardown.sh baut ihn wieder zurück.
+echo
+"$HERE/scripts/install-repo-hooks.sh" | sed 's/^/  /'
 
 # ---------------------------------------------------------------------------
 say "6/6  Modellfreie Selbsttests"

@@ -223,12 +223,30 @@ AUFTRAG
    je Journey Name, Nutzeraufgabe, Spec-Dateiname, Schrittzahl, Priorität.
    Die Schrittzahl ist die UX-Metrik der Organisation — zähle die sichtbaren
    Schritte, nicht die Codezeilen.
+
+   Diese Datei liegt im VAULT und muss dessen Format einhalten, auch wenn du
+   im Produkt-Repo arbeitest. Der Kopf ist Pflicht, sonst weist der
+   Vault-Linter die Datei ab und Phase 1 gilt als unfertig:
+
+     <!doctype html>
+     <html lang=\"de\">
+     <head>
+       <meta charset=\"utf-8\">
+       <title>Journey-Katalog — ESF</title>
+       <meta name=\"esf-typ\" content=\"katalog\">
+       <meta name=\"esf-karte\" content=\"<deine Karten-ID>\">
+       <meta name=\"esf-datum\" content=\"$HEUTE\">
+     </head>
+
    ACHTUNG: Der Katalog darf nur Specs nennen, die es wirklich gibt.
-   check-onboarding.sh prüft jeden Namen gegen das Dateisystem.
+   check-onboarding.sh prüft jeden genannten Dateinamen gegen das Dateisystem.
 6. Committe im Produkt-Repo auf main. Der Merge-Riegel gilt für Feature-
    Branches; dies ist Testinfrastruktur und geht direkt.
-   Der Pre-Commit-Hook des Repos ist auf dem Ausgangs-Commit bereits rot
-   (Bestandsschuld) — committe mit --no-verify und schreib das ins metadata.
+   Der Pre-Commit-Hook des Repos lintet nur die Dateien, die DU änderst — er
+   wird also halten, wenn deine Specs sauber sind. Umgehe ihn nicht; wenn er
+   meckert, sind es deine Zeilen. Die Commit-Nachricht braucht das
+   Conventional-Commits-Format in Kleinschreibung (z.B.
+   'test(e2e): journeys fuer projekt- und aufgabenverwaltung').
 
 metadata: die Liste der angelegten Specs, die Schrittzahlen, das Testergebnis
 (bestanden/gesamt) und was du bewusst weggelassen hast." \

@@ -117,11 +117,26 @@ titel "2/6  Konfliktfreiheit"
 # jedem Fall zurückgenommen. Erst danach wird richtig gemerged.
 if git merge --no-commit --no-ff "$BRANCH" >/dev/null 2>&1; then
     git merge --abort 2>/dev/null || git reset -q --hard HEAD
-    zeile "  konfliktfrei"
+    zeile "  konfliktfrei — der Merge bleibt jetzt STEHEN und wird geprüft"
 else
     git merge --abort 2>/dev/null || git reset -q --hard HEAD
     verweigert "Der Merge nach main hat Konflikte. Der Branch muss aktualisiert werden."
 fi
+
+# Ab hier steht im Arbeitsbaum das ERGEBNIS des Merges, nicht der Branch.
+# Zwei Gründe, und der zweite ist der wichtigere:
+#
+#   1. Der Branch lässt sich gar nicht auschecken. Er ist im Worktree des
+#      Entwicklers ausgecheckt, und Git erlaubt einen Branch nur in genau einem
+#      Worktree — `git checkout feat/…` im Hauptbaum scheitert mit "already
+#      used by worktree at …". Real passiert, siehe VERIFIKATION.md.
+#   2. Geprüft gehört ohnehin, was auf main LANDET, nicht der Branch für sich.
+#      Ein Branch, der isoliert grün ist und nach dem Merge rot, ist genau der
+#      Fall, den ein Regressionsnetz fangen soll.
+#
+# Ab jetzt räumt jeder Ausstieg den Merge weg.
+aufraeumen() { git merge --abort 2>/dev/null || git reset -q --hard HEAD; }
+verweigert_und_aufraeumen() { aufraeumen; verweigert "$@"; }
 
 # ---------------------------------------------------------------------------
 titel "3/6  Linter auf den geänderten Dateien"
@@ -129,44 +144,40 @@ titel "3/6  Linter auf den geänderten Dateien"
 if [ -z "$DATEIEN" ]; then
     zeile "  keine lintbaren Dateien geändert — übersprungen"
 else
-    git checkout -q "$BRANCH" || verweigert "Wechsel auf '$BRANCH' fehlgeschlagen."
     # shellcheck disable=SC2086
     if pnpm exec biome check $DATEIEN > /tmp/esf-riegel-lint.$$ 2>&1; then
         zeile "  sauber ($(printf '%s\n' "$DATEIEN" | wc -l | tr -d ' ') Dateien)"
+        rm -f /tmp/esf-riegel-lint.$$
     else
         tail -30 /tmp/esf-riegel-lint.$$ | sed 's/^/    /' | tee -a "${PROTOKOLL:-/dev/null}"
         rm -f /tmp/esf-riegel-lint.$$
-        git checkout -q main
-        verweigert "Der Linter beanstandet Dateien, die DIESER Branch geändert hat."
+        verweigert_und_aufraeumen "Der Linter beanstandet Dateien, die DIESER Branch geändert hat."
     fi
-    rm -f /tmp/esf-riegel-lint.$$
-    git checkout -q main
 fi
 
 # ---------------------------------------------------------------------------
 titel "4/6  Typecheck"
 # ---------------------------------------------------------------------------
-git checkout -q "$BRANCH" || verweigert "Wechsel auf '$BRANCH' fehlgeschlagen."
 if pnpm typecheck > /tmp/esf-riegel-tc.$$ 2>&1; then
     zeile "  grün"
+    rm -f /tmp/esf-riegel-tc.$$
 else
     tail -25 /tmp/esf-riegel-tc.$$ | sed 's/^/    /' | tee -a "${PROTOKOLL:-/dev/null}"
-    rm -f /tmp/esf-riegel-tc.$$; git checkout -q main
-    verweigert "Der Typecheck ist rot."
+    rm -f /tmp/esf-riegel-tc.$$
+    verweigert_und_aufraeumen "Der Typecheck ist rot."
 fi
-rm -f /tmp/esf-riegel-tc.$$
 
 # ---------------------------------------------------------------------------
 titel "5/6  Unit-Tests"
 # ---------------------------------------------------------------------------
 if pnpm test > /tmp/esf-riegel-ut.$$ 2>&1; then
     zeile "  grün"
+    rm -f /tmp/esf-riegel-ut.$$
 else
     tail -25 /tmp/esf-riegel-ut.$$ | sed 's/^/    /' | tee -a "${PROTOKOLL:-/dev/null}"
-    rm -f /tmp/esf-riegel-ut.$$; git checkout -q main
-    verweigert "Die Unit-Tests sind rot."
+    rm -f /tmp/esf-riegel-ut.$$
+    verweigert_und_aufraeumen "Die Unit-Tests sind rot."
 fi
-rm -f /tmp/esf-riegel-ut.$$
 
 # ---------------------------------------------------------------------------
 titel "6/6  Volle E2E-Suite"
@@ -178,29 +189,31 @@ zeile "  Vorbedingung: $E2E_VORBED"
 eval "$E2E_VORBED" >/dev/null 2>&1 || zeile "  ⚠ Vorbedingung meldete einen Fehler — der Lauf zeigt gleich, ob es trägt"
 
 if eval "$E2E_BEFEHL" > /tmp/esf-riegel-e2e.$$ 2>&1; then
-    grep -E '^\s+[0-9]+ (passed|failed|skipped)' /tmp/esf-riegel-e2e.$$ | sed 's/^/  /' | tee -a "${PROTOKOLL:-/dev/null}"
+    grep -E '[0-9]+ (passed|failed|skipped)' /tmp/esf-riegel-e2e.$$ | tail -2 | sed 's/^/  /' | tee -a "${PROTOKOLL:-/dev/null}"
     zeile "  grün"
+    rm -f /tmp/esf-riegel-e2e.$$
 else
     tail -30 /tmp/esf-riegel-e2e.$$ | sed 's/^/    /' | tee -a "${PROTOKOLL:-/dev/null}"
-    rm -f /tmp/esf-riegel-e2e.$$; git checkout -q main
-    verweigert "Die E2E-Suite ist rot. Kein Feature merged über ein rotes Regressionsnetz."
+    rm -f /tmp/esf-riegel-e2e.$$
+    verweigert_und_aufraeumen "Die E2E-Suite ist rot. Kein Feature merged über ein rotes Regressionsnetz."
 fi
-rm -f /tmp/esf-riegel-e2e.$$
-git checkout -q main
 
 # ---------------------------------------------------------------------------
 titel "Ergebnis"
 # ---------------------------------------------------------------------------
 if [ "$DRY" -eq 1 ]; then
-    zeile "✓ Alle sechs Prüfungen bestanden. Trockenlauf — es wurde nicht gemerged."
+    aufraeumen
+    zeile "✓ Alle sechs Prüfungen bestanden. Trockenlauf — der Merge wurde zurückgenommen."
     exit 0
 fi
 
-if git merge --no-ff "$BRANCH" -m "Merge $BRANCH (Riegel bestanden)" >/dev/null 2>&1; then
+# Der Merge steht bereits im Arbeitsbaum und ist geprüft. Jetzt nur noch
+# festschreiben — kein zweiter Merge-Versuch, kein zweites Risiko.
+if git commit -q --no-verify -m "Merge $BRANCH (Riegel bestanden)" 2>/dev/null; then
     zeile "✓ Gemerged: $(git rev-parse --short HEAD)"
     zeile ""
     zeile "Der Worktree des Branches bleibt bestehen — der Reviewer braucht ihn"
     zeile "noch. Aufgeräumt wird beim Sprint-Abschluss."
     exit 0
 fi
-verweigert "Der Merge scheiterte trotz konfliktfreier Probe — Zustand von Hand prüfen."
+verweigert_und_aufraeumen "Das Festschreiben des geprüften Merges scheiterte — Zustand von Hand prüfen."

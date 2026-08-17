@@ -119,6 +119,18 @@ fi
 rm -f "$HERE/task-ids.env"
 
 # ---------------------------------------------------------------------------
+say "Produkt-Repo: ESF-Hooks zurückbauen"
+# ---------------------------------------------------------------------------
+# Muss VOR dem Löschen der Arbeitskopie passieren, solange cadence.yaml noch
+# gelesen werden kann — und muss überhaupt passieren, sonst zeigt
+# core.hooksPath nach dem Teardown auf ein Verzeichnis, das es nicht mehr gibt.
+if [ -x "$HERE/scripts/install-repo-hooks.sh" ]; then
+    "$HERE/scripts/install-repo-hooks.sh" --remove 2>&1 | sed 's/^/  /'
+else
+    echo "  install-repo-hooks.sh fehlt — core.hooksPath von Hand prüfen"
+fi
+
+# ---------------------------------------------------------------------------
 say "Was im Produkt-Repo bleibt"
 # ---------------------------------------------------------------------------
 REPO="$(sed -n 's/^[[:space:]]*repo:[[:space:]]*//p' "$HERE/seed/company/cadence.yaml" | head -1)"
