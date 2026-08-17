@@ -66,6 +66,7 @@ Hermes-Root-Konfiguration.
 | `seed/lint-selbsttest/` | Fixture mit genau neun bekannten Linter-Befunden |
 | `seed/quellen.txt` | Die Markt-Quellen, die `fetch-sources.sh` täglich holt |
 | `workspace/` | Die Wegwerfkopie — gitignored |
+| `beispiel-lauf-1/` | **Die Akte des Laufs vom 17.08.2026**: Board mit voller Karten-Historie, Vault, Laufzeiten, beide Git-Historien. Erzeugt von `scripts/dump-lauf.sh` |
 | `scripts/` | Betrieb und Riegel, siehe unten |
 
 ### Die Skripte in `scripts/`
@@ -80,6 +81,9 @@ Hermes-Root-Konfiguration.
 | `vault-lint.py` | je Schreibvorgang | Setzt `company/AGENTS.md` durch und zitiert bei jedem Befund den Abschnitt |
 | `fetch-sources.sh` | vom Tick | Holt die Quellen und **normalisiert deterministisch**, bevor sie im Korpus landen |
 | `check-onboarding.sh`<br>`check-daily.sh` | je Ebene | Deterministische Endzustands-Checks — Code entscheidet, ob etwas fertig ist |
+| `watchdog.sh` | nach Bedarf | Findet Worker, die laufen, aber nicht arbeiten: keine CPU, keine lebende Verbindung, nur tote Sockets. Der Zustand ist vom Board aus **nicht** von echter Arbeit zu unterscheiden |
+| `install-repo-hooks.sh` | einmalig | Schlanker Pre-Commit-Hook im Produkt-Repo (lintet nur Gestagetes). `--remove` stellt den Ausgangszustand her |
+| `dump-lauf.sh` | nach jedem Lauf | Sichert Board, Vault, Historien und Laufzeiten nach `beispiel-lauf-1/`. Ohne das ist der Lauf nach dem Rückbau spurlos weg |
 | `provision-keys.sh` | einmalig | Ein OpenRouter-Key je Profil mit USD-Limit. **Annahme**, siehe `VERIFIKATION.md` |
 
 ## Die elf Profile
