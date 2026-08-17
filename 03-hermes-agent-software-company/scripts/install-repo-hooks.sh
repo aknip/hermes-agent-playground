@@ -102,7 +102,28 @@ if [ -f "$REPO/.husky/commit-msg" ]; then
     chmod +x "$HOOKS/commit-msg"
 fi
 
-git -C "$REPO" config core.hooksPath .esf-hooks
+# ABSOLUT, nicht relativ — und das ist der ganze Witz dieser Zeile.
+#
+# Git löst einen relativen core.hooksPath gegen die Wurzel des JEWEILIGEN
+# Arbeitsbaums auf. `.esf-hooks` liegt aber nur im Hauptbaum und ist nicht im
+# Git. In einem verlinkten Worktree zeigte der Pfad damit ins Leere: Git fand
+# keinen Hook und committete ohne jede Prüfung — lautlos, ohne Warnung.
+#
+# Real aufgedeckt am 17.08.2026 durch das Review von R1-F5: Der Reviewer fand
+# 11 biome-Fehler in einem Commit, den der Hook hätte blockieren müssen, und
+# nannte zwei mögliche Ursachen — der Entwickler habe --no-verify benutzt, oder
+# die Hook-Mechanik sei defekt. Es war die zweite. Der Entwickler hatte nichts
+# umgangen; es gab nichts zu umgehen.
+#
+# Das ist die unangenehmere Sorte Lücke: In Phase 1 wurde der Hook im HAUPTBAUM
+# nachgewiesen ("Commit 58310dc durch den schlanken Hook — ohne --no-verify")
+# und galt seither als belegt. Genau dort, wo die Feature-Arbeit stattfindet —
+# in den Worktrees —, hat er nie existiert.
+#
+# core.hooksPath steht in der gemeinsamen .git/config, die alle Worktrees
+# teilen. Ein absoluter Pfad wirkt deshalb in allen zugleich, auch in denen,
+# die der Dispatcher erst später anlegt.
+git -C "$REPO" config core.hooksPath "$REPO/.esf-hooks"
 
 # Der Hook-Ordner gehört nicht in die Produkt-Historie.
 if ! grep -q '^\.esf-hooks/$' "$REPO/.gitignore" 2>/dev/null; then
@@ -114,7 +135,7 @@ cat <<EOF
 
 ✓ ESF-Hooks installiert.
 
-  core.hooksPath  = .esf-hooks
+  core.hooksPath  = $REPO/.esf-hooks  (absolut — greift auch in Worktrees)
   pre-commit      = biome auf den gestageten Dateien
   commit-msg      = $( [ -f "$HOOKS/commit-msg" ] && echo "von Kaneo übernommen" || echo "keiner" )
 
