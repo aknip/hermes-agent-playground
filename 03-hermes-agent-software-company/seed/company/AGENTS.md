@@ -120,6 +120,26 @@ Fehlende Messwerte stehen als `null`, nicht als Schätzung. `null` ist eine
 ehrliche Lücke; eine hineingeschriebene Vermutung vergiftet die Kalibrierung
 aller künftigen Schätzungen.
 
+### 6.1 Weitere Dateien unter `ledger/`
+
+`estimates.jsonl` ist die einzige Datei mit vorgeschriebenen Feldern. Daneben
+dürfen Messreihen liegen, deren Schema das schreibende Skript festlegt — heute:
+
+    ledger/kosten-je-rolle.jsonl   {at, profile, usage_total, usage_delta}
+                                   von scripts/ledger-sync.sh, kumulativer
+                                   OpenRouter-Verbrauch je Profil-Key
+
+Für sie gilt nur die **Form**: eine Zeile, ein JSON-Objekt, nur angehängt. Auf
+diese Eigenschaft verlässt sich jedes lesende Skript. `vault-lint.py` prüft
+deshalb bei ihnen die Form und nicht die Felder — bis zum 17.08.2026 wandte es
+das Schema von `estimates.jsonl` auf jede `.jsonl` an und vermisste vier
+Pflichtfelder, die dort nichts zu suchen hatten. Ein Prüfer, der mehr verlangt
+als der Vertrag hergibt, ist so schädlich wie einer, der zu wenig prüft: Beide
+erzeugen Befunde, die niemand mehr liest.
+
+Wer eine neue Messreihe anlegt, nennt sie hier — mit Schema und schreibendem
+Skript. Eine Datei im Ledger, deren Herkunft niemand kennt, ist keine Messung.
+
 ## 7 Gates öffnet nur der Mensch
 
 Das Worker-Werkzeug `kanban_unblock` ist für jedes Profil tabu — auf jeder

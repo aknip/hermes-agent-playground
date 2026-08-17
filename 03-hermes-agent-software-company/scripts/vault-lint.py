@@ -138,6 +138,31 @@ def pruefe_ledger(pfad, rel, b):
             b.error("6", f"{rel}:{nr}", "actual ohne wall_minutes (null ist erlaubt, Weglassen nicht)")
 
 
+def pruefe_jsonl_form(pfad, rel, b):
+    """Jede andere .jsonl unter ledger/: nur die FORM, nicht das Schema.
+
+    Die Datei muss zeilenweise gueltiges JSON mit Objekten sein — das ist die
+    Eigenschaft, auf die sich jedes lesende Skript verlaesst (jq -s, grep auf
+    ein Feld). Welche Felder darin stehen, legt das schreibende Skript fest;
+    AGENTS.md 6 schreibt es nur fuer estimates.jsonl vor.
+    """
+    try:
+        zeilen = open(pfad, encoding="utf-8").read().splitlines()
+    except OSError as fehler:
+        b.error("6", rel, f"nicht lesbar: {fehler}")
+        return
+    for nr, zeile in enumerate(zeilen, 1):
+        if not zeile.strip():
+            continue
+        try:
+            objekt = json.loads(zeile)
+        except json.JSONDecodeError as fehler:
+            b.error("6", f"{rel}:{nr}", f"keine gueltige JSON-Zeile: {fehler}")
+            continue
+        if not isinstance(objekt, dict):
+            b.error("6", f"{rel}:{nr}", "Zeile ist kein JSON-Objekt")
+
+
 def pruefe_vault(wurzel, b):
     if not os.path.isdir(wurzel):
         print(f"FEHLER: '{wurzel}' ist kein Verzeichnis.", file=sys.stderr)
@@ -164,8 +189,22 @@ def pruefe_vault(wurzel, b):
             oberster = rel.split(os.sep)[0]
 
             if oberster == "ledger":
-                if datei.endswith(".jsonl"):
+                # AGENTS.md 6 spezifiziert GENAU EINE Datei: estimates.jsonl.
+                # Ihr Pflichtfeld-Schema auf jede .jsonl unter ledger/
+                # anzuwenden war eine Uebergriffigkeit des Pruefers — real
+                # aufgefallen am 17.08.2026, als ledger-sync.sh die
+                # kosten-je-rolle.jsonl anlegte (Schema {at, profile,
+                # usage_total, usage_delta}) und der Linter vier Pflichtfelder
+                # je Zeile vermisste, die dort nichts zu suchen haben. Der
+                # Sprint-Report von S1 trug den Befund als offenen Punkt.
+                #
+                # Ein Pruefer, der mehr verlangt als der Vertrag hergibt, ist
+                # so schaedlich wie einer, der zu wenig prueft: Beide erzeugen
+                # Befunde, die niemand mehr liest.
+                if datei == "estimates.jsonl":
                     pruefe_ledger(pfad, rel, b)
+                elif datei.endswith(".jsonl"):
+                    pruefe_jsonl_form(pfad, rel, b)
                 continue
 
             # sources/ ist der Rohkorpus — Fremdformate sind dort der Zweck.
