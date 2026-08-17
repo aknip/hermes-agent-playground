@@ -313,3 +313,260 @@ Lauf gegen ein echtes Repo aufgefallen.
 Der unangenehmste ist der eigene: Eine bequeme Erklärung wurde fünfmal
 weitergeschrieben, ohne dass jemand den Exit-Code isoliert gemessen hätte.
 Der erste, der nachsah, war ein Agent.
+
+---
+
+# Phase 2 — Begleiteter Betrieb, 17.08.2026
+
+Derselbe Aufbau, dasselbe Modell (`deepseek/deepseek-v4-flash-0731`), dieselbe
+CEO-Rolle. Der Plan steht in [`PHASE-2-PLAN.md`](PHASE-2-PLAN.md); hier steht
+wieder der Hergang, und wieder ist die Fehlerliste der wertvollere Teil.
+
+**Kapitel 12 verlangt drei Nachweise:** zwei Sprint-Reports mit
+(Schätzung, Ist)-**Paaren**, das erste Release durch das Release-Gate, und eine
+Schätzgüte-Baseline im Controller-Report. `scripts/check-phase2.sh` prüft genau
+diese drei.
+
+## Vorlauf: zwei Entscheidungen, die vor dem ersten Kartenzug fielen
+
+**R1 läuft in zwei Sprints statt vier.** `cadence.yaml` nennt vier als
+Obergrenze („max. 4 Sprints je Release", Kapitel 5), nicht als Soll. R1 trägt
+nach der CEO-Änderung vom Vortag drei Features, und die beiden Phase-2-Nachweise
+gehen nur zusammen auf, wenn das Release wirklich landet. S1 = R1-F5 (Härtung),
+S2 = R1-F1 ∥ R1-F2, dann Release-Abschluss und Gate.
+
+**Phase 2 startet auf einem wiederhergestellten Phase-1-Stand.** Dazwischen lag
+ein Rückbau: leeres Board, `workspace/company/` frisch aus `seed/`.
+`restore-phase1.sh` spielt die Artefakte aus `beispiel-lauf-1/` zurück. Was
+**nicht** zurückkommt, ist die Karten-Historie — die `esf-karte`-Metas der
+Dokumente nennen IDs, die es auf dem Board nicht mehr gibt. Nachschlagen geht
+nur in `beispiel-lauf-1/board.json`. Der Weg vom Dokument zur Entscheidung führt
+also über die Akte statt über das Board; das ist eine echte Lücke und steht als
+`reports/herkunft-phase1.txt` im Vault.
+
+## Der Ledger-Backfill: warum die erste Schätzung überhaupt möglich war
+
+Der Knackpunkt der ganzen Phase. `ledger/estimates.jsonl` war **leer** —
+`ledger-sync.sh` war über die Phase-1-Karten nie gelaufen, nachgeprüft an der
+Akte (0 Zeilen). Ein `esf-estimator` ohne Ledger darf nach `AGENTS.md 6` keine
+Zahl schreiben; ohne Zahl gibt es kein Paar; ohne Paar fällt Nachweis 1 aus.
+
+Der Ausweg war keine Erfindung, sondern eine Nachbuchung: Die Wanduhrzeiten der
+zehn Phase-0/1-Karten **sind gemessen** und liegen in `board.json` als
+Board-Zeitstempel — die Quelle, die Kapitel 8 als die verlässliche benennt.
+`restore-phase1.sh --ledger` bucht sie nach, mit drei Regeln: `estimate` bleibt
+`null`, die Referenzklasse wird über eine sichtbare Tabelle im Skript
+**zugeordnet** statt geraten, und jede Zeile trägt `backfill: true`.
+
+Ergebnis: sieben Referenzklassen, darunter `impl-worktree-S` (21 min),
+`review-repo-S` (2 min), `spec-vault-S` (2 min), `gate-vault-S` (11/14 min).
+Wenig, aber gemessen.
+
+## Der eigene Vertrag hält — auch gegen mich
+
+Mein Herkunftsvermerk lag zuerst als `analysis/HERKUNFT.txt` und wurde vom
+eigenen Vault-Linter mit zwei ERROR abgewiesen: `AGENTS.md 2.1` nimmt
+Maschinenprotokolle nur unter `reports/` von der HTML-Pflicht aus, `2.3`
+verlangt kleine Dateinamen. Zu Recht. Ein Skript der Organisation, das sich vom
+Vertrag der Organisation ausnimmt, wäre der Anfang vom Ende des Vertrags.
+
+Zweiter eigener Fehler, teurer: `create-sprint.sh` las `cadence.yaml` ohne den
+Zeilenkommentar abzuschneiden. `karten_pro_feature: 8   # Deckel für den
+Planungsgraphen je Feature` landete als ganzer Kommentar mitten im Kartentext
+eines Workers. Der S1-Graph wurde deshalb archiviert und neu angelegt — kostenlos,
+weil noch nichts gelaufen war.
+
+## S1 — R1-F5, die technische Härtung
+
+| Karte | Profil | Zeit | Ergebnis |
+|-------|--------|------|----------|
+| 1/5 Konzept & ADR | `esf-architect` | 30 min | ADR-001 mit drei Optionen inkl. Nullvariante, `specs/r1-f5-haertung.html`, 10 abhakbare Kriterien |
+| 2/5 Schätzung | `esf-estimator` | 4 min | drei Intervalle mit genannten Ledger-Zeilen und offengelegtem Multiplikator |
+| 3/5 Umsetzung | `esf-dev-a` | 113 min über **5 Läufe** | `index.ts` 968 → 20 Z., Commit `89b9462` |
+| 4/5 Review | `esf-reviewer` | 25 min | `changes_requested`, zwei Verstöße, ein Governance-Verdacht |
+
+### Was der Architekt geliefert hat
+
+Drei Dinge über das Abarbeiten hinaus: die **Nullvariante** („Datei so lassen")
+als ernsthaft abgewogene und begründet verworfene Option; die
+**verhaltenswirksame Registrierungsreihenfolge** um die `api.use('*')`-Middleware
+als festgeschriebene Invariante — der Punkt, an dem eine Umstrukturierung ohne
+Verhaltensänderung normalerweise kippt; und als Prüfung der Routen-Parität einen
+**Diff des OpenAPI-Exports vor/nach**, also eine Messung statt einer Behauptung.
+
+Seine Fundstellen wurden gegen das echte Repo nachgeprüft statt geglaubt:
+`tests/api-integration/` existiert, `apps/api/scripts/export-openapi.ts`
+existiert, `index.ts` hat tatsächlich 968 Zeilen.
+
+### Was der Estimator geliefert hat
+
+Er nennt seine Grundlage per `task_id` statt „aus der Historie", zeigt den
+Multiplikator (3,3× von S nach M) offen, und gibt `merge-repo-S` die
+**niedrigste** Konfidenz (0.20), obwohl es die kleinste Karte ist — weil dort
+kein Nachbar existiert. Das ist die richtige Rangfolge, nicht die bequeme.
+
+Nebenbei das erste eigene Paar: Er schätzte seine **eigene** Karte auf p50 = 20
+und brauchte 4 Minuten. Faktor 0,2 — die Rolle, die vor optimistischer
+Selbsteinschätzung schützen soll, hat sich um das Fünffache überschätzt.
+
+## Fünf Betriebsbefunde, alle neu gegenüber Phase 1
+
+### 1. `agent.max_turns` — der Deckel, den das Konzept nicht kennt
+
+Lauf 5 der Umsetzungs-Karte endete `gave_up` mit
+`Iteration budget exhausted (500/500)` — nach 9 Minuten Wanduhr, bei **genau
+zwei** verbleibenden `TS6133`-Fehlern. Der Umbau war vollständig; das Budget war
+weg.
+
+Das ist der teuerste denkbare Ausgang: voller Preis, kein Ergebnis. Und der
+Deckel, der ihn hätte begrenzen sollen, war nicht der, der zuschlug —
+`KONZEPT.html` nennt als harte Deckel je Karte nur `--max-runtime` und
+`--max-retries`. `agent.max_turns` (Default 500, per Profil setzbar) fehlt dort.
+
+Behoben: 1200 für die vier werkzeugintensiven Rollen (`dev-a`, `dev-b`,
+`reviewer`, `qa-release`), dauerhaft in `setup.sh`. Die urteilenden Rollen
+bleiben bei 500 — ihre Arbeit ist Denken, nicht Schleifen.
+
+### 2. Der Wachhund war die Ursache, nicht die Rettung
+
+`watchdog.sh` beendete Lauf 6 (51 min) und Lauf 7 (30 min) — beide
+**produktiv**. Das `agent.log` von Lauf 7 zeigt 55 normale API-Aufrufe mit
+5–24 s Latenz und endet mit `Turn ended: reason=interrupted_by_user`. Das war
+mein Kill.
+
+Der Mechanismus, präzise: Ein Worker, der ein langes lokales Kommando fährt
+(`pnpm test` gemessen 41 s, ein Playwright-Lauf, im Log ein Kommando mit 194 s),
+hält **keine** `ESTABLISHED`-Verbindung — die letzte HTTP-Antwort ist
+abgeschlossen —, alte Pool-Sockets liegen auf `CLOSE_WAIT`, und der
+Python-Prozess rechnet nicht, weil sein **Kind** rechnet. Zeichen für Zeichen die
+Signatur, auf die das Skript tötete.
+
+Damit ist die Phase-1-Diagnose zu verallgemeinern **und** zu korrigieren:
+`0 % CPU + toter Socket` ist kein verlässlicher Hänger-Nachweis. Der Wachhund
+hat jetzt drei Kriterien — CPU über den ganzen **Prozessbaum** (`pnpm → node →
+vitest`, die CPU sitzt unten), **kein Kindprozess**, und erst dann `CLOSE_WAIT`
+ohne lebende Verbindung.
+
+Bemerkenswert: Auf derselben Karte hatte er zuvor bei 7 Minuten und 0 % CPU
+korrekt **abgelehnt** („solange eine Verbindung steht, ist eine lange
+Modellantwort die wahrscheinlichere Erklärung"). Die Unterscheidung war halb
+richtig — sie kannte Verbindungen, aber keine Kinder.
+
+### 3. Ein Worker hat aus dem Worktree in den Hauptbaum geschrieben
+
+Er suchte die `.env`. Die ist gitignored, ein frischer Worktree hat keine, und
+ohne sie startet die Anwendung nicht. Also schrieb er die `.env` des
+**Hauptbaums** neu (Zeitstempel 19:58) und steckte rund 80 Minuten in
+Umgebungs-Archäologie — `AUTH_SECRET`, `DATABASE_URL`, ein Stash namens
+`j03-baseline-test`, zwei von der Hardline-Sperre abgewiesene Kommandos.
+
+Das hebt die Isolation auf, auf der die ganze parallele Arbeit beruht.
+`create-sprint.sh` gibt allen drei Bau-Karten jetzt einen `env_hinweis`-Absatz:
+die eine Zeile zum Verlinken, das Verbot, in den Hauptbaum zu schreiben, und das
+Verbot, Geheimnisse neu zu erzeugen.
+
+### 4. Der Pre-Commit-Hook hat in **keinem** Worktree existiert
+
+Der schwerste Befund, und gefunden hat ihn wieder die eigene Organisation: Der
+Reviewer fand 11 biome-Fehler in einem Commit, den der Hook hätte blockieren
+müssen, und nannte zwei mögliche Ursachen — `--no-verify` oder defekte
+Hook-Mechanik.
+
+Es war die zweite. `core.hooksPath` stand **relativ** auf `.esf-hooks`; Git löst
+das gegen die Wurzel des jeweiligen Arbeitsbaums auf, und `.esf-hooks/` liegt
+nur im Hauptbaum und nicht im Git. Im Worktree zeigte der Pfad ins Leere, und
+Git committete ohne jede Prüfung — lautlos, ohne Warnung. Der Entwickler hatte
+nichts umgangen; es gab nichts zu umgehen.
+
+Das ist die unangenehme Sorte Lücke: In Phase 1 wurde der Hook im **Hauptbaum**
+nachgewiesen („Commit `58310dc` durch den schlanken Hook — ohne `--no-verify`")
+und galt seither als belegt. Genau dort, wo die Feature-Arbeit stattfindet, war
+er nie da. **Jede Bau-Karte der ESF hat bis hierhin ungelintet committet.**
+
+Behoben mit einem absoluten Pfad — `core.hooksPath` steht in der gemeinsamen
+`.git/config`, ein absoluter Pfad wirkt daher in allen Worktrees zugleich, auch
+in den erst später angelegten. Nachgewiesen mit einem absichtlich fehlerhaften
+Probe-Commit im Worktree: abgewiesen, HEAD blieb stehen.
+
+### 5. „Suite 8/8 grün" ist kalt nicht reproduzierbar
+
+J-03 (`aufgabe-erfassen-und-zuweisen.spec.ts`) scheiterte im Suitenlauf
+reproduzierbar an `expect(page).not.toHaveURL(/\/onboarding/, { timeout: 30_000 })`
+in `tests/e2e/support/journey.ts:58`. Die Messung, die die Ursache festlegt:
+
+    pnpm exec playwright test …/aufgabe-erfassen-und-zuweisen.spec.ts --repeat-each=3
+    Lauf 1  ROT    34,3 s      (der 30-s-Deckel reisst)
+    Lauf 2  grün    7,5 s
+    Lauf 3  grün    4,9 s
+
+Die **erste** Arbeitsbereich-Anlage nach einem kalten API-Start braucht länger
+als 30 s, jede weitere unter 8 s. J-03 ist im Suitenlauf der erste Test, der
+einen Arbeitsbereich anlegt — deshalb trifft es immer ihn und nie J-01, obwohl
+J-01 denselben Helfer benutzt.
+
+Ausgeschlossen, jeweils gemessen: nicht der R1-F5-Umbau (der Hauptbaum steht
+unverändert auf `58310dc` und zeigt dasselbe Bild); **nicht** der
+Datenbank-Zustand — ich habe die Testdatenbank komplett neu aufgesetzt
+(`down -v`, `up`, `db:migrate`) und es blieb rot, womit meine eigene Hypothese
+„angesammelter Zustand" (vorher 72 Workspace-, 81 User-, 69 `trial_grant`-Zeilen)
+**widerlegt** war; und nicht Zufall, dreimal deterministisch reproduziert.
+
+Damit ist der Phase-1-Eintrag „Suite 8/8 grün in 24,7 s" zu korrigieren: Damals
+lief die Suite hinter einem Worker, der die Anwendung schon warmgelaufen hatte.
+Ein Regressionsnetz, dessen Ergebnis davon abhängt, was vorher lief, ist kein
+Netz. Kapitel 6 sagt „Flakiness wird behandelt wie ein Bug" — also eine Karte
+für `esf-qa-release`, verdrahtet als Elternteil der Merge-Karte, damit der
+Riegel erst auf einer geheilten Suite läuft.
+
+## Das Review, und wie der CEO darauf entschied
+
+25 Minuten, und die stärkste Karte des Sprints. Routen-Parität **136/136
+byte-identisch, selbst gemessen**; Unit 374/374 und Integration 181/181 selbst
+gefahren; der J-03-Kaltstart unabhängig als vorbestehend erkannt; und der
+Entwickler bei einer Falschbehauptung erwischt (sein `metadata` behauptete,
+`app.ts` mit 565 Zeilen entspräche der Spezifikation, die `< 450` fordert).
+
+**AK7 (biome, 11 Fehler) → Nacharbeit.** Keine Diskussion; und jetzt greift der
+Hook wirklich.
+
+**AK8 (`app.ts` 565 > 450) → CEO-Entscheid: Limit aufgehoben.** Der Reviewer
+hatte den Verstoß gemeldet **und** dazugesagt, dass die Spezifikation intern
+gespannt ist: Sie weist `app.ts` inhaltlich alle Inline-Routen, den
+Auth-Middleware-Block, die 27-gliedrige Montageliste, Typen, Error-Handler und
+CORS zu — mit Herkunftszeilen, die zusammen weit über 450 liegen — und fordert
+danach `< 450`. Nachgeprüft: stimmt. Beides ist nicht erfüllbar.
+
+Begründung des Entscheids: Zweck von R1-F5 ist, die **Kollisionsfläche** zu
+senken, bevor F1 und F2 parallel laufen — nicht, eine Zeilenzahl zu erreichen.
+Das ist erreicht: `index.ts` 968 → 20, Auth-Routen in `routes/auth.ts`; beide
+Features berühren `app.ts` künftig mit je einer Registrierungszeile statt in
+vielen Regionen einer 968-Zeilen-Datei. Was zusätzlich auszulagern wäre, um unter
+450 zu kommen — WS, `/openapi`, MCP —, berührt F1 und F2 **nicht**; der Ausbau
+senkt das Kollisionsrisiko um null und erhöht das Umbaurisiko. Eine Hilfsgröße
+gegen ihren eigenen Zweck durchzusetzen ist Buchstabentreue, nicht Sorgfalt.
+
+Der Entscheid wird nicht still hingenommen — der Reviewer hatte genau das
+verlangt: Eine Karte für den `esf-architect` trägt den Nachtrag in die
+Spezifikation ein, lässt das ursprüngliche AK8 wörtlich daneben stehen
+(`AGENTS.md 3.3`) und ersetzt es durch ein Kriterium, das den **Zweck** misst
+statt eine Zahl zu setzen.
+
+## Kosten je Rolle — erstmals über einen ganzen Sprint gemessen
+
+Stand nach S1 bis zur Merge-Karte, `scripts/assign-keys.sh --verbrauch`:
+
+| Rolle | USD |
+|-------|-----|
+| `esf-dev-a` | 0,5666 |
+| `esf-architect` | 0,0972 |
+| `esf-estimator` | 0,0290 |
+| `esf-controller` | 0,0056 |
+| `esf-market-scout` | 0,0044 |
+| `esf-qa-release` | 0,0029 |
+| `esf-reviewer` | 0,0028 |
+| **Summe** | **0,7085** |
+
+Die Verteilung ist die eigentliche Aussage: **80 % liegen auf einer Rolle**, und
+davon ist der grösste Teil in vier abgebrochenen Läufen verbrannt. Nicht das
+Modell war teuer, sondern die Werkzeug-Fehlkonfiguration — der Iterations-Deckel
+und mein eigener Wachhund.

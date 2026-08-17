@@ -127,10 +127,25 @@ Bauchwerte.
    Zwei gleichzeitige Riegel-Läufe produzieren eine Verweigerung ohne Sachgrund
    — und daraus eine Gate-Frage an den CEO, die keine ist.
 
-2. **Ein Branch, eine Karte.** `feat/esf-r1-f5-…`, `feat/esf-r1-f1-…`,
-   `feat/esf-r1-f2-…`. Der Reviewer arbeitet im Hauptbaum (`dir:`) und sieht von
-   dort in `.worktrees/`. Zwei Karten auf einem Branch war der harte Ausfall des
-   Probelaufs (`fatal: … already used by worktree`).
+2. **Ein Branch, ein Worktree — und Nacharbeit läuft im vorhandenen.**
+   `feat/esf-r1-f5-…`, `feat/esf-r1-f1-…`, `feat/esf-r1-f2-…`. Der Reviewer
+   arbeitet im Hauptbaum (`dir:`) und sieht von dort in `.worktrees/`. Zwei
+   Karten auf einem Branch war der harte Ausfall des Probelaufs
+   (`fatal: … already used by worktree`).
+
+   **Nachgeschärft am 17.08.2026, weil ich diese Regel selbst gerissen habe.**
+   Die Nacharbeitskarte zu R1-F5 wurde mit `worktree:<repo> --branch feat/…`
+   angelegt — auf demselben Branch, den die Umsetzungskarte noch als Worktree
+   hielt. Drei Läufe endeten `spawn_failed` mit
+   `git worktree add failed … on branch feat/esf-r1-f5-api-modularisierung`,
+   dann `gave_up`. Die Regel stand zwei Absätze weiter oben in genau dieser
+   Datei.
+
+   Der Zusatz, der fehlte: Eine **zweite** Karte auf einem schon belegten Branch
+   bekommt `--workspace dir:<pfad-zum-vorhandenen-worktree>`, nicht
+   `worktree:`. Sie arbeitet im bestehenden Baum weiter. Das gilt für jede
+   Nacharbeit, jede Korrektur und jeden zweiten Anlauf — und es ist der Grund,
+   warum die Worktrees nach dem Kartenabschluss stehen bleiben.
 
 3. **Idempotenzschlüssel nach Sprint und Feature**, nicht nach Datum
    (`s1-f5-spec`). Ein Sprint dauert länger als einen Tag; ein datumsbasierter
