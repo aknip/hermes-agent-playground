@@ -101,8 +101,17 @@ neu schätzen, nicht runden, nicht "verbessern".
 Warum das penibel ist: ledger-sync.sh liest Schätzung und Istwert aus dem
 metadata DERSELBEN Karte. Die Schätzung entsteht aber auf einer anderen. Wer
 sie nicht mitnimmt, hinterlässt einen Istwert ohne Paar — und scripts/check-sprint.sh
-schlägt darauf fehl, weil ein Sprint ohne (Schätzung, Ist)-Paare der einzige
-Nachweis ist, den Phase 2 nicht erbringen darf zu verlieren.
+schlägt darauf fehl, weil zwei Sprint-Reports MIT Paaren der Nachweis sind, den
+Phase 2 erbringen muss.
+
+Damit die Schätzung dich überhaupt erreicht, ist die Estimator-Karte ein
+ZWEITER Elternteil dieser Karte — nicht nur der Karte vor dir. Das ist am
+17.08.2026 nachgerüstet worden: In S1 hing die Kette
+Schätzung → Umsetzung → Review → Merge, und die Schätzung musste von Hand
+weitergereicht werden. Die Umsetzung und das Review nahmen sie mit, die
+Merge-Karte nicht — Prüfung 3 von check-sprint.sh fand das zerrissene Paar. Eine
+Vorschrift, die von vier Weitergaben abhängt, reisst an der vierten. Jetzt liegt
+die Schätzung in DEINEM Handoff-Kontext, nicht in dem deines Vorgängers.
 EOF
 }
 
@@ -457,7 +466,7 @@ say "S1 4/5  Review  (Hauptbaum, sieht in den fremden Worktree)"
 REV=$(k create "$S F5 4/5 — Review R1-F5" \
     --assignee esf-reviewer \
     --workspace "dir:$REPO" \
-    --parent "$IMPL" \
+    --parent "$IMPL" --parent "$EST" \
     --idempotency-key "s1-f5-review" \
     --max-retries 2 --max-runtime 60m \
     --body "Prüfe die Umsetzung von R1-F5 auf Branch '$BRANCH'.
@@ -514,7 +523,7 @@ say "S1 5/5  Merge am Riegel"
 MERGE=$(k create "$S F5 5/5 — Merge R1-F5 am Riegel" \
     --assignee esf-qa-release \
     --workspace "dir:$REPO" \
-    --parent "$REV" \
+    --parent "$REV" --parent "$EST" \
     --idempotency-key "s1-f5-merge" \
     --max-retries 2 --max-runtime 60m \
     --body "Bringe R1-F5 nach main — über den Riegel, nicht mit der Hand.
@@ -765,7 +774,7 @@ say "S2 F1 4/4  Review — R1-F1"
 F1_REV=$(k create "$S F1 4/4 — Review R1-F1" \
     --assignee esf-reviewer \
     --workspace "dir:$REPO" \
-    --parent "$F1_IMPL" \
+    --parent "$F1_IMPL" --parent "$F1_EST" \
     --idempotency-key "s2-f1-review" \
     --max-retries 2 --max-runtime 60m \
     --body "Prüfe R1-F1 auf Branch '$BRANCH_F1'.
@@ -1010,7 +1019,7 @@ say "S2 F2 4/4  Review — R1-F2"
 F2_REV=$(k create "$S F2 4/4 — Review R1-F2" \
     --assignee esf-reviewer \
     --workspace "dir:$REPO" \
-    --parent "$F2_IMPL" \
+    --parent "$F2_IMPL" --parent "$F2_EST" \
     --idempotency-key "s2-f2-review" \
     --max-retries 2 --max-runtime 60m \
     --body "Prüfe R1-F2 auf Branch '$BRANCH_F2'. Das ist das sicherheitskritische
@@ -1067,7 +1076,7 @@ say "S2  Merge F1 am Riegel"
 F1_MERGE=$(k create "$S Merge F1 — R1-F1 am Riegel" \
     --assignee esf-qa-release \
     --workspace "dir:$REPO" \
-    --parent "$F1_REV" \
+    --parent "$F1_REV" --parent "$F1_EST" \
     --idempotency-key "s2-merge-f1" \
     --max-retries 2 --max-runtime 60m \
     --body "Bringe R1-F1 nach main — über den Riegel.
@@ -1107,7 +1116,7 @@ say "S2  Merge F2 am Riegel  (hängt an Merge F1 — bewusst serialisiert)"
 F2_MERGE=$(k create "$S Merge F2 — R1-F2 am Riegel" \
     --assignee esf-qa-release \
     --workspace "dir:$REPO" \
-    --parent "$F2_REV" --parent "$F1_MERGE" \
+    --parent "$F2_REV" --parent "$F1_MERGE" --parent "$F2_EST" \
     --idempotency-key "s2-merge-f2" \
     --max-retries 2 --max-runtime 60m \
     --body "Bringe R1-F2 nach main — über den Riegel. Du bist der ZWEITE Merge
