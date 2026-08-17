@@ -47,6 +47,35 @@ Vorbedingungen: `hermes` v0.20.0, `jq`, `git`, `python3`, `pnpm`, Docker für
 die Testdatenbank des Ziel-Repos. Modell und Provider kommen aus der
 Hermes-Root-Konfiguration.
 
+### Die Schlüsseldatei
+
+`openrouter-keys.txt` in diesem Verzeichnis — Name und Key im Wechsel, elf
+Paare:
+
+```
+esf-hermes-agent-1
+sk-or-v1-…
+esf-hermes-agent-2
+sk-or-v1-…
+```
+
+`setup.sh` ordnet daraus jedem Profil einen eigenen Key zu; welcher zu welcher
+Rolle gehört, steht in `key-zuordnung.txt` (Fingerabdruck statt Geheimnis).
+Ohne die Datei läuft die ESF auf dem Root-Key — das funktioniert, nur gibt es
+dann keine Kosten je Rolle, und `setup.sh` sagt das gelb.
+
+Drei Dinge dazu:
+
+- **Die Datei wird nie committet.** Sie ist doppelt gitignored: hier im
+  Verzeichnis und im Playground. `chmod 600`.
+- **Der Rückbau löscht sie nicht.** `teardown.sh` räumt `workspace/` und die
+  Profile ab; die Schlüsseldatei bleibt, damit das nächste `setup.sh`
+  dieselben Keys wieder denselben Rollen zuordnet und die Verbrauchszahlen
+  über den Rundlauf hinweg vergleichbar bleiben.
+- **Wer sie nicht im Arbeitsbaum haben will**, legt sie nach
+  `~/.hermes/esf-openrouter-keys.txt` oder setzt `$ESF_OPENROUTER_KEYFILE`.
+  Beides wird gefunden.
+
 ## Was hier liegt
 
 | Datei | Rolle |
@@ -84,7 +113,7 @@ Hermes-Root-Konfiguration.
 | `watchdog.sh` | nach Bedarf | Findet Worker, die laufen, aber nicht arbeiten: keine CPU, keine lebende Verbindung, nur tote Sockets. Der Zustand ist vom Board aus **nicht** von echter Arbeit zu unterscheiden |
 | `install-repo-hooks.sh` | einmalig | Schlanker Pre-Commit-Hook im Produkt-Repo (lintet nur Gestagetes). `--remove` stellt den Ausgangszustand her |
 | `dump-lauf.sh` | nach jedem Lauf | Sichert Board, Vault, Historien und Laufzeiten nach `beispiel-lauf-1/`. Ohne das ist der Lauf nach dem Rückbau spurlos weg |
-| `assign-keys.sh` | nach jedem `setup.sh` | Ordnet elf vorhandene OpenRouter-Keys den elf Profilen zu (`--pruefen`, `--verbrauch`, `--entfernen`). Läuft automatisch aus `setup.sh` |
+| `assign-keys.sh` | nach jedem `setup.sh` | Ordnet elf vorhandene OpenRouter-Keys den elf Profilen zu (`--pruefen`, `--verbrauch`, `--entfernen`). Läuft automatisch aus `setup.sh`; liest `openrouter-keys.txt` — siehe unten |
 | `check-keys.sh` | nach der Zuordnung | Der Nachweis, dass die Trennung wirkt: misst den Verbrauch aller elf Keys, lässt Probekarten laufen, misst erneut. `config get` beweist hier **nichts** |
 | `provision-keys.sh` | nur für den Deckel | Erzeugt Keys mit USD-Limit über die Provisioning-API. Für die Zurechnung **nicht** nötig — siehe `VERIFIKATION.md` |
 

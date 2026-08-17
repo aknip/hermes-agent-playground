@@ -137,6 +137,9 @@ if [ "$KEEP_PROFILES" -eq 0 ] && [ ${#zu_loeschen[@]} -gt 0 ]; then
     # ordnet sie über key-zuordnung.txt wieder denselben Rollen zu, sodass die
     # Verbrauchszahlen über einen Rückbau hinweg vergleichbar bleiben.
     echo "  Die Keys aus den .env-Dateien sind damit weg (bei OpenRouter bleiben sie gültig)."
+    if [ -r "$HERE/openrouter-keys.txt" ]; then
+        echo "  openrouter-keys.txt bleibt liegen — das nächste ./setup.sh ordnet daraus neu zu."
+    fi
 fi
 
 # ---------------------------------------------------------------------------

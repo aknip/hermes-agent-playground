@@ -60,16 +60,38 @@
 # Zuordnung ist in key-zuordnung.txt festgehalten (mit Fingerabdruck statt
 # Geheimnis) und damit reproduzierbar.
 #
-# Die Datei selbst gehört NICHT ins Repo. Standardort:
-# ~/.hermes/esf-openrouter-keys.txt (darf ein Symlink sein). Überschreibbar
-# über $ESF_OPENROUTER_KEYFILE oder --file.
+# Standardort ist openrouter-keys.txt im ESF-Verzeichnis. Die Datei wird NIE
+# committet: Sie ist doppelt gitignored — im Playground (`*openrouter-keys*.txt`)
+# und in der .gitignore dieses Verzeichnisses, damit der Schutz auch eine Kopie
+# überlebt. Rechte: chmod 600.
+#
+# Wem ein Geheimnis im Arbeitsbaum trotzdem zu nah am `git add` liegt, legt es
+# nach ~/.hermes/esf-openrouter-keys.txt (wird ebenfalls gefunden, darf ein
+# Symlink sein) oder setzt $ESF_OPENROUTER_KEYFILE bzw. --file.
 #
 set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ESF="$(cd "$HERE/.." && pwd)"
 ZUORDNUNG="$ESF/key-zuordnung.txt"
-STANDARD_DATEI="$HOME/.hermes/esf-openrouter-keys.txt"
+
+# Gesucht wird in dieser Reihenfolge; der erste Treffer gewinnt.
+#   1. openrouter-keys.txt HIER im ESF-Verzeichnis — der Standardort seit dem
+#      17.08.2026. Er hält alles, was die ESF braucht, an einem Ort; die Datei
+#      ist doppelt gitignored (hier und im Playground) und mit chmod 600
+#      abgelegt.
+#   2. ~/.hermes/esf-openrouter-keys.txt — für alle, denen ein Geheimnis im
+#      Arbeitsbaum eines Repos zu nah am `git add` liegt. Nachvollziehbar; der
+#      Preis ist, dass die ESF dann nicht mehr aus einem Verzeichnis heraus
+#      vollständig ist.
+STANDARD_ORTE=(
+    "$ESF/openrouter-keys.txt"
+    "$HOME/.hermes/esf-openrouter-keys.txt"
+)
+STANDARD_DATEI="${STANDARD_ORTE[0]}"
+for ort in "${STANDARD_ORTE[@]}"; do
+    if [ -r "$ort" ]; then STANDARD_DATEI="$ort"; break; fi
+done
 
 PROFILE_NAMES=(
     esf-chief-of-staff esf-market-scout esf-market-analyst esf-product-manager

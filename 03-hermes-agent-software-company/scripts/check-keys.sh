@@ -42,7 +42,16 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ESF="$(cd "$HERE/.." && pwd)"
 BOARD="sw-company"
 VAULT="$ESF/workspace/company"
-DATEI="${ESF_OPENROUTER_KEYFILE:-$HOME/.hermes/esf-openrouter-keys.txt}"
+# Dieselbe Suchreihenfolge wie in assign-keys.sh: erst das ESF-Verzeichnis,
+# dann ~/.hermes. Zwei Skripte, die verschiedene Dateien für „die
+# Schlüsseldatei" halten, wären eine Fehlerquelle mit Ansage.
+DATEI="${ESF_OPENROUTER_KEYFILE:-}"
+if [ -z "$DATEI" ]; then
+    for ort in "$ESF/openrouter-keys.txt" "$HOME/.hermes/esf-openrouter-keys.txt"; do
+        if [ -r "$ort" ]; then DATEI="$ort"; break; fi
+    done
+fi
+DATEI="${DATEI:-$ESF/openrouter-keys.txt}"
 STEMPEL="$(date '+%Y%m%d-%H%M%S')"
 
 PRUEFEN=("$@")
