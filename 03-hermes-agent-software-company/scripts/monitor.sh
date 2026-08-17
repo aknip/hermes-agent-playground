@@ -240,6 +240,61 @@ if [ "$ra_fertig" -gt 0 ] && [ "$gate_karten" -eq 0 ]; then
 fi
 
 # ---------------------------------------------------------------------------
+# 5. Verwaiste Worktrees — der stille Branch-Blocker
+# ---------------------------------------------------------------------------
+# Ein Worktree, dessen Karte es nicht mehr gibt (archiviert oder geloescht),
+# haelt seinen Branch weiter. Jede Nachfolgekarte auf demselben Branch scheitert
+# dann mit
+#
+#     workspace: git worktree add failed … on branch feat/…
+#
+# und die Meldung sagt NICHT, warum. Real dreimal am 17.08.2026 ausgeloest, zwei
+# davon nachdem der CEO eine Karte mit Worktree archiviert hatte. Ein
+# archivierter Kartenname loest keinen Worktree.
+#
+# Dazu die zweite Sorte: Worktrees AUSSERHALB von .worktrees/. Zwei lagen in
+# /private/tmp/ (baseline-j03, esf-baseline), von Workern waehrend eigener
+# Untersuchungen angelegt. Sie entziehen sich damit jeder Aufraeum-Logik — und
+# ein Baum, den niemand kennt, wird auch von niemandem geraeumt.
+#
+# Der Monitor entfernt nichts. Ein Worktree kann uncommittete Arbeit tragen, und
+# die wegzuwerfen waere teurer als jede Wartezeit. Er meldet und nennt den
+# Befehl.
+REPO_M="$(sed -n 's/^[[:space:]]*repo:[[:space:]]*//p' "$VAULT/cadence.yaml" 2>/dev/null | head -1 | sed 's/[[:space:]]*#.*$//')"
+if [ -n "$REPO_M" ] && [ -d "$REPO_M/.git" ]; then
+    lebende_ids="$(printf '%s' "$liste" | jq -r '.[].id' | tr '\n' ' ')"
+    while read -r pfad; do
+        [ -n "$pfad" ] || continue
+        [ "$pfad" = "$REPO_M" ] && continue
+        name="$(basename "$pfad")"
+        # `git worktree list --porcelain` trennt die Datensaetze durch LEERZEILEN.
+        # Ohne das Zuruecksetzen an der Leerzeile lief dieses awk ueber die
+        # Satzgrenze hinaus und meldete fuer einen DETACHED Baum den Branch des
+        # naechsten — im Test 'feat/esf-r1-f2-zwei-faktor' fuer einen Baum, der
+        # gar keinen Branch hatte. Eine falsche Zuordnung in einer Warnung ist
+        # schlimmer als keine Warnung: Sie schickt den Leser auf den falschen
+        # Branch.
+        branch="$(git -C "$REPO_M" worktree list --porcelain 2>/dev/null \
+                  | awk -v p="$pfad" '
+                        /^$/            { gefunden=0; next }
+                        $1=="worktree"  { gefunden=($2==p) ; next }
+                        gefunden && $1=="branch" { sub("refs/heads/","",$2); print $2; exit }
+                        gefunden && $1=="detached" { print "detached"; exit }')"
+
+        case "$pfad" in
+            "$REPO_M"/.worktrees/*)
+                # Name ist die Karten-ID. Lebt die Karte noch?
+                case " $lebende_ids " in
+                    *" $name "*) ;;
+                    *) melde WARN "Worktree $name haelt Branch '${branch:-?}', seine Karte ist nicht mehr auf dem Board — jede Nachfolgekarte auf diesem Branch scheitert mit 'worktree add failed'. Pruefen und raeumen: git -C \"$REPO_M\" worktree remove .worktrees/$name" "" ;;
+                esac ;;
+            *)
+                melde WARN "Worktree ausserhalb von .worktrees/: $pfad (Branch '${branch:-?}') — entzieht sich der Aufraeum-Logik" "" ;;
+        esac
+    done <<< "$(git -C "$REPO_M" worktree list --porcelain 2>/dev/null | awk '$1=="worktree" {print $2}')"
+fi
+
+# ---------------------------------------------------------------------------
 # Ausgabe
 # ---------------------------------------------------------------------------
 if [ "$JSON_AUS" -eq 1 ]; then

@@ -147,6 +147,32 @@ Bauchwerte.
    Nacharbeit, jede Korrektur und jeden zweiten Anlauf — und es ist der Grund,
    warum die Worktrees nach dem Kartenabschluss stehen bleiben.
 
+   **Und ein zweites Mal gerissen, eine Stunde später**, beim Neuanlegen der
+   2FA-Bau-Karte: Der Worktree der *archivierten* Vorgängerin hielt den Branch
+   weiter, `worktree add` scheiterte zweimal, `gave_up`. Ein archivierter Kartenname
+   löst keinen Worktree. Wer eine Karte mit Worktree archiviert, muss **auch den
+   Worktree entfernen** (`git worktree remove … --force`, nachdem er
+   nachgesehen hat, dass keine Arbeit darin liegt) — sonst ist der Branch für
+   jede Nachfolgekarte gesperrt, und die Fehlermeldung sagt nicht, warum.
+
+6. **Ein nachträglicher `link` hält eine Karte nicht zurück, die schon `ready`
+   ist.** Beim Archivieren der laufenden 2FA-Bau-Karte wurde ihre Review-Karte
+   elternlos, ging auf `ready` und **startete** — auf einem Branch ohne Arbeit.
+   Ein `hermes kanban link <neue-eltern> <kind>` danach änderte ihren Status
+   nicht; sie wäre beim nächsten Tick wieder gelaufen.
+
+   Der Weg: `reclaim` nimmt den laufenden Claim zurück, und
+   `hermes kanban schedule <id> "<Grund>"` parkt die Karte, bis die neue
+   Vorbedingung steht. `schedule` und nicht `block`, weil die Karte auf **Arbeit**
+   wartet und nicht auf einen Menschen — `blocked` wäre ein Gate, das keines ist,
+   und `gate.sh` müsste es als „echte Blockade" abweisen.
+
+7. **Am laufenden Board operiert man nicht wie an einem statischen.** Die drei
+   Fehler unter 5 und 6 haben eine gemeinsame Wurzel: Zwischen `archive`,
+   `create` und `link` liegen Dispatcher-Ticks von 30 Sekunden, und in dieser
+   Lücke handelt das System. Wer einen Karten-Graphen ändert, während er läuft,
+   ordnet die Schritte so: **erst parken, dann ändern, dann freigeben.**
+
 3. **Idempotenzschlüssel nach Sprint und Feature**, nicht nach Datum
    (`s1-f5-spec`). Ein Sprint dauert länger als einen Tag; ein datumsbasierter
    Schlüssel legt den Graphen beim zweiten Aufruf doppelt an.
