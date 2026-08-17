@@ -26,6 +26,11 @@ einer der elf verifizierten Stories belegt. Was das nicht deckt, steht unten in
 | **Baseline des Ziel-Repos** | `pnpm typecheck` 6/6 grün, `pnpm test` 10/10 grün, Playwright 4/4 grün. **`pnpm exec biome ci .` ist bereits auf dem Ausgangs-Commit rot** — Bestandsschuld von Upstream, nicht von der ESF verursacht (gemessen per `git stash` gegen den unveränderten Baum). |
 | **E2E-Gerüst** | Playwright 1.62.1, zwei Journeys, 4 Tests, 6,4 s. Zwei Produktfallen dokumentiert: das Passwort-Label zeigt per `for` auf den Wrapper-`div` statt aufs `input`; ein frisches Konto landet auf `/onboarding`, nicht auf `/dashboard`. |
 | **Fetch und Normalisierung** | 11 Quellen, 10 erreichbar. Roh 6,4 MB, normalisiert 168 KB. `height.app` antwortete nicht und hinterliess eine `.fehler`-Datei. |
+| **Gate hält den Dispatcher an** | Bei blockierter Gate-Karte meldet `dispatch --dry-run` wörtlich `Promoted: 0` / `Spawned: 0`. |
+| **Die Gate-Arithmetik**, live ausgelöst | Zweite Blockade derselben Art (`needs_input`) auf derselben Karte → Ereignis `block_loop_detected`, Karte still nach `triage`. Auslöser war eine Anweisung im Kartentext, die der SOUL des Profils widersprach — der konkretere Text gewann. |
+| **`triage` ist nicht das Ende der Arbeit** | Entgegen der Formulierung im Konzept holte der Dispatcher die Triage-Karte beim nächsten Tick nach `running` zurück. Zutreffend ist die schwächere Aussage: Die Karte fragt niemanden mehr, läuft aber weiter. |
+| **Der Unblock-Grund steht im Kommentar** | Das `unblocked`-Ereignis hat eine **leere** Payload; `gate.sh --reason` landet als Kommentar `UNBLOCK: <verb> …`. Wer den Governance-Check auf `.payload.reason` baut, meldet jede legitime Gate-Antwort als Verstoss. |
+| **Phase-0-Abschluss** | Kette Spezifikation→Bau→Review→Riegel durchgelaufen; Gate hielt; CEO-Antwort `modify` ausgeführt; Riegel bestand alle sechs Prüfungen und merged `c7eba96` nach `main`. Kein Worker rief je `kanban_unblock`. |
 
 ## Drei Befunde zur Git-Exklusivität — derselbe Satz, dreimal
 
@@ -66,17 +71,31 @@ zeigte die Ursache: die TCP-Verbindung zu OpenRouter stand auf `CLOSE_WAIT` —
 die Gegenseite hatte geschlossen, der Client wartete weiter. Der Worker war
 nicht langsam, sondern blockiert.
 
-Drei Konsequenzen, die im Aufbau schon vorgesehen sind und sich hier bewährt
-haben:
+Das war **kein Einzelfall**. Im weiteren Lauf traf es alle drei
+Analyse-Worker der Phase 1 gleichzeitig; über den ganzen Nachmittag waren es
+mindestens sechs Vorfälle. Auffällig ist die Korrelation mit Parallelität:
+Vier gleichzeitige Worker mit grossem Kontext trafen es zuverlässig. Ob die
+Ursache beim Provider, beim Netz (die Firmen-npm-Registry war ebenfalls nicht
+auflösbar) oder in Hermes' HTTP-Schicht liegt, ist von hier aus nicht
+entscheidbar — die Wirkung ist es.
+
+Vier Konsequenzen:
 
 - **`--max-runtime` je Karte ist keine Kosmetik**, sondern der einzige
-  Mechanismus, der einen so blockierten Worker beendet. Ohne ihn hängt die
-  Karte unbegrenzt.
-- **Der Zustand sieht von aussen aus wie Arbeit.** Das Board meldete
-  `running` mit regelmässigen Heartbeats. Nur `ps` (0 % CPU) und `lsof`
-  (`CLOSE_WAIT`) unterscheiden Blockade von Fortschritt — `monitor.sh` kann das
-  heute nicht und meldet es folglich nicht.
-- **Die Respawn-Mechanik greift**, sobald der Prozess wirklich weg ist.
+  eingebaute Mechanismus, der einen so blockierten Worker beendet.
+- **Der Zustand sieht von aussen aus wie Arbeit.** Das Board meldete `running`
+  mit regelmässigen Heartbeats. Nur `ps` (0 % CPU) und `lsof` (`CLOSE_WAIT`)
+  unterscheiden Blockade von Fortschritt — beides liegt ausserhalb von Hermes.
+- **Die Respawn-Mechanik greift**, sobald der Prozess wirklich weg ist:
+  `outcome: "crashed"`, dann ein neuer Lauf im Rahmen von `--max-retries`.
+- **Deshalb gibt es `scripts/watchdog.sh`.** Er prüft beide Merkmale zusammen
+  und beendet nur, was ein `CLOSE_WAIT`-Socket bei ~0 % CPU hält. Beim ersten
+  Lauf fand er sofort zwei Hänger, die eine manuelle Sichtung übersehen hatte —
+  ein Worker kann mehrere Sockets halten, und der Blick auf das zuletzt
+  gelistete genügt nicht. Ein bloss langsamer Worker (0 % CPU, aber alle
+  Sockets `ESTABLISHED`) wird ausdrücklich **nicht** beendet; dort ist eine
+  lange Modellantwort die wahrscheinlichere Erklärung, und dafür ist
+  `--max-runtime` zuständig.
 
 ## Nicht verifiziert
 
