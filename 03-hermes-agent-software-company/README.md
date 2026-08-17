@@ -18,12 +18,14 @@ Dieses Verzeichnis ist zweierlei:
   beliebiges Git-Repo aufgesetzt und jederzeit wieder entfernt zu werden.
   Gebaut wie die Stories in `02-hermes-agent-kanban-tutorials/`.
 
-Umgesetzt sind **Phase 0 (Gerüst)** und **Phase 1 (Onboarding)** aus Kapitel 12
-des Konzepts, gefahren gegen
+Umgesetzt sind **Phase 0 (Gerüst)**, **Phase 1 (Onboarding)** und **Phase 2
+(Begleiteter Betrieb)** aus Kapitel 12 des Konzepts, gefahren gegen
 [`../04-hermes-agent-software-company-test-kaneo`](../04-hermes-agent-software-company-test-kaneo)
 (Kaneo v2.19.1). Was dabei gemessen wurde und was Annahme blieb, steht in
-[`VERIFIKATION.md`](VERIFIKATION.md); der Lauf selbst in
-[`RUN-PROTOKOLL.md`](RUN-PROTOKOLL.md).
+[`VERIFIKATION.md`](VERIFIKATION.md); die Läufe selbst in
+[`RUN-PROTOKOLL.md`](RUN-PROTOKOLL.md). Die Pläne der Phasen stehen in
+[`PHASE-0-1-PLAN.md`](PHASE-0-1-PLAN.md) und
+[`PHASE-2-PLAN.md`](PHASE-2-PLAN.md).
 
 ## In fünf Minuten
 
@@ -39,9 +41,23 @@ des Konzepts, gefahren gegen
 ./gate.sh approve <id>          # die Roadmap freigeben
 ./scripts/check-onboarding.sh   # Phase-1-Nachweis
 
+./create-sprint.sh 1            # Phase 2: Sprint 1 (R1-F5, die Härtung)
+./pump.sh
+./create-sprint.sh 2            # verweigert, bis „Kalibrierung S1" fertig ist
+./pump.sh
+./create-release.sh R1          # Release-Abschluss + Release-Gate
+./gate.sh approve <id>          # das Release freigeben
+./scripts/check-phase2.sh       # Phase-2-Nachweis
+
 ./install-cron.sh --remove      # immer VOR dem Teardown
 ./teardown.sh                   # zurückbauen; löscht nur .esf-markierte Profile
 ```
+
+Steht schon ein Lauf in `beispiel-lauf-1/` und wurde zurückgebaut, ersetzt
+`./restore-phase1.sh --ledger` die Phasen 0 und 1: Es spielt die
+Analyse-Artefakte zurück und bucht die gemessenen Wanduhrzeiten des ersten Laufs
+ins Ledger nach — die Schätzgrundlage, ohne die der `esf-estimator` nach
+`AGENTS.md 6` keine Zahl schreiben darf.
 
 Vorbedingungen: `hermes` v0.20.0, `jq`, `git`, `python3`, `pnpm`, Docker für
 die Testdatenbank des Ziel-Repos. Modell und Provider kommen aus der
@@ -85,6 +101,9 @@ Drei Dinge dazu:
 | `reset-workspace.sh` | `workspace/` frisch aus `seed/`. `--git` zeigt die Vault-Historie |
 | `probelauf.sh` | Der Phase-0-Nachweis: Dummy-Kette Spezifikation→Bau→Review→Riegel plus Probe-Gate |
 | `create-onboarding.sh` | Der Phase-1-Analysegraph: sechs Karten, zwei Fan-ins, ein Gate |
+| `restore-phase1.sh` | Spielt die Phase-1-Artefakte aus `beispiel-lauf-1/` zurück; `--ledger` bucht die gemessenen Wanduhrzeiten des ersten Laufs nach (`estimate: null`, `backfill: true`) |
+| `create-sprint.sh` | Der Sprint-Graph von Release 1. `1` = R1-F5, `2` = R1-F1 ∥ R1-F2 — und `2` **verweigert**, bis `Kalibrierung S1` fertig ist: die CEO-Auflage der freigegebenen Roadmap bindet die Reihenfolge |
+| `create-release.sh` | Release-Abschluss + `GATE Release`. Verweigert, solange ein Sprint offen ist |
 | `pump.sh` | Manueller Dispatch-Takt (Ersatz fürs Gateway im Testbetrieb) |
 | `gate.sh` | **Die CEO-Hülle.** Der einzige legitime Weg, ein Gate zu öffnen |
 | `install-cron.sh` | Taktet die vier Betriebs-Skripte. `--remove` vor jedem Teardown |
@@ -109,7 +128,7 @@ Drei Dinge dazu:
 | `merge-riegel.sh` | je Merge | Sechs Prüfungen; merged oder verweigert. **Kein Modell merged** |
 | `vault-lint.py` | je Schreibvorgang | Setzt `company/AGENTS.md` durch und zitiert bei jedem Befund den Abschnitt |
 | `fetch-sources.sh` | vom Tick | Holt die Quellen und **normalisiert deterministisch**, bevor sie im Korpus landen |
-| `check-onboarding.sh`<br>`check-daily.sh` | je Ebene | Deterministische Endzustands-Checks — Code entscheidet, ob etwas fertig ist |
+| `check-onboarding.sh`<br>`check-daily.sh`<br>`check-sprint.sh`<br>`check-release.sh`<br>`check-phase2.sh` | je Ebene | Deterministische Endzustands-Checks — Code entscheidet, ob etwas fertig ist. `check-sprint.sh` trägt den Riegel, an dem Phase 2 hängt: ein Istwert **ohne** bezifferte Schätzung ist rot, denn dann ist das (Schätzung, Ist)-Paar zerrissen |
 | `watchdog.sh` | nach Bedarf | Findet Worker, die laufen, aber nicht arbeiten: keine CPU, keine lebende Verbindung, nur tote Sockets. Der Zustand ist vom Board aus **nicht** von echter Arbeit zu unterscheiden |
 | `install-repo-hooks.sh` | einmalig | Schlanker Pre-Commit-Hook im Produkt-Repo (lintet nur Gestagetes). `--remove` stellt den Ausgangszustand her |
 | `dump-lauf.sh` | nach jedem Lauf | Sichert Board, Vault, Historien und Laufzeiten nach `beispiel-lauf-1/`. Ohne das ist der Lauf nach dem Rückbau spurlos weg |
