@@ -63,16 +63,21 @@ for id in $(printf '%s' "$liste" | jq -r '.[] | select(.status=="done") | .id');
     fi
 
     karte="$(k show "$id" --json 2>/dev/null || echo '{}')"
-    profil="$(printf '%s' "$karte" | jq -r '.assignee // "unbekannt"')"
-    schaetzung="$(printf '%s' "$karte" | jq -c '.metadata.estimate // null')"
-    klasse="$(printf '%s' "$karte" | jq -r '.metadata.estimate.reference_class // "unklassifiziert"')"
+    profil="$(printf '%s' "$karte" | jq -r '.task.assignee // "unbekannt"')"
+
+    # Das Abschluss-metadata eines Workers hängt am LAUF, nicht an der Karte
+    # (`.runs[].metadata`) — die Karte selbst hat gar kein metadata-Feld.
+    # Gültig ist der letzte Lauf, der eines geschrieben hat.
+    schaetzung="$(printf '%s' "$karte" | jq -c '[.runs[]?.metadata.estimate // empty] | last // null')"
+    klasse="$(printf '%s' "$karte" | jq -r '[.runs[]?.metadata.estimate.reference_class // empty] | last // "unklassifiziert"')"
 
     # Wanduhrzeit aus den Läufen — Board-Zeitstempel, nicht Modelltext.
-    laeufe="$(printf '%s' "$karte" | jq -c '[.runs[]? | select(.started_at and .completed_at)]')"
+    # Sie sind Unix-Epoch-Sekunden (Integer), kein ISO-8601.
+    laeufe="$(printf '%s' "$karte" | jq -c '[.runs[]? | select(.started_at and .ended_at)]')"
     anzahl_laeufe="$(printf '%s' "$laeufe" | jq 'length')"
     minuten="$(printf '%s' "$laeufe" | jq '
-        [.[] | ((.completed_at | fromdateiso8601) - (.started_at | fromdateiso8601))]
-        | add // 0 | . / 60 | floor' 2>/dev/null || echo null)"
+        if length == 0 then null
+        else ([.[] | (.ended_at - .started_at)] | add / 60 | floor) end' 2>/dev/null || echo null)"
 
     # Ein Lauf über eine Standby-Phase misst Schlaf, nicht Arbeit. Die
     # Heuristik: mehr als vier Stunden Wanduhr auf einer Karte ist im

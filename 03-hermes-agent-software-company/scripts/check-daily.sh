@@ -38,15 +38,27 @@ else
 fi
 
 # 2 — Messwerte
-# metadata.actual ist der Audit-Kanal. Fehlt er, ist die Karte nicht messbar
-# und fällt aus der Kalibrierung — still, und genau das soll auffallen.
-ohne="$(printf '%s' "$liste" | jq -r --arg t "$HEUTE" '
-    [.[] | select(.status=="done" and ((.updated_at // "") | startswith($t)))
-         | select((.metadata.actual // null) == null) | .id] | join(" ")')"
-if [ -z "$ohne" ]; then
-    ok "jede heute abgeschlossene Karte trägt metadata.actual"
+# Das Abschluss-metadata ist der Audit-Kanal. Es hängt am LAUF (.runs[].metadata),
+# nicht an der Karte — die Karte hat gar kein metadata-Feld. Fehlt es, ist die
+# Karte nicht messbar und fällt still aus der Kalibrierung. Genau das soll
+# auffallen.
+# completed_at ist Unix-Epoch, kein ISO-String.
+TAG_START="$(date -j -f '%Y-%m-%d %H:%M:%S' "$HEUTE 00:00:00" '+%s' 2>/dev/null \
+             || date -d "$HEUTE 00:00:00" '+%s')"
+heute_fertig="$(printf '%s' "$liste" | jq -r --argjson s "$TAG_START" \
+    '.[] | select(.status=="done" and ((.completed_at // 0) >= $s)) | .id')"
+
+ohne=""
+for id in $heute_fertig; do
+    hat="$(k show "$id" --json 2>/dev/null | jq '[.runs[]?.metadata // empty] | length')"
+    [ "${hat:-0}" -gt 0 ] || ohne="$ohne $id"
+done
+if [ -z "$heute_fertig" ]; then
+    ok "heute wurde keine Karte abgeschlossen"
+elif [ -z "$ohne" ]; then
+    ok "jede heute abgeschlossene Karte trägt Abschluss-metadata"
 else
-    nein "ohne metadata.actual: $ohne"
+    nein "ohne Abschluss-metadata:$ohne"
 fi
 
 # 3 — der Report existiert

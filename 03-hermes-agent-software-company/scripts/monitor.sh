@@ -114,10 +114,19 @@ if [ "$alle" -gt 0 ] && [ "$offen_gesamt" -eq 0 ]; then
     fi
 fi
 
-# Sprint-Ebene: alle Karten mit demselben metadata.sprint sind fertig.
-for sprint in $(printf '%s' "$liste" | jq -r '[.[] | .metadata.sprint // empty] | unique | .[]' 2>/dev/null); do
-    gesamt="$(printf '%s' "$liste" | jq --arg s "$sprint" '[.[] | select(.metadata.sprint==$s)] | length')"
-    fertig="$(printf '%s' "$liste" | jq --arg s "$sprint" '[.[] | select(.metadata.sprint==$s and .status=="done")] | length')"
+# Sprint-Ebene: alle Karten mit derselben Sprint-Zugehörigkeit sind fertig.
+#
+# Die Sprint-Marke steht im Abschluss-metadata des LAUFS (.runs[].metadata.sprint)
+# — Karten tragen kein metadata-Feld. Eine Karte, die noch nie gelaufen ist, hat
+# also keine Marke; deshalb kommt die Zuordnung zusätzlich aus dem Titel-Präfix
+# "S<nr> ", das der Chief of Staff setzt. Nur so zählt eine offene Karte
+# überhaupt mit — sonst gälte ein Sprint als voll, sobald seine erste Karte
+# fertig ist.
+sprint_von_titel() { printf '%s' "$1" | sed -n 's/^\(S[0-9][0-9]*\) .*/\1/p'; }
+
+for sprint in $(printf '%s' "$liste" | jq -r '.[].title' | sed -n 's/^\(S[0-9][0-9]*\) .*/\1/p' | sort -u); do
+    gesamt="$(printf '%s' "$liste" | jq --arg s "$sprint" '[.[] | select(.title | startswith($s + " "))] | length')"
+    fertig="$(printf '%s' "$liste" | jq --arg s "$sprint" '[.[] | select((.title | startswith($s + " ")) and .status=="done")] | length')"
     if [ "$gesamt" -gt 0 ] && [ "$gesamt" -eq "$fertig" ]; then
         abschluss="$(printf '%s' "$liste" | jq -r --arg s "$sprint" \
             '[.[] | select(.title | startswith("Sprint-Abschluss " + $s))] | length')"

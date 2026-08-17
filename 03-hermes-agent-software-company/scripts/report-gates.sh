@@ -77,7 +77,9 @@ EOF
     for id in $ids; do
         nr=$((nr + 1))
         titel="$(printf '%s' "$liste" | jq -r --arg i "$id" '.[] | select(.id==$i) | .title' | esc)"
-        seit="$(printf '%s' "$liste" | jq -r --arg i "$id" '.[] | select(.id==$i) | .updated_at // .created_at // ""')"
+        # created_at ist Unix-Epoch, kein ISO-String.
+        epoche="$(printf '%s' "$liste" | jq -r --arg i "$id" '.[] | select(.id==$i) | .created_at // 0')"
+        seit="$(date -r "$epoche" '+%Y-%m-%d %H:%M' 2>/dev/null || echo "$epoche")"
         grund="$(k show "$id" --json 2>/dev/null \
                  | jq -r '[.events[] | select(.kind=="blocked")] | last | .payload.reason // "(keine Vorlage hinterlegt — das ist ein Mangel der Karte)"' | esc)"
         zurueck=""
