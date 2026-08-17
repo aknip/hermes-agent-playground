@@ -191,3 +191,94 @@ Vier Fehler in ESF-Code, alle erst im Lauf sichtbar, alle behoben:
 Der dritte ist der unangenehmste: Ein grüner Lauf, der nichts prüft, ist
 schlimmer als ein roter. Gefunden wurde er nur, weil der Diff der eigenen
 Korrektur noch einmal gelesen wurde.
+
+## Phase 1 — Onboarding
+
+Sechs Karten, zwei Fan-ins, ein Gate. Die drei Analysen liefen parallel; genau
+das provozierte den Betriebsbefund oben — vier gleichzeitige Worker mit grossem
+Kontext trafen die hängenden Verbindungen zuverlässig. Der Wachhund entstand
+mitten in dieser Phase und fing danach jeden Hänger ab.
+
+### Was die Organisation geliefert hat
+
+| Karte | Profil | Zeit | Ergebnis |
+|-------|--------|------|----------|
+| 1/6 Codebasis | `esf-architect` | 15 min | `codebase.html`, 19 KB, **36 `datei:zeile`-Belege** |
+| 2/6 Produkt | `esf-product-manager` | 12 min | `product.html`, 22 KB, 8 priorisierte Journeys mit Schrittzahlen, „Versprechen gegen Realität" |
+| 3/6 Markt | `esf-market-analyst` | 18 min | `market.html`, 19 KB, **28 Korpus-Zitate über 8 Quellen**, 8 Hypothesen — exakt der `max_pro_lauf`-Deckel aus `cadence.yaml` |
+| 4/6 E2E | `esf-qa-release` | 33 min | 4 neue Specs (J-02, J-03, J-04 = alle P1, dazu J-06), `journeys.html` |
+| 5/6 Roadmap | `esf-chief-of-staff` | 11 min | `q1-entwurf.html`, 3 Releases, 10 Features |
+| 6/6 Gate | `esf-chief-of-staff` | 14 min | Vorlage in acht Zeilen, dann Ausführung der CEO-Antwort |
+
+Summe über alle zehn Karten des Tages: **142 Minuten Kartenzeit**.
+
+Drei Dinge, die über blosses Abarbeiten hinausgehen:
+
+- Der **Architekt widersprach dem Kartentext.** Der Auftrag enthielt meine
+  Behauptung, `biome ci .` sei Bestandsschuld; er prüfte sie und legte mit
+  Fundstellen dar, dass sie falsch ist (siehe `VERIFIKATION.md`). Das ist
+  genau das Verhalten, das der Verifikationsvertrag verlangt und das man von
+  einem günstigen Modell nicht erwartet.
+- Die **E2E-Karte überlebte ihren eigenen Absturz.** Lauf 17 hing und wurde vom
+  Wachhund beendet; Lauf 18 fand vier bereits geschriebene Specs vor,
+  verifizierte deren Selektoren gegen die Anwendung, liess die volle Suite grün
+  laufen und committete. Im `metadata` steht, was sie bewusst wegliess (J-05,
+  J-07, J-08, J-09, jeweils mit Grund) — und der technische Befund, dass J-04
+  rohe Mausereignisse statt `dragTo` braucht, weil das Board `dnd-kit` mit
+  Zeiger-Sensoren benutzt.
+- Der **Chief of Staff schrieb keine Zahlen hin, die er nicht hatte.** Punkt 5
+  seiner Gate-Vorlage lautet sinngemäss: kein bezifferbares Intervall, das
+  Ledger ist leer, jedes Feature trägt nur eine Grössenklasse mit dem Vermerk
+  „ohne Historie, Konfidenz < 0.3". Das ist die unbequeme, richtige Antwort.
+
+Unabhängig nachgemessen statt geglaubt: Suite **8/8 grün in 24,7 s**,
+Arbeitsbaum sauber, Commit `58310dc` **durch den schlanken Hook** — ohne
+`--no-verify`.
+
+### Das Roadmap-Gate: `modify`
+
+Die Roadmap war belastbar — Features auf Hypothesen mit Score und
+Falsifikationsbedingung zurückgeführt, ein begründeter „Was wir NICHT
+machen"-Abschnitt, eine Subtraktions-Sichtung. Empfohlen war `approve`.
+
+Die CEO-Antwort war trotzdem `modify`: **Release 1 schrumpft von fünf auf drei
+Features.** Nicht aus Zweifel am Plan, sondern wegen des leeren Ledgers. Ein
+bis ans Kadenz-Limit gefülltes erstes Release liefert die ersten (Schätzung,
+Ist)-Paare zu spät, und bis dahin ist auch das Budget-Gate wirkungslos — 150 %
+einer P90, die es nicht gibt, löst nie aus. Drei gemessene Features schlagen
+fünf blind geplante. Dazu die technische Härtung zuerst statt zuletzt, weil die
+Codebasis-Analyse `apps/api/src/index.ts` als Kollisions-Hotspot benennt und
+die Organisation an diesem Tag dreimal bewiesen hat, dass parallele Git-Arbeit
+ihr häufigster Ausfallgrund ist. Auflage: Kalibrierung nach dem ersten fertigen
+Feature. Horizont bleibt `release` — kein Quartals-Mandat für eine
+Organisation, die noch kein einziges echtes Feature abgeschlossen hat.
+
+Der Chief of Staff arbeitete das ein, verschob Import und Undo an den Anfang
+von R2 (Deckel eingehalten), fror die Freigabe nach `q1-freigegeben.html` ein
+und liess den Entwurf daneben stehen — „nicht überschrieben, sondern
+widerlegt", das Muster aus Kapitel 7.
+
+`check-onboarding.sh` ist danach grün: 5/5 Karten, vier Analyse-Artefakte,
+Vault-Linter sauber, 6 Journey-Specs, Suite grün, Gate beantwortet und
+ausgeführt, beide Roadmap-Stände im Vault.
+
+## Was dieser Lauf gekostet hat
+
+142 Minuten Kartenzeit über zehn Karten, verteilt auf gut zweieinhalb Stunden
+Wanduhrzeit. Die Differenz sind die Hänger, die Retries und die Wartezeit am
+Gate. Eine Kostenangabe in USD steht bewusst nicht hier: Ohne einen
+OpenRouter-Key je Profil lässt sich die Tagessumme nicht auf Rollen aufteilen,
+und `ledger-sync.sh` schreibt deshalb `cost_usd: null` statt einer Vermutung.
+Genau das ist der Zweck des Ledgers ab Phase 2.
+
+## Bilanz
+
+Was an diesem Lauf trägt, ist nicht die Menge der Artefakte, sondern die Liste
+der Fehler, die er sichtbar gemacht hat: sechs in ESF-Code, drei im Rückbau,
+zwei im Betrieb, einer in meiner eigenen Beweisführung. Alle stehen in
+`VERIFIKATION.md`, alle sind behoben, und keiner davon wäre ohne einen echten
+Lauf gegen ein echtes Repo aufgefallen.
+
+Der unangenehmste ist der eigene: Eine bequeme Erklärung wurde fünfmal
+weitergeschrieben, ohne dass jemand den Exit-Code isoliert gemessen hätte.
+Der erste, der nachsah, war ein Agent.
