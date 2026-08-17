@@ -110,6 +110,44 @@ if [ -f "$VAULT/analysis/journeys.html" ]; then
     fi
 fi
 
+# Der eigentliche Nachweis aus Kapitel 12 lautet „die E2E-Suite deckt die
+# KERN-Journeys". Ein Katalog mit drei sauberen Einträgen erfüllt das nicht,
+# wenn die Produktanalyse acht Kernaufgaben gefunden hat. Also gegenrechnen —
+# und die Zahl in jedem Fall ausgeben, damit eine bewusst kleine Abdeckung eine
+# Entscheidung bleibt statt ein unbemerktes Bestehen.
+if [ -f "$VAULT/analysis/product.html" ] && [ -f "$VAULT/analysis/journeys.html" ]; then
+    echo
+    echo "   Abdeckung der Kern-Journeys"
+    soll="$(grep -oE 'J-[0-9]{2}' "$VAULT/analysis/product.html" | sort -u)"
+    ist="$(grep -oE 'J-[0-9]{2}' "$VAULT/analysis/journeys.html" | sort -u)"
+    n_soll="$(printf '%s\n' "$soll" | grep -c . || true)"
+    n_ist="$(printf '%s\n' "$ist" | grep -c . || true)"
+
+    if [ "$n_soll" -eq 0 ]; then
+        nein "product.html benennt keine Journeys mit J-nn-Kennung"
+    else
+        offen=""
+        for j in $soll; do
+            printf '%s\n' "$ist" | grep -qx "$j" || offen="$offen $j"
+        done
+        printf '    %s von %s Kern-Journeys im Katalog\n' "$n_ist" "$n_soll"
+        [ -n "$offen" ] && printf '    noch offen:%s\n' "$offen"
+
+        # Harte Untergrenze: mindestens eine P1-Journey muss eine echte Spec
+        # haben. Ohne das ist die Suite ein Katalog ohne Deckung.
+        p1_ok=0
+        for j in $soll; do
+            zeile="$(grep -A3 "$j" "$VAULT/analysis/product.html" | tr -d '\n')"
+            case "$zeile" in *P1*) printf '%s\n' "$ist" | grep -qx "$j" && p1_ok=1 ;; esac
+        done
+        if [ "$p1_ok" -eq 1 ]; then
+            ok "mindestens eine P1-Journey ist abgedeckt"
+        else
+            nein "keine einzige P1-Journey aus product.html hat eine Spec"
+        fi
+    fi
+fi
+
 echo "   Lauf"
 if [ -d "$REPO" ] && [ "$specs" -gt 0 ]; then
     ( cd "$REPO" && eval "$E2E_VORBED" ) >/dev/null 2>&1 || true
