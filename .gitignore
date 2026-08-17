@@ -1,2 +1,7 @@
 # macOS
 .DS_Store
+
+# Das Ziel-Repo der ESF ist ein eigenstaendiges Git-Repository (Produkt-Repo).
+# Es wird vom Playground-Repo bewusst NICHT mitverwaltet: Die ESF arbeitet dort
+# mit eigenen Branches und Git-Worktrees.
+04-hermes-agent-software-company-test-kaneo/
