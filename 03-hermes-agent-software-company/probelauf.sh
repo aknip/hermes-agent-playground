@@ -194,13 +194,28 @@ metadata: changed_files, der Commit-Hash, und was du bewusst nicht getan hast." 
     --json | jq -r .id)
 echo "  PROBE_BAU    = $BAU"
 
+# ⚠ Der Reviewer bekommt KEINEN eigenen Worktree auf demselben Branch.
+# Git lässt einen Branch nur in genau einem Worktree auschecken; ein zweites
+# `git worktree add` auf feat/… scheitert mit "already used by worktree at …",
+# der Circuit Breaker gibt nach zwei Versuchen auf, und die Karte steht
+# blockiert da — real passiert, siehe VERIFIKATION.md.
+#
+# Er arbeitet deshalb im HAUPTBAUM (dir:) und sieht von dort aus in die
+# fremden Bäume unter .worktrees/. Das ist nicht nur die Reparatur, sondern
+# auch die einzige Bauform, die ein Fan-in-Review über MEHRERE Feature-Branches
+# eines Sprints überhaupt zulässt — ein einzelner Worktree könnte immer nur
+# einen davon zeigen.
 REVIEW=$(k create "Probelauf 3/4 — Review" \
     --assignee esf-reviewer \
-    --workspace "worktree:$REPO" --branch "$BRANCH" \
+    --workspace "dir:$REPO" \
     --parent "$BAU" \
     --idempotency-key "probelauf-review" \
     --max-retries 2 --max-runtime 25m \
     --body "Prüfe den Branch $BRANCH.
+
+Du arbeitest im Hauptbaum des Repos. Der Baum des Entwicklers liegt daneben:
+'git worktree list' zeigt dir, wo. Du darfst dort lesen und Tests ausführen,
+aber nichts ändern.
 
 Geprüft wird hier auch, ob DU im fremden Baum wirklich arbeitest statt die
 Zusammenfassung des Entwicklers zu übernehmen. Also:

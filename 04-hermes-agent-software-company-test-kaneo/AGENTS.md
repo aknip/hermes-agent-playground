@@ -105,6 +105,56 @@ Use the smallest proof that covers the changed behavior, then broaden it when th
 
 Run repository-wide checks when a change crosses packages broadly, before a requested commit or pull request, or when explicitly asked. Report what ran and what did not.
 
+## ESF — Definition of Done
+
+This repository is developed by the ESF, an autonomous agent organisation
+(`../03-hermes-agent-software-company`). A feature card is done when all of
+these hold. Nothing here replaces the sections above; it makes them checkable.
+
+- **The change is committed on its own `feat/…` branch, in its own worktree.**
+  Never on `main`, never merged by hand.
+- **Tests came first.** Red, green, refactor. A test written after the code
+  tests what was built, not what was asked for.
+- **The user journey is in the E2E suite.** Every feature adds or extends a
+  Playwright spec under `tests/e2e/journeys/`, written from the user's point of
+  view with visible steps. Run the full suite yourself before completing:
+
+      docker compose -f compose.yml up -d postgres    # Vorbedingung
+      pnpm exec playwright test
+
+- **The completion metadata names `changed_files`, the tests added, the E2E
+  journey covered, and what was deliberately left undone.**
+
+### The commit hook, and why it is not the repo's own
+
+`core.hooksPath` points at `.esf-hooks/`, installed by
+`scripts/install-repo-hooks.sh` in the ESF directory. That hook lints **only
+the staged files**.
+
+The repository's own `.husky/pre-commit` runs `biome ci .` across everything
+plus a full `pnpm run build`. Two reasons it cannot serve as an agent's commit
+gate: `biome ci .` is already red on the baseline commit `e714f87` (upstream
+debt, measured against the untouched tree), and a full build per commit costs
+minutes. A gate that always fails teaches everyone to pass `--no-verify`, and
+then nothing is gated at all.
+
+So the ESF measures the **regression** at commit time — your lines — and keeps
+the full proof where it belongs: once per merge, in `scripts/merge-riegel.sh`
+(conflict check, staged-file lint, typecheck, unit tests, full E2E suite). That
+script merges or refuses. **It is the only thing that may write to `main`.**
+If it refuses, it is right; read the reason and fix the cause.
+
+`.husky/` is left untouched. `scripts/install-repo-hooks.sh --remove` restores
+the original state exactly.
+
+### Two traps in this codebase that cost E2E authors an hour
+
+- The password field's `<label for=…>` points at the wrapper `<div>`, not the
+  `<input>`. `getByLabel("Password")` returns an element you cannot fill — use
+  `input[name="password"]`.
+- A freshly registered account lands on `/onboarding`, not `/dashboard`. It has
+  no workspace yet. `tests/e2e/support/journey.ts` has helpers for both steps.
+
 ## Glossary
 
 - **instance**: one deployed Kaneo installation.

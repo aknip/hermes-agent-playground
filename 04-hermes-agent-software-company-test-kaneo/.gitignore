@@ -58,3 +58,6 @@ apps/web/.tanstack/
 # Playwright E2E
 test-results/
 playwright-report/
+
+# ESF: schlanker Pre-Commit-Hook (scripts/install-repo-hooks.sh)
+.esf-hooks/
