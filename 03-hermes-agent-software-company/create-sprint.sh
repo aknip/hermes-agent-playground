@@ -55,13 +55,20 @@ command -v jq >/dev/null || { echo "FEHLER: 'jq' fehlt"; exit 1; }
     exit 1
 }
 
-REPO="$(sed -n 's/^[[:space:]]*repo:[[:space:]]*//p' "$VAULT/cadence.yaml" | head -1)"
-PRODUKT="$(sed -n 's/^[[:space:]]*name:[[:space:]]*//p' "$VAULT/cadence.yaml" | head -1)"
-PRAEFIX="$(sed -n 's/^[[:space:]]*branch_praefix:[[:space:]]*//p' "$VAULT/cadence.yaml" | head -1)"
-E2E_DIR="$(sed -n 's/^[[:space:]]*e2e_verzeichnis:[[:space:]]*//p' "$VAULT/cadence.yaml" | head -1)"
-E2E_BEFEHL="$(sed -n 's/^[[:space:]]*e2e_befehl:[[:space:]]*//p' "$VAULT/cadence.yaml" | head -1)"
-E2E_VORBED="$(sed -n 's/^[[:space:]]*e2e_vorbedingung:[[:space:]]*//p' "$VAULT/cadence.yaml" | head -1)"
-KARTEN_DECKEL="$(sed -n 's/^karten_pro_feature:[[:space:]]*//p' "$VAULT/cadence.yaml" | head -1)"
+# cadence.yaml lesen — mit abgeschnittenem Zeilenkommentar. Ohne das trägt
+# `karten_pro_feature: 8   # Deckel für den Planungsgraphen je Feature` den
+# ganzen Kommentar als Wert, und der landet mitten im Kartentext eines Workers.
+# Die Werte, die e2e_befehl heissen, enthalten selbst kein '#'.
+cad() { sed -n "s/^[[:space:]]*$1:[[:space:]]*//p" "$VAULT/cadence.yaml" \
+        | head -1 | sed 's/[[:space:]]*#.*$//' | sed 's/[[:space:]]*$//'; }
+
+REPO="$(cad repo)"
+PRODUKT="$(cad name)"
+PRAEFIX="$(cad branch_praefix)"
+E2E_DIR="$(cad e2e_verzeichnis)"
+E2E_BEFEHL="$(cad e2e_befehl)"
+E2E_VORBED="$(cad e2e_vorbedingung)"
+KARTEN_DECKEL="$(cad karten_pro_feature)"
 
 k() { hermes kanban --board "$BOARD" "$@"; }
 say() { printf '\n\033[1m%s\033[0m\n' "$*"; }

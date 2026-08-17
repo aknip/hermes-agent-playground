@@ -147,13 +147,19 @@ done
 # ---------------------------------------------------------------------------
 say "2  Der Hinweis auf die toten Karten-IDs"
 # ---------------------------------------------------------------------------
-HINWEIS="$VAULT/analysis/HERKUNFT.txt"
+# Der Vermerk liegt unter reports/ und heisst klein mit Bindestrich — beides
+# nicht aus Geschmack: AGENTS.md 2.1 nimmt Maschinenprotokolle aus der
+# HTML-Pflicht aus, aber NUR unter reports/, und 2.3 verlangt kleine Dateinamen.
+# Der erste Entwurf lag als analysis/HERKUNFT.txt, und der Vault-Linter hat ihn
+# mit zwei ERROR abgelehnt — zu Recht. Ein Skript der Organisation, das sich vom
+# Vertrag der Organisation ausnimmt, wäre der Anfang vom Ende des Vertrags.
+HINWEIS="$VAULT/reports/herkunft-phase1.txt"
+ALT="$VAULT/analysis/HERKUNFT.txt"
 if [ "$NUR_PRUEFEN" -eq 1 ]; then
-    [ -f "$HINWEIS" ] && ok "HERKUNFT.txt liegt" || warn "HERKUNFT.txt fehlt"
+    [ -f "$HINWEIS" ] && ok "reports/herkunft-phase1.txt liegt" || warn "reports/herkunft-phase1.txt fehlt"
 else
-    # Bewusst .txt und nicht .html: AGENTS.md 2.1 nimmt Maschinenprotokolle und
-    # Rohbelege aus der HTML-Pflicht aus, und das hier ist ein Herkunftsvermerk,
-    # kein Dokument. Der Vault-Linter prüft nur .html.
+    mkdir -p "$VAULT/reports"
+    [ -f "$ALT" ] && rm -f "$ALT"
     cat > "$HINWEIS" <<EOF
 HERKUNFT DIESER ARTEFAKTE
 =========================
@@ -185,7 +191,7 @@ IDs läuft ins Leere.
 
 Karten, die AB Phase 2 entstehen, tragen wieder lebende IDs.
 EOF
-    ok "analysis/HERKUNFT.txt geschrieben"
+    ok "reports/herkunft-phase1.txt geschrieben"
 fi
 
 # ---------------------------------------------------------------------------

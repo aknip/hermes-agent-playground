@@ -37,11 +37,15 @@ IDS="$HERE/task-ids-$KLEIN.env"
 command -v jq >/dev/null || { echo "FEHLER: 'jq' fehlt"; exit 1; }
 [ -d "$VAULT" ] || { echo "FEHLER: Kein Vault. Erst ./setup.sh"; exit 1; }
 
-REPO="$(sed -n 's/^[[:space:]]*repo:[[:space:]]*//p' "$VAULT/cadence.yaml" | head -1)"
-PRODUKT="$(sed -n 's/^[[:space:]]*name:[[:space:]]*//p' "$VAULT/cadence.yaml" | head -1)"
-E2E_BEFEHL="$(sed -n 's/^[[:space:]]*e2e_befehl:[[:space:]]*//p' "$VAULT/cadence.yaml" | head -1)"
-E2E_VORBED="$(sed -n 's/^[[:space:]]*e2e_vorbedingung:[[:space:]]*//p' "$VAULT/cadence.yaml" | head -1)"
-HORIZONT="$(sed -n 's/^autonomie_horizont:[[:space:]]*//p' "$VAULT/cadence.yaml" | head -1)"
+# Zeilenkommentar abschneiden — sonst wandert er als Wert in den Kartentext.
+cad() { sed -n "s/^[[:space:]]*$1:[[:space:]]*//p" "$VAULT/cadence.yaml" \
+        | head -1 | sed 's/[[:space:]]*#.*$//' | sed 's/[[:space:]]*$//'; }
+
+REPO="$(cad repo)"
+PRODUKT="$(cad name)"
+E2E_BEFEHL="$(cad e2e_befehl)"
+E2E_VORBED="$(cad e2e_vorbedingung)"
+HORIZONT="$(cad autonomie_horizont)"
 
 k() { hermes kanban --board "$BOARD" "$@"; }
 say() { printf '\n\033[1m%s\033[0m\n' "$*"; }
