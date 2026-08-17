@@ -32,7 +32,12 @@
 # sehen die Fehlertexte nach Billing/Quota aus — exakt das Muster, auf das die
 # Respawn-Sperre von Hermes anspringt. Die Karte bleibt dann still auf `ready`
 # liegen, unsichtbar für `diagnostics`. Deshalb prüft monitor.sh beides
-# zusammen: respawn_guarded-Ereignisse UND das Restguthaben jedes Keys.
+# zusammen: respawn_guarded-Ereignisse UND den Verbrauch jedes Rollen-Keys.
+#
+# Der Limit-Alarm dort greift allerdings nur bei Keys, die ein Limit HABEN.
+# Bei `limit: null` — dem Normalfall von Hand erzeugter Keys — meldet
+# monitor.sh den Verbrauch je Rolle und schweigt zum Deckel, statt einen zu
+# überwachen, den es nicht gibt.
 #
 set -euo pipefail
 

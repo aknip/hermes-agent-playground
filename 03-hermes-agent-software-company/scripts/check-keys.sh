@@ -111,6 +111,13 @@ say "2/4  Prüfkarten anlegen"
 # So klein wie möglich: ein Wort Antwort, keine Dateien, kein Werkzeug. Die
 # Karte soll den Key benutzen, sonst nichts. Was sie kostet, ist genau der
 # Betrag, den die Messung danach sehen muss.
+#
+# Die Karten werden am Ende wieder archiviert. Nicht aus Ordnungsliebe: Eine
+# `done`-Karte ohne Schätzung erzeugt beim nächsten ledger-sync.sh eine Zeile
+# mit reference_class "unklassifiziert" in ledger/estimates.jsonl — der Datei,
+# aus der der esf-estimator schätzt und die nur angehängt, nie bereinigt wird.
+# Ein Messwerkzeug, das die Messbasis verunreinigt, ist schlimmer als keins.
+KARTEN=()
 for profil in "${PRUEFEN[@]}"; do
     id="$(k create "Keyprobe $profil [$STEMPEL]" \
         --assignee "$profil" \
@@ -124,6 +131,7 @@ Antworte mit dem einen Wort BEREIT und schliesse die Karte danach ab.
 Lege keine Dateien an, ändere nichts, lies nichts. Jeder weitere Schritt
 verfälscht die Messung, um die es hier geht." \
         --json | jq -r .id)"
+    KARTEN+=("$id")
     printf '  %-22s Karte %s\n' "$profil" "$id"
 done
 
@@ -197,6 +205,16 @@ while read -r profil vorher; do
     fi
     printf '  %-22s %12s %12s %12s   %b\n' "$profil" "$vorher" "$nachher" "$delta" "$befund"
 done < "$MESSUNG.vorher"
+
+# Aufräumen — und zwar VOR der Bewertung, damit auch ein roter Lauf keine
+# Karteileichen im Ledger hinterlässt. `archive`, nicht `rm`: Ein `rm` für
+# Karten gibt es in v0.20.0 nicht.
+if [ ${#KARTEN[@]} -gt 0 ]; then
+    k archive "${KARTEN[@]}" >/dev/null 2>&1 \
+        && printf '\n  %s Prüfkarte(n) archiviert\n' "${#KARTEN[@]}" \
+        || printf '\n  \033[33m⚠ Prüfkarten NICHT archiviert — von Hand: hermes kanban --board %s archive %s\033[0m\n' \
+               "$BOARD" "${KARTEN[*]}"
+fi
 
 echo
 if [ "$fehler" -eq 0 ]; then

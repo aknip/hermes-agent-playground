@@ -88,6 +88,27 @@ Zwei Nebenbefunde, beide mit Folgen:
   Die Annahme in `scripts/provision-keys.sh`, die Zurechnung hänge an der
   Provisioning-API, war falsch und ist dort korrigiert.
 
+Drei Folgefehler, gefunden beim Prüfen der Prüfung:
+
+- **Die Prüfkarten hätten das Ledger vergiftet.** `ledger-sync.sh` nimmt jede
+  `done`-Karte; eine `Keyprobe`-Karte hätte je Lauf eine Zeile mit
+  `reference_class: "unklassifiziert"` in `ledger/estimates.jsonl` erzeugt —
+  in der Datei, aus der der `esf-estimator` schätzt und die nur angehängt, nie
+  bereinigt wird. `check-keys.sh` archiviert seine Karten jetzt selbst (auch
+  bei rotem Ergebnis), `ledger-sync.sh` filtert sie zusätzlich heraus.
+- **Der Delta-Rundlauf war ungetestet.** Findet `ledger-sync.sh` den letzten
+  Schnappschuss nicht, fällt `vorher` auf 0 zurück und jeder Tag meldet erneut
+  die volle Kumulativsumme als Tagesverbrauch — ein Ledger, das Kosten still
+  vervielfacht. Zweimal echt ausgeführt ohne Karten dazwischen: erster Lauf
+  elf Zeilen mit `usage_delta == usage_total`, zweiter Lauf `+0.0` bei allen
+  elf, Summe `0.0`. Der Rundlauf trägt.
+- **`monitor.sh` beobachtete den falschen Key.** Er fragte
+  `$OPENROUTER_API_KEY` ab — den Root-Key, mit dem seit der Zuordnung
+  *niemand mehr arbeitet*. Er hätte auf Dauer 0 USD gemeldet, während elf
+  Rollen-Keys liefen. Er summiert jetzt die elf und weist die Rollen mit
+  Verbrauch einzeln aus; zum USD-Deckel schweigt er, solange `limit: null`
+  ist, statt eine Überwachung vorzutäuschen.
+
 ## Eine Korrektur, gefunden von der eigenen Organisation
 
 Der wichtigste Einzelbefund dieses Laufs widerlegt eine Behauptung, die ich

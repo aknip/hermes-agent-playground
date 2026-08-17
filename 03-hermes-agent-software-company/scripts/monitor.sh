@@ -91,12 +91,50 @@ for id in $(printf '%s' "$liste" | jq -r '.[] | select(.status=="triage") | .id'
 done
 
 # ---------------------------------------------------------------------------
-# 3. OpenRouter: Restguthaben der Keys
+# 3. OpenRouter: Verbrauch und Restguthaben
 # ---------------------------------------------------------------------------
 # Läuft ein Key gegen sein USD-Limit, sehen die Fehlertexte nach Billing aus —
 # exakt das Muster, auf das die Respawn-Sperre anspringt. Beides muss zusammen
 # geprüft werden, sonst sieht man die Ursache nie neben der Wirkung.
-if [ -n "${OPENROUTER_API_KEY:-}" ]; then
+#
+# Seit scripts/assign-keys.sh gilt: Die Worker benutzen NICHT mehr den Root-Key,
+# sondern je Rolle einen eigenen. Ein Monitor, der nur $OPENROUTER_API_KEY
+# abfragt, beobachtet dann einen Key, mit dem gar nicht gearbeitet wird —
+# er meldet ewig 0 USD, während elf andere laufen. Also erst die Profil-Keys.
+key_quelle=""
+if [ -x "$HERE/assign-keys.sh" ] && [ -f "$ESF/key-zuordnung.txt" ]; then
+    verbrauch="$("$HERE/assign-keys.sh" --verbrauch 2>/dev/null \
+                 | awk 'NF==3 && $1 ~ /^esf-/ {print $1, $2, $3}')"
+    if [ -n "$verbrauch" ]; then
+        key_quelle="profile"
+        gesamt=0
+        while read -r profil genutzt limit; do
+            case "$genutzt" in ''|*[!0-9.]*) continue ;; esac
+            gesamt="$(python3 -c "print(round($gesamt + $genutzt, 8))")"
+            # `limit: kein` ist der Normalfall bei von Hand erzeugten Keys —
+            # gemessen an allen elf. Ein Deckel-Alarm ist dann schlicht nicht
+            # möglich, und so zu tun, als überwache man ihn, wäre gelogen.
+            [ "$limit" = "kein" ] && continue
+            rest="$(python3 -c "print(round($limit - $genutzt, 8))" 2>/dev/null || echo "")"
+            case "$rest" in
+                -*|0|0.0|0.00*) melde ERROR "$profil am USD-Limit — Karten bleiben still auf ready" "" ;;
+            esac
+        done <<< "$verbrauch"
+        # Über `melde` statt per printf: Der Bericht wird gesammelt und am
+        # Ende ausgegeben (und mit --json als JSON). Ein direktes printf
+        # erschiene vor der eigenen Überschrift.
+        melde INFO "OpenRouter: $gesamt USD über elf Rollen-Keys" ""
+        while read -r profil genutzt _; do
+            case "$genutzt" in ''|0|0.0) continue ;; esac
+            melde INFO "  $profil: $genutzt USD" ""
+        done <<< "$verbrauch"
+    fi
+fi
+
+if [ "$key_quelle" = "profile" ]; then
+    :
+elif [ -n "${OPENROUTER_API_KEY:-}" ]; then
+    melde WARN "kein Key je Rolle zugeordnet — gemessen wird der Root-Key" ""
     antwort="$(curl -fsS --max-time 15 https://openrouter.ai/api/v1/key \
         -H "Authorization: Bearer $OPENROUTER_API_KEY" 2>/dev/null || true)"
     if [ -n "$antwort" ]; then

@@ -92,7 +92,15 @@ EOF
 liste="$(k list --json 2>/dev/null || echo '[]')"
 neu=0; uebersprungen=0
 
-for id in $(printf '%s' "$liste" | jq -r '.[] | select(.status=="done") | .id'); do
+for id in $(printf '%s' "$liste" | jq -r '.[] | select(.status=="done")
+                                          | select(.title | startswith("Keyprobe") | not) | .id'); do
+    # Die Prüfkarten aus scripts/check-keys.sh sind Messwerkzeug, keine Arbeit.
+    # Ohne diesen Filter landet je Prüflauf eine Zeile mit
+    # reference_class "unklassifiziert" und estimate null im Ledger — in der
+    # einzigen Datei, aus der der esf-estimator schätzen darf und die nur
+    # angehängt, nie bereinigt wird. check-keys.sh archiviert seine Karten
+    # zwar selbst; dieser Filter ist die zweite Sicherung.
+
     # Nur einmal je Karte — das Ledger wird angehängt, nicht gepflegt.
     if grep -q "\"task_id\": *\"$id\"" "$LEDGER" 2>/dev/null; then
         uebersprungen=$((uebersprungen + 1)); continue
