@@ -18,6 +18,7 @@ const WEB_URL = process.env.E2E_WEB_URL ?? "http://localhost:5173";
 const API_URL = process.env.E2E_API_URL ?? "http://localhost:1337";
 
 export default defineConfig({
+  globalSetup: "./tests/e2e/global-setup.ts",
   testDir: "./tests/e2e",
   // Journeys teilen sich eine Datenbank. Parallelität würde sie über
   // Fremddaten stolpern lassen, bevor die Suite Mandantentrennung kann.

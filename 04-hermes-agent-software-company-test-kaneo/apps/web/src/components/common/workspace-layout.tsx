@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import Layout from "@/components/common/layout";
+import HeaderSearch from "@/components/header-search";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -78,6 +79,7 @@ export default function WorkspaceLayout({
             </Breadcrumb>
           </div>
           <div className={`${cn("flex items-center gap-1.5", className)}`}>
+            <HeaderSearch />
             {headerActions}
           </div>
         </div>

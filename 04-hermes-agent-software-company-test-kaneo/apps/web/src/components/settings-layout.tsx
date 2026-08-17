@@ -3,6 +3,7 @@ import { AlertTriangle, ArrowLeft } from "lucide-react";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import Layout from "@/components/common/layout";
+import HeaderSearch from "@/components/header-search";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -97,6 +98,7 @@ export function SettingsLayout({
             </Breadcrumb>
           </div>
           <div className="flex items-center gap-1.5">
+            <HeaderSearch />
             {backPath && (
               <Button
                 variant="ghost"

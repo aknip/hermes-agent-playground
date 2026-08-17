@@ -5,6 +5,7 @@ import MobileProjectNav from "@/components/common/header/mobile-project-nav";
 import ProjectCrumbSelect from "@/components/common/header/project-crumb-select";
 import WorkspaceCrumbSelect from "@/components/common/header/workspace-crumb-select";
 import Layout from "@/components/common/layout";
+import HeaderSearch from "@/components/header-search";
 import CreateProjectModal from "@/components/shared/modals/create-project-modal";
 import { Button } from "@/components/ui/button";
 import { KbdSequence } from "@/components/ui/kbd";
@@ -183,6 +184,7 @@ export default function ProjectLayout({
           </div>
 
           <div className="flex shrink-0 items-center gap-1.5">
+            <HeaderSearch />
             {headerActions}
           </div>
         </div>
