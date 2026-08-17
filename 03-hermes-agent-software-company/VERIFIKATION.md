@@ -138,6 +138,24 @@ Vier Konsequenzen:
   lange Modellantwort die wahrscheinlichere Erklärung, und dafür ist
   `--max-runtime` zuständig.
 
+## Der Rundlauf: Teardown und Neuinstallation
+
+Die Zusage „jederzeit neu installierbar und deinstallierbar" ist durchgespielt —
+und hat drei Befunde geliefert, alle drei behoben.
+
+| Befund | Was schiefging | Behebung |
+|--------|----------------|----------|
+| **Falsche Flags, still** | `hermes profile delete --force` gibt es nicht; das Kommando fragt trotzdem interaktiv nach dem Profilnamen, bekommt eine leere Antwort und meldet `Cancelled.` Das nachfolgende `rm -rf` räumte das Verzeichnis zwar weg, aber die Löschung lief nie durch Hermes. Richtig ist `-y`. | `teardown.sh` |
+| **`boards rm` archiviert nur** | Ohne `--delete` wandert das Board nach `boards/_archived/` statt zu verschwinden. Ein archiviertes Board taucht beim nächsten `setup.sh` als „existiert bereits" wieder auf — mit den Karten des letzten Laufs. Ein `--force` gibt es nicht. | `teardown.sh` |
+| **Der Gateway-Daemon legt das Board wieder an** | Läuft irgendein `hermes … gateway run` (hier zwei, für fremde Profile), erscheint das Board-Verzeichnis binnen Sekunden erneut — als **leere Hülle** mit aus dem Slug abgeleitetem Namen `Sw Company`. Karten und Historie sind wirklich weg; was bleibt, ist ein namenloses Gerippe. | `teardown.sh` meldet es samt Ursache statt Erfolg zu behaupten; `setup.sh` zieht den Anzeigenamen per `boards rename` nach, sonst verliert die ESF ihn bei jedem Rundlauf |
+
+**Ergebnis nach vollständigem `./teardown.sh --yes` und erneutem `./setup.sh`:**
+elf Profile wieder `ON DISK = yes`, Vault frisch aus `seed/`, beide modellfreien
+Selbsttests bestanden, `core.hooksPath` sauber zurückgesetzt und wieder gesetzt,
+Board mit korrektem Namen. Das Produkt-Repo blieb unangetastet — `58310dc`,
+Arbeitsbaum sauber, `feat/esf-probelauf` und sein Worktree stehen weiterhin.
+Das ist Absicht: Der Rückbau entfernt die Organisation, nicht ihr Ergebnis.
+
 ## Nicht verifiziert
 
 | Baustein | Status | Warum |

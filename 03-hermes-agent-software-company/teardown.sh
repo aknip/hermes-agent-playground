@@ -86,11 +86,34 @@ fi
 # ---------------------------------------------------------------------------
 if [ "$KEEP_BOARD" -eq 0 ]; then
     say "Board"
+    # Achtung, beide Flags sind gemessen und nicht geraten:
+    #   `boards rm <slug>` ARCHIVIERT nur (nach boards/_archived/); erst
+    #   `--delete` entfernt wirklich. Ein `--force` gibt es nicht.
+    # Archivieren ist hier bewusst der Default-Wunsch NICHT: Ein Board, das der
+    # Teardown liegen lässt, taucht beim nächsten setup.sh als „existiert
+    # bereits" wieder auf — mit den Karten des letzten Laufs darin.
     if hermes kanban boards list 2>/dev/null | grep -qE "^[● ] *${BOARD} "; then
-        hermes kanban boards delete "$BOARD" --force 2>/dev/null \
-            || hermes kanban boards delete "$BOARD" 2>/dev/null \
-            || echo "  ⚠ Löschen fehlgeschlagen — von Hand: hermes kanban boards delete $BOARD"
-        echo "  $BOARD entfernt"
+        if hermes kanban boards rm "$BOARD" --delete >/dev/null 2>&1; then
+            echo "  $BOARD entfernt (inklusive Karten-Historie)"
+        else
+            echo "  ⚠ Löschen fehlgeschlagen — von Hand: hermes kanban boards rm $BOARD --delete"
+        fi
+
+        # Gemessen: Läuft irgendein `hermes … gateway run`, legt der Daemon das
+        # Board-Verzeichnis binnen Sekunden WIEDER an — als leere Hülle. Die
+        # Karten und ihre Historie sind trotzdem weg; was zurückbleibt, ist ein
+        # Board ohne Inhalt und mit aus dem Slug abgeleitetem Namen.
+        # Das ist kein Fehler dieses Skripts, aber es als Erfolg zu melden wäre
+        # einer.
+        if [ -d "$HOME/.hermes/kanban/boards/$BOARD" ]; then
+            printf '\033[33m  ⚠ Das Board-Verzeichnis ist sofort wieder da.\033[0m\n'
+            laufend="$(pgrep -fl 'hermes.*gateway run' 2>/dev/null | wc -l | tr -d ' ')"
+            printf '     Ursache: %s laufende(r) Gateway-Daemon(en) legen es neu an.\n' "$laufend"
+            printf '     Die Karten und ihre Historie sind weg; zurück bleibt eine leere Hülle.\n'
+            printf '     Wirklich restlos entfernen:\n'
+            printf '       hermes gateway stop && hermes kanban boards rm %s --delete\n' "$BOARD"
+            printf '     Für ein erneutes ./setup.sh ist das ohne Belang.\n'
+        fi
     else
         echo "  existiert nicht — übersprungen"
     fi
@@ -99,9 +122,12 @@ fi
 # ---------------------------------------------------------------------------
 if [ "$KEEP_PROFILES" -eq 0 ] && [ ${#zu_loeschen[@]} -gt 0 ]; then
     say "Profile"
+    # `-y`, nicht `--force`: Mit dem falschen Flag fragt Hermes trotzdem
+    # interaktiv nach dem Profilnamen, die Antwort ist leer, und der Befehl
+    # meldet „Cancelled." — das anschliessende rm -rf räumt dann zwar das
+    # Verzeichnis weg, aber die Löschung lief nie durch Hermes.
     for name in "${zu_loeschen[@]}"; do
-        hermes profile delete "$name" --force 2>/dev/null \
-            || hermes profile delete "$name" 2>/dev/null || true
+        hermes profile delete "$name" -y >/dev/null 2>&1 || true
         rm -rf "$HOME/.hermes/profiles/$name"
         echo "  $name entfernt"
     done

@@ -88,11 +88,18 @@ fi
 # ---------------------------------------------------------------------------
 say "2/6  Board '$BOARD'"
 # ---------------------------------------------------------------------------
+BOARD_NAME="ESF — Enterprise Software Factory"
 if hermes kanban boards list 2>/dev/null | grep -qE "^[● ] *${BOARD} "; then
-    echo "  existiert bereits — übersprungen"
+    echo "  existiert bereits"
+    # Den Anzeigenamen trotzdem nachziehen. Nach einem ./teardown.sh legt ein
+    # laufender Gateway-Daemon das Board binnen Sekunden als leere Hülle neu an
+    # — mit einem aus dem Slug abgeleiteten Namen ("Sw Company"). Ohne dieses
+    # Nachziehen verliert die ESF bei jedem Rundlauf ihren Boardnamen.
+    hermes kanban boards rename "$BOARD" "$BOARD_NAME" >/dev/null 2>&1 \
+        && echo "  Anzeigename auf '$BOARD_NAME' gesetzt"
 else
     hermes kanban boards create "$BOARD" \
-        --name "ESF — Enterprise Software Factory" \
+        --name "$BOARD_NAME" \
         --description "Autonome Software-Organisation: Markt, Roadmap, Sprints, Releases, Qualität" \
         --icon "🏭"
 fi
