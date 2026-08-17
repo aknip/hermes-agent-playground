@@ -115,4 +115,69 @@ korrigiert, nicht nur einen Tippfehler.
 
 Review- und Gate-Karte wurden archiviert und korrigiert neu angelegt.
 
-<!-- FORTSETZUNG: Ergebnis Review, Gate, CEO-Antwort, Phase 1 -->
+**3/4 Review, zweiter Anlauf** — sauber. Und bemerkenswert gründlich: Der
+Reviewer verglich den Dateiinhalt byte-genau gegen das
+`exact_content_specified` aus dem Abschluss-`metadata` der Spezifikationskarte,
+zählte die Zeilen mit `awk`, prüfte, dass `main` unberührt ist — und führte die
+E2E-Suite **selbst im Baum des Entwicklers** aus (4/4). Genau der Unterschied
+zwischen Behauptung und geprüfter Tatsache, den seine SOUL verlangt.
+Urteil: `approved`, keine Befunde.
+
+**4/4 Das Gate** — hielt. `dispatch --dry-run` meldete `Spawned: 0`, während
+die Karte blockiert stand. Die Vorlage hatte genau acht Zeilen und war ohne
+Öffnen einer Datei entscheidbar.
+
+Bemerkenswert daran: Der Chief of Staff hatte vor dem Blockieren den
+Merge-Riegel im Trockenlauf laufen lassen, dieser hatte **verweigert** (der
+Arbeitsbaum war durch meine eigenen, noch nicht committeten Änderungen
+schmutzig) — und der Worker schrieb diese Verweigerung ehrlich in Zeile 2 der
+Vorlage, statt sie zu übergehen. Seine Empfehlung lautete trotzdem `approve`.
+
+### Die CEO-Antwort: `modify`, nicht `approve`
+
+Ein Riegel, den man überstimmt, ist keiner. Beide Ursachen der Verweigerung
+waren behebbar und behoben — der schmutzige Baum committet, und der
+Riegel-Fehler mit dem `git checkout` repariert. Also `modify` mit dem Auftrag,
+den Riegel erneut laufen zu lassen, diesmal ohne `--dry-run`, und nur bei
+bestandener Prüfung zu mergen.
+
+Der Worker führte die Korrektur aus. Der Riegel verweigerte erneut — diesmal
+aus einem echten Grund: **ein Unit-Test von 374 fiel**
+(`mcp-internal-api-url.test.ts`). Ein isolierter Nachlauf war 374/374 grün, ein
+zweiter Riegel-Lauf unter Last wieder rot. Die Zahlen im Protokoll erklären es:
+`import` dauerte unter vier parallelen Workern **52,9 s** statt 7,3 s. Der Test
+ist nicht zufällig flaky, sondern lastempfindlich.
+
+### Und dann kippte die Gate-Karte nach `triage`
+
+Mein `modify`-Auftrag enthielt den Satz „Verweigert er erneut, blockiere erneut
+mit dem Grund". Der Worker tat genau das — und löste damit
+`block_loop_detected` aus: zweite Blockade derselben Art (`needs_input`) auf
+derselben Karte, `BLOCK_RECURRENCE_LIMIT = 2`, Karte still nach `triage`.
+
+Das ist die Gate-Arithmetik aus Kapitel 7, live und selbst verschuldet. Die
+Regel „jede Entscheidung bekommt ihre eigene Karte" ist keine Stilfrage: Ein
+Kartentext, der eine zweite Blockade derselben Art anweist, widerspricht der
+SOUL des Profils (dort steht das Verbot korrekt) und gewinnt, weil er konkreter
+ist. Beide Gate-Aufträge sind entsprechend korrigiert.
+
+Nachspiel mit eigener Erkenntnis: Der Dispatcher holte die Karte beim nächsten
+Tick **aus der Triage zurück** in `running`. Das Konzept beschreibt Triage als
+Endstation („fragt niemanden mehr"); zutreffend ist die schwächere Aussage —
+die Karte fragt niemanden mehr, läuft aber weiter. Für die Praxis heisst das:
+`triage` ist nicht das Ende der Arbeit, sondern das Ende der Rückfrage.
+
+### Was Phase 0 dabei über die eigenen Skripte gelernt hat
+
+Vier Fehler in ESF-Code, alle erst im Lauf sichtbar, alle behoben:
+
+| Skript | Fehler | Warum er still war |
+|--------|--------|--------------------|
+| `ledger-sync`, `check-daily`, `monitor`, `report-gates` | griffen `metadata` auf Kartenebene ab und rechneten mit ISO-Zeitstempeln | Beides liefert `null` bzw. scheitert lautlos |
+| `merge-riegel` | `git checkout <branch>` im Hauptbaum | Der Selbsttest deckte nur „Branch existiert nicht" ab |
+| `merge-riegel` | nahm den Probemerge doch zurück; Prüfungen liefen gegen `main` | Der Lauf war grün — nur eben ohne Aussage |
+| `monitor` | `$n×` unter `set -u`; Governance-Check auf `.payload.reason` | Ersteres brach das Skript ab, Letzteres meldete jede legitime Gate-Antwort als Verstoss |
+
+Der dritte ist der unangenehmste: Ein grüner Lauf, der nichts prüft, ist
+schlimmer als ein roter. Gefunden wurde er nur, weil der Diff der eigenen
+Korrektur noch einmal gelesen wurde.

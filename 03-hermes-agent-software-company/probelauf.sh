@@ -275,6 +275,13 @@ Beim ZWEITEN Lauf — nachdem der Mensch geantwortet hat — liest du seine
 Antwort im Kommentar-Thread und führst sie aus. Bei 'approve' heisst das:
 den Riegel ohne --dry-run laufen lassen. Dann kanban_complete.
 
+Wenn die Ausführung scheitert — etwa weil der Riegel verweigert —, dann
+blockiere diese Karte NICHT ein zweites Mal. Hermes zählt zwei Blockaden
+derselben Art auf derselben Karte als Schleife und schiebt sie still nach
+'triage', wo sie niemanden mehr fragt. Real passiert, siehe RUN-PROTOKOLL.md.
+Stattdessen: kanban_complete mit dem Befund im metadata, und lege eine NEUE
+Karte für die Folgeentscheidung an. Eine Entscheidung, eine Karte.
+
 Du rufst NIEMALS kanban_unblock auf. Kein einziges Mal. Das ist die Grenze
 zwischen der Organisation und dem Menschen, und sie ist der Grund, warum diese
 Probe existiert." \

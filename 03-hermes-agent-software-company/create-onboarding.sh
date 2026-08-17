@@ -351,6 +351,13 @@ ZWEITER LAUF — nach der Antwort des Menschen
 4. Committe den Vault.
 5. kanban_complete mit der Antwort und dem, was du daraus gemacht hast.
 
+Wenn die Ausführung der Antwort scheitert, blockiere diese Karte NICHT ein
+zweites Mal. Hermes zählt zwei Blockaden derselben Art auf derselben Karte als
+Schleife (BLOCK_RECURRENCE_LIMIT = 2, je kind) und schiebt sie still nach
+'triage'. Real passiert, siehe RUN-PROTOKOLL.md. Stattdessen: kanban_complete
+mit dem Befund im metadata, und eine NEUE Karte für die Folgeentscheidung.
+Eine Entscheidung, eine Karte.
+
 Du rufst NIEMALS kanban_unblock auf. Nicht auf dieser Karte, nicht auf einer
 anderen, aus keinem Grund. Das ist die Grenze zwischen der Organisation und
 dem Menschen (AGENTS.md 7), und monitor.sh meldet jede Verletzung." \
