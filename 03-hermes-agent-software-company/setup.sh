@@ -157,6 +157,26 @@ for name in "${PROFILE_NAMES[@]}"; do
     hermes -p "$name" config set model.default "$modell" >/dev/null
     printf '      SOUL + Beschreibung + config.yaml   Modell: %s\n' "$modell"
 
+    # Das Iterations-Budget je Gesprächszug (`agent.max_turns`, Default 500).
+    #
+    # Real gerissen am 17.08.2026: Die Umsetzungs-Karte von R1-F5 lief
+    # `gave_up` mit "Iteration budget exhausted (500/500)" — nach 20 Minuten
+    # Wanduhr, bei zwei verbleibenden TS6133-Fehlern. Der Umbau war zu 99 %
+    # fertig; das Budget war weg. Das ist der teuerste denkbare Ausgang: voller
+    # Preis, kein Ergebnis, und der Deckel, der ihn hätte begrenzen sollen
+    # (--max-runtime), war nicht der, der zuschlug.
+    #
+    # Angehoben wird nur für die Rollen, die WERKZEUGE bedienen: Bauen heisst
+    # lesen, schreiben, typecheck, testen, wieder lesen — das sind Dutzende
+    # Aufrufe je Datei. Die urteilenden und messenden Rollen bleiben bei 500;
+    # ihre Arbeit ist Denken, nicht Schleifen, und ein hoher Deckel wäre dort
+    # nur ein höheres Kostenrisiko ohne Nutzen.
+    case "$name" in
+        esf-dev-a|esf-dev-b|esf-reviewer|esf-qa-release)
+            hermes -p "$name" config set agent.max_turns 1200 >/dev/null
+            printf '      agent.max_turns = 1200 (werkzeugintensive Rolle)\n' ;;
+    esac
+
     # Skills PRO PROFIL. Wer alles weiss, ist keine Flotte, sondern elf Kopien
     # desselben Agenten.
     if [ -d "$HERE/skills/$name" ]; then
