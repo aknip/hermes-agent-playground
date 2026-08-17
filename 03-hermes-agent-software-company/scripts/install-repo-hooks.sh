@@ -8,10 +8,16 @@
 # Das Problem, an dem sonst jede Entwickler-Karte hängenbleibt:
 #
 #   Kaneos eigener Husky-Hook führt `pnpm exec biome ci .` über das GANZE Repo
-#   aus, gefolgt von `pnpm run build`. Beides ist für einen Agenten-Commit
-#   untauglich — biome ist bereits auf dem Ausgangs-Commit rot (Bestandsschuld
-#   von Upstream, per `git stash` gegen den unveränderten Baum gemessen), und
-#   der Build dauert Minuten bei jedem einzelnen Commit.
+#   aus, gefolgt von `pnpm run build`. Der Build dauert Minuten — bei jedem
+#   einzelnen Commit. Das allein macht ihn als Agenten-Commit-Gate untauglich.
+#
+#   ⚠ Korrektur einer früheren Behauptung an dieser Stelle: `biome ci .` war
+#   NICHT von vornherein rot. Auf dem Ausgangs-Commit ohne ESF-Worktrees endet
+#   es mit Exit 0. Rot wurde es erst durch die ESF selbst — `biome.json` setzt
+#   `vcs.enabled: false`, ignoriert damit `.gitignore`, läuft in den Worktree
+#   unter `.worktrees/` und bricht dort an dessen `biome.json` ab ("nested root
+#   configuration"). Behoben durch einen Ausschluss in `biome.json`, gefunden
+#   von der Codebasis-Analyse des esf-architect.
 #
 #   Ein Worker, der daran scheitert, hat zwei schlechte Möglichkeiten: aufgeben
 #   oder `--no-verify` benutzen. Das Zweite lernt er schnell, und dann gilt gar
@@ -58,10 +64,10 @@ cat > "$HOOKS/pre-commit" <<'HOOK'
 #
 # ESF Pre-Commit — lintet die GESTAGETEN Dateien, sonst nichts.
 #
-# Bewusst NICHT hier: `biome ci .` über das ganze Repo (auf dem Ausgangsstand
-# rot) und `pnpm run build` (Minuten je Commit). Beides prüft der Merge-Riegel
-# einmal je Merge — dort trägt es, hier würde es nur dazu führen, dass alle
-# mit --no-verify committen.
+# Bewusst NICHT hier: `biome ci .` über das ganze Repo (78 Warnungen und eine
+# Schema-Abweichung, an denen kein Commit etwas ändert) und `pnpm run build`
+# (Minuten je Commit). Beides gehört in den Merge-Riegel, einmal je Merge —
+# hier würde es nur dazu führen, dass alle mit --no-verify committen.
 #
 set -euo pipefail
 

@@ -23,7 +23,7 @@ einer der elf verifizierten Stories belegt. Was das nicht deckt, steht unten in
 | **Absturz und Respawn** | Ein hängender Worker (`kill`) erzeugt einen Lauf mit `outcome: "crashed"`, `error: "pid … not alive"`; der Dispatcher startet innerhalb eines Ticks Lauf 3. Die Retry-Mechanik trägt. |
 | **Vault-Linter** | Auf der Fixture `seed/lint-selbsttest/` genau 9 `ERROR`, 0 `WARN`, Exit 1 — reproduzierbar, modellfrei, Teil von `setup.sh`. |
 | **Merge-Riegel** | Verweigert einen nicht existierenden Branch mit Exit 1 und Begründung — Teil von `setup.sh`. |
-| **Baseline des Ziel-Repos** | `pnpm typecheck` 6/6 grün, `pnpm test` 10/10 grün, Playwright 4/4 grün. **`pnpm exec biome ci .` ist bereits auf dem Ausgangs-Commit rot** — Bestandsschuld von Upstream, nicht von der ESF verursacht (gemessen per `git stash` gegen den unveränderten Baum). |
+| **Baseline des Ziel-Repos** | `pnpm typecheck` 6/6 grün, `pnpm test` 10/10 grün, Playwright 4/4 grün. `pnpm exec biome ci .` auf `e714f87` **ohne ESF-Worktrees: Exit 0** (78 Warnungen, 1 Info) — siehe die Korrektur unten. |
 | **E2E-Gerüst** | Playwright 1.62.1, zwei Journeys, 4 Tests, 6,4 s. Zwei Produktfallen dokumentiert: das Passwort-Label zeigt per `for` auf den Wrapper-`div` statt aufs `input`; ein frisches Konto landet auf `/onboarding`, nicht auf `/dashboard`. |
 | **Fetch und Normalisierung** | 11 Quellen, 10 erreichbar. Roh 6,4 MB, normalisiert 168 KB. `height.app` antwortete nicht und hinterliess eine `.fehler`-Datei. |
 | **Gate hält den Dispatcher an** | Bei blockierter Gate-Karte meldet `dispatch --dry-run` wörtlich `Promoted: 0` / `Spawned: 0`. |
@@ -31,6 +31,47 @@ einer der elf verifizierten Stories belegt. Was das nicht deckt, steht unten in
 | **`triage` ist nicht das Ende der Arbeit** | Entgegen der Formulierung im Konzept holte der Dispatcher die Triage-Karte beim nächsten Tick nach `running` zurück. Zutreffend ist die schwächere Aussage: Die Karte fragt niemanden mehr, läuft aber weiter. |
 | **Der Unblock-Grund steht im Kommentar** | Das `unblocked`-Ereignis hat eine **leere** Payload; `gate.sh --reason` landet als Kommentar `UNBLOCK: <verb> …`. Wer den Governance-Check auf `.payload.reason` baut, meldet jede legitime Gate-Antwort als Verstoss. |
 | **Phase-0-Abschluss** | Kette Spezifikation→Bau→Review→Riegel durchgelaufen; Gate hielt; CEO-Antwort `modify` ausgeführt; Riegel bestand alle sechs Prüfungen und merged `c7eba96` nach `main`. Kein Worker rief je `kanban_unblock`. |
+
+## Eine Korrektur, gefunden von der eigenen Organisation
+
+Der wichtigste Einzelbefund dieses Laufs widerlegt eine Behauptung, die ich
+selbst aufgestellt und an fünf Stellen dokumentiert hatte.
+
+**Behauptet war:** `pnpm exec biome ci .` sei im Ziel-Repo schon auf dem
+Ausgangs-Commit rot; das sei Bestandsschuld von Upstream und der Grund für
+den schlanken ESF-Hook.
+
+**Die Codebasis-Analyse von `esf-architect` widersprach** — mit Fundstellen:
+`biome.json:4-6` setze `vcs.enabled: false`, Biome ignoriere damit die
+`.gitignore`, laufe in das von der ESF angelegte `.worktrees/` und breche dort
+an dessen `biome.json` ab.
+
+**Nachgemessen, und der Analyst hatte recht:**
+
+| Zustand | `biome ci .` |
+|---------|--------------|
+| `e714f87` als sauberes Archiv, ohne Worktrees | **Exit 0** — 78 Warnungen, 1 Info, 0 Fehler |
+| derselbe Baum mit einem ESF-Worktree | **Exit 1** — „nested root configuration" |
+
+Der Linter des Produkt-Repos war also grün. **Die ESF hat ihn kaputtgemacht.**
+Behoben durch `!**/.worktrees` und `!**/.esf-hooks` in `biome.json`.
+
+Und noch ein Stück weiter: Der danach verbliebene Fehler stammte ebenfalls
+nicht von Upstream, sondern aus dem handgeschriebenen E2E-Gerüst — ein
+Formatierungsfehler in `playwright.config.ts` und zwei nicht in `turbo.json`
+deklarierte Umgebungsvariablen. Genau das, was der schlanke ESF-Hook gefangen
+hätte, wäre der Commit nicht mit `--no-verify` an ihm vorbeigegangen. Behoben
+in `c9e0343`; die vier E2E-Dateien enden jetzt mit Exit 0.
+
+Was `biome ci .` über das ganze Repo weiterhin rot macht, sind zwei Befunde
+ohne Regelbezug — alle 78 Lint-Treffer sind Warnungen; einer der beiden ist
+die Schema-Abweichung in `biome.json` (deklariert 2.5.4, CLI 2.5.7). Das ist
+Konfigurations-Drift des Repos, an der keine Feature-Karte etwas ändert, und
+genau deshalb misst der Riegel die Regression statt des Absolutstands.
+
+Die Lehre ist unangenehm und gehört hierher: Eine bequeme Erklärung
+(„Bestandsschuld") wurde fünfmal weitergeschrieben, ohne dass jemand den
+Exit-Code isoliert gemessen hätte. Der erste, der nachsah, war ein Agent.
 
 ## Drei Befunde zur Git-Exklusivität — derselbe Satz, dreimal
 

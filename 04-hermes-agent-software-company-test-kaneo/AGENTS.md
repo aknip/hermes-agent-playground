@@ -129,20 +129,32 @@ these hold. Nothing here replaces the sections above; it makes them checkable.
 
 `core.hooksPath` points at `.esf-hooks/`, installed by
 `scripts/install-repo-hooks.sh` in the ESF directory. That hook lints **only
-the staged files**.
+the staged files**; the `commit-msg` hook is taken over from `.husky/`
+unchanged, because Conventional Commits is a real convention here.
 
-The repository's own `.husky/pre-commit` runs `biome ci .` across everything
-plus a full `pnpm run build`. Two reasons it cannot serve as an agent's commit
-gate: `biome ci .` is already red on the baseline commit `e714f87` (upstream
-debt, measured against the untouched tree), and a full build per commit costs
-minutes. A gate that always fails teaches everyone to pass `--no-verify`, and
-then nothing is gated at all.
+The reason is **speed, not a broken linter** — and that correction matters,
+because the first version of this section claimed the opposite:
+
+- `biome ci .` on the baseline commit `e714f87`, in a tree without ESF
+  worktrees, **exits 0** (78 warnings, 1 info). There was no upstream debt.
+- It turned red only because the ESF itself created git worktrees under
+  `.worktrees/`. `biome.json` sets `vcs.enabled: false`, so Biome ignores
+  `.gitignore`, walks into the worktree, finds its `biome.json` and aborts with
+  *nested root configuration*. Fixed by excluding `.worktrees` and
+  `.esf-hooks` in `biome.json`.
+- What genuinely could not stay in a per-commit hook is `pnpm run build`:
+  minutes of work on every single commit.
 
 So the ESF measures the **regression** at commit time — your lines — and keeps
 the full proof where it belongs: once per merge, in `scripts/merge-riegel.sh`
 (conflict check, staged-file lint, typecheck, unit tests, full E2E suite). That
 script merges or refuses. **It is the only thing that may write to `main`.**
 If it refuses, it is right; read the reason and fix the cause.
+
+Do not reach for `--no-verify`. The first ESF commits used it on a false
+premise and shipped a lint regression into `main` — a formatting error and two
+undeclared env vars in `playwright.config.ts` — that the lean hook would have
+caught. Fixed in `c9e0343`.
 
 `.husky/` is left untouched. `scripts/install-repo-hooks.sh --remove` restores
 the original state exactly.

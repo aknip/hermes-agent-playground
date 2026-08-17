@@ -19,11 +19,12 @@
 #   5. Unit-Tests
 #   6. Die VOLLE E2E-Suite ist grün — inklusive der Journey des Features
 #
-# Prüfung 3 lintet bewusst nur die geänderten Dateien: Das Ziel-Repo ist schon
-# auf seinem Ausgangs-Commit rot (`biome ci .`, Bestandsschuld von Upstream).
-# Ein Riegel, der an fremder Altlast scheitert, wird umgangen und ist dann
-# gar kein Riegel mehr. Gemessen wird deshalb die Regression, nicht der
-# Absolutstand.
+# Prüfung 3 lintet bewusst nur die geänderten Dateien, nicht das ganze Repo:
+# Gemessen wird die Regression, nicht der Absolutstand. Ein Riegel, der an
+# fremder Altlast scheitert, wird umgangen und ist dann gar kein Riegel mehr —
+# und `biome ci .` über alles meldet im Ziel-Repo 78 Warnungen plus eine
+# Schema-Version-Abweichung in biome.json, an denen keine Feature-Karte etwas
+# ändern kann.
 #
 # Exit 0 = gemerged (bzw. im Trockenlauf: würde mergen)
 # Exit 1 = verweigert, mit Grund

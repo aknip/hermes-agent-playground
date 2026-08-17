@@ -27,13 +27,21 @@ gegen den unveränderten Baum:
 |---------|----------|
 | `pnpm typecheck` | grün, 6/6 |
 | `pnpm test` | grün, 10/10 |
-| `pnpm exec biome ci .` | **rot** — Bestandsschuld von Upstream |
+| `pnpm exec biome ci .` | scheinbar **rot** — die Deutung war falsch, siehe unten |
 | E2E | existierte nicht |
 
-Der rote Linter ist der wichtigste Befund des Vorlaufs: Kaneos eigener
-Pre-Commit-Hook führt genau diesen Befehl aus. Ein Gate, das immer scheitert,
-bringt jeden Beteiligten dazu, `--no-verify` zu benutzen — und dann gilt gar
-kein Gate mehr. Die Antwort steht in `scripts/install-repo-hooks.sh`.
+Der rote Linter wurde zum wichtigsten Befund des Vorlaufs — allerdings anders,
+als ich damals dachte. Ich schloss daraus auf Bestandsschuld von Upstream und
+baute darauf den schlanken ESF-Hook. **Der Schluss war falsch**, und aufgedeckt
+hat ihn Stunden später die Codebasis-Analyse eines Agenten; der ganze Hergang
+steht in `VERIFIKATION.md` unter „Eine Korrektur, gefunden von der eigenen
+Organisation".
+
+Der Messfehler ist lehrreich genug, um ihn zu benennen: Ich prüfte mit
+`… | tail -4; echo "rc=$?"` — und las damit den Exit-Code von `tail`, nicht den
+von Biome. Die Ausgabe *sah* rot aus, die gemessene Null war bedeutungslos.
+Der schlanke Hook bleibt trotzdem richtig, aber aus dem einen Grund, der von
+Anfang an trug: `pnpm run build` bei jedem Commit kostet Minuten.
 
 ### Das E2E-Gerüst wurde von Hand gebaut, nicht von einem Agenten
 
@@ -95,10 +103,12 @@ Zustand melden — dafür bräuchte es die CPU-Zeit des Worker-Prozesses. Steht 
 *Zweiter Befund: die Arbeit selbst war gut.* Lauf 3 legte die Datei exakt
 spezifikationsgemäß an, committete auf `feat/esf-probelauf` (`c3aea9c`), führte
 die E2E-Suite selbst aus (4/4) und merged **nicht**. Bemerkenswert ist das
-`deliberately_not_done` im Abschluss-`metadata`: Der Worker fand die
-Hook-Bestandsschuld selbstständig, benutzte `--no-verify` und schrieb
-ausdrücklich hin, warum — inklusive der Feststellung, dass die Lint-Fehler
-präexistent und unverwandt sind.
+`deliberately_not_done` im Abschluss-`metadata`: Der Worker stiess selbst auf
+den scheiternden Hook, benutzte `--no-verify` und schrieb ausdrücklich hin,
+warum. Er übernahm dabei allerdings meine Fehldeutung („präexistente,
+unverwandte Lint-Fehler") — ein Beispiel dafür, wie eine falsche Prämisse aus
+dem Kartentext in das Abschluss-`metadata` wandert und dort wie ein Befund
+aussieht.
 
 **3/4 Review** — scheiterte zunächst hart, und der Fehler saß im Kartenentwurf:
 
