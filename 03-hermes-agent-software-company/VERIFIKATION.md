@@ -233,6 +233,17 @@ Board mit korrektem Namen. Das Produkt-Repo blieb unangetastet — `58310dc`,
 Arbeitsbaum sauber, `feat/esf-probelauf` und sein Worktree stehen weiterhin.
 Das ist Absicht: Der Rückbau entfernt die Organisation, nicht ihr Ergebnis.
 
+**Zweiter Rundlauf, nach der Key-Zuordnung.** Er prüft einen Pfad, den der
+erste nicht hatte: `hermes profile create` auf einem **frischen**
+Profilverzeichnis, gefolgt von `config set OPENROUTER_API_KEY`. Die
+`.env`-Dateien der früheren Läufe existierten bereits samt Kopfzeilen-Vorlage;
+schriebe Hermes die Zeile auf einem neuen Profil anders — in Anführungszeichen
+etwa —, liefe die Prüfung in `assign-keys.sh` ins Leere und ein korrekter
+Aufbau meldete rot. Gemessen: `./teardown.sh --yes` (elf Profile weg, kein
+`esf-` mehr unter `~/.hermes/profiles/`), dann `./setup.sh` → Exit 0, elf Keys
+zugeordnet, elf verschiedene Fingerabdrücke, und `assign-keys.sh --pruefen`
+unabhängig danach ebenfalls Exit 0.
+
 ## Nicht verifiziert
 
 | Baustein | Status | Warum |
