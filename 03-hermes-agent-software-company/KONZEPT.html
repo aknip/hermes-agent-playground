@@ -1,0 +1,1011 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body>
+<title>Enterprise Software Factory</title>
+<style>
+  :root {
+    --bg: #F5F6F3;
+    --surface: #FFFFFF;
+    --surface-2: #EDEFEA;
+    --ink: #1B2420;
+    --muted: #5C6862;
+    --line: #D8DDD9;
+    --accent: #0F6E63;
+    --accent-ink: #0A554C;
+    --gate: #B07A10;
+    --gate-bg: #F8F1E2;
+    --risk: #A63A2E;
+    --risk-bg: #F7EAE7;
+    --ok-bg: #E4F0ED;
+    --code-bg: #EEF1EC;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #131917;
+      --surface: #1B2320;
+      --surface-2: #222C28;
+      --ink: #E7ECE9;
+      --muted: #9AA69F;
+      --line: #2E3934;
+      --accent: #4FB3A6;
+      --accent-ink: #6FC6BA;
+      --gate: #D9A94A;
+      --gate-bg: #2C2617;
+      --risk: #D97F6E;
+      --risk-bg: #33201B;
+      --ok-bg: #1B2E2A;
+      --code-bg: #202925;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #131917;
+    --surface: #1B2320;
+    --surface-2: #222C28;
+    --ink: #E7ECE9;
+    --muted: #9AA69F;
+    --line: #2E3934;
+    --accent: #4FB3A6;
+    --accent-ink: #6FC6BA;
+    --gate: #D9A94A;
+    --gate-bg: #2C2617;
+    --risk: #D97F6E;
+    --risk-bg: #33201B;
+    --ok-bg: #1B2E2A;
+    --code-bg: #202925;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: Charter, "Bitstream Charter", "Iowan Old Style", Georgia, "Times New Roman", serif;
+    font-size: 17px;
+    line-height: 1.65;
+    margin: 0;
+    padding: 0 20px 96px;
+  }
+  .wrap { max-width: 1060px; margin: 0 auto; }
+  .prose { max-width: 72ch; }
+
+  h1, h2, h3, h4, .sans {
+    font-family: "Avenir Next", Avenir, "Segoe UI", "Helvetica Neue", system-ui, sans-serif;
+  }
+  h1 { font-size: clamp(2.2rem, 5.5vw, 3.4rem); font-weight: 600; letter-spacing: -0.02em; line-height: 1.08; margin: 0.2em 0 0.25em; text-wrap: balance; }
+  h2 { font-size: 1.55rem; font-weight: 600; letter-spacing: -0.01em; margin: 0 0 0.6em; text-wrap: balance; }
+  h3 { font-size: 1.12rem; font-weight: 600; margin: 2em 0 0.5em; }
+  h4 { font-size: 0.98rem; font-weight: 600; margin: 1.6em 0 0.4em; }
+
+  .eyebrow {
+    font-family: "Avenir Next", Avenir, "Segoe UI", system-ui, sans-serif;
+    font-size: 0.72rem; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--accent); margin: 0 0 0.8em;
+  }
+  .lede { font-size: 1.18rem; line-height: 1.55; color: var(--muted); max-width: 62ch; }
+
+  header.hero { padding: 72px 0 28px; border-bottom: 1px solid var(--line); }
+  .hero-meta { font-family: "Avenir Next", Avenir, "Segoe UI", system-ui, sans-serif; font-size: 0.82rem; color: var(--muted); margin-top: 1.6em; display: flex; flex-wrap: wrap; gap: 0.4em 1.8em; }
+
+  nav.toc { margin: 40px 0 8px; }
+  nav.toc ol {
+    list-style: none; padding: 0; margin: 0;
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 6px 28px;
+    counter-reset: toc;
+  }
+  nav.toc li { counter-increment: toc; border-bottom: 1px solid var(--line); }
+  nav.toc a {
+    display: flex; gap: 0.7em; align-items: baseline; padding: 0.55em 0.2em;
+    text-decoration: none; color: var(--ink);
+    font-family: "Avenir Next", Avenir, "Segoe UI", system-ui, sans-serif; font-size: 0.92rem; font-weight: 500;
+  }
+  nav.toc a::before { content: counter(toc, decimal-leading-zero); font-size: 0.78rem; color: var(--accent); font-variant-numeric: tabular-nums; }
+  nav.toc a:hover, nav.toc a:focus-visible { color: var(--accent-ink); }
+
+  section.chapter { margin-top: 84px; }
+  .chapno {
+    font-family: "Avenir Next", Avenir, "Segoe UI", system-ui, sans-serif;
+    font-size: 0.78rem; font-weight: 600; letter-spacing: 0.12em; color: var(--accent);
+    display: block; margin-bottom: 0.5em;
+  }
+
+  a { color: var(--accent-ink); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+  a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  p { margin: 0 0 1.1em; }
+  ul, ol { padding-left: 1.3em; margin: 0 0 1.2em; }
+  li { margin-bottom: 0.35em; }
+  strong { font-weight: 700; }
+
+  code, pre {
+    font-family: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 0.86em;
+  }
+  code { background: var(--code-bg); padding: 0.1em 0.35em; border-radius: 4px; }
+  pre {
+    background: var(--code-bg); border: 1px solid var(--line); border-radius: 8px;
+    padding: 14px 16px; overflow-x: auto; line-height: 1.55; margin: 1.2em 0;
+  }
+  pre code { background: none; padding: 0; }
+
+  .tablewrap { overflow-x: auto; margin: 1.4em 0; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+  table { border-collapse: collapse; width: 100%; font-size: 0.92rem; }
+  th, td { text-align: left; padding: 0.65em 0.9em; border-bottom: 1px solid var(--line); vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  th {
+    font-family: "Avenir Next", Avenir, "Segoe UI", system-ui, sans-serif;
+    font-size: 0.74rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--muted); background: var(--surface-2);
+  }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  td code { white-space: nowrap; }
+
+  .tag {
+    display: inline-block; font-family: "Avenir Next", Avenir, "Segoe UI", system-ui, sans-serif;
+    font-size: 0.66rem; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase;
+    padding: 0.14em 0.5em; border-radius: 99px; vertical-align: 0.12em; white-space: nowrap;
+  }
+  .tag-v { background: var(--ok-bg); color: var(--accent-ink); }
+  .tag-a { background: var(--gate-bg); color: var(--gate); }
+  .tag-r { background: var(--risk-bg); color: var(--risk); }
+
+  .callout {
+    border-left: 3px solid var(--accent); background: var(--surface);
+    border-radius: 0 10px 10px 0; padding: 14px 18px; margin: 1.4em 0;
+    font-size: 0.95rem;
+  }
+  .callout.gate { border-left-color: var(--gate); }
+  .callout.risk { border-left-color: var(--risk); }
+  .callout .callout-title {
+    font-family: "Avenir Next", Avenir, "Segoe UI", system-ui, sans-serif;
+    font-size: 0.74rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase;
+    display: block; margin-bottom: 0.4em; color: var(--accent);
+  }
+  .callout.gate .callout-title { color: var(--gate); }
+  .callout.risk .callout-title { color: var(--risk); }
+  .callout p:last-child { margin-bottom: 0; }
+
+  blockquote {
+    margin: 1.4em 0; padding: 0.2em 0 0.2em 1.2em; border-left: 3px solid var(--line);
+    color: var(--muted); font-style: italic;
+  }
+
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px; margin: 1.6em 0; }
+  .card {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px;
+  }
+  .card .k {
+    font-family: "Avenir Next", Avenir, "Segoe UI", system-ui, sans-serif;
+    font-size: 1.5rem; font-weight: 600; letter-spacing: -0.01em; color: var(--accent-ink);
+    font-variant-numeric: tabular-nums;
+  }
+  .card .l { font-size: 0.85rem; color: var(--muted); line-height: 1.45; margin-top: 0.2em; }
+
+  figure { margin: 2em 0; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 20px 20px 12px; overflow-x: auto; }
+  figure svg { max-width: 100%; height: auto; display: block; margin: 0 auto; color: var(--ink); }
+  figcaption {
+    font-family: "Avenir Next", Avenir, "Segoe UI", system-ui, sans-serif;
+    font-size: 0.82rem; color: var(--muted); margin-top: 12px; max-width: 80ch;
+  }
+  figcaption b { color: var(--ink); font-weight: 600; }
+
+  .svg-label { font-family: "Avenir Next", Avenir, "Segoe UI", system-ui, sans-serif; }
+
+  footer { margin-top: 90px; border-top: 1px solid var(--line); padding-top: 20px; font-size: 0.85rem; color: var(--muted); }
+  @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+</style>
+
+<div class="wrap">
+
+<header class="hero">
+  <p class="eyebrow">ESF · Konzept · Hermes Agent v0.20.0 · Kanban-Board · Superpowers-Skills · OpenRouter</p>
+  <h1>Enterprise Software Factory</h1>
+  <p class="lede">Die <strong>ESF</strong> ist eine autonome Organisation aus Hermes-Agenten, die eine bestehende B2B-Software kontinuierlich weiterentwickelt — vom Marktsignal über Roadmap, Sprint und Review bis zum Release. Ein Mensch führt als CEO an klar definierten Gates; alles andere läuft selbstständig, gemessen und nachvollziehbar.</p>
+  <div class="hero-meta">
+    <span>Stand: 17.08.2026</span>
+    <span>Basis: verifizierte Tutorials in <code>02-hermes-agent-kanban-tutorials/</code></span>
+    <span>Zielverzeichnis: <code>03-hermes-agent-software-company/</code></span>
+  </div>
+</header>
+
+<nav class="toc" aria-label="Inhalt">
+  <ol>
+    <li><a href="#s1">Ausgangslage &amp; Zielbild</a></li>
+    <li><a href="#s2">Stand der Technik</a></li>
+    <li><a href="#s3">Leitprinzipien</a></li>
+    <li><a href="#s4">Die Organisation</a></li>
+    <li><a href="#s5">Board &amp; Arbeitsstrukturen</a></li>
+    <li><a href="#s6">Der Feature-Fluss</a></li>
+    <li><a href="#s7">CEO-Gates</a></li>
+    <li><a href="#s8">Schätzen, Messen, Kalibrieren</a></li>
+    <li><a href="#s9">Hermes-nativer Betrieb</a></li>
+    <li><a href="#s10">Dokumentation &amp; Historie</a></li>
+    <li><a href="#s11">Risiken &amp; Gegenmaßnahmen</a></li>
+    <li><a href="#s12">Umsetzungs-Roadmap</a></li>
+    <li><a href="#s13">Verifikationsstatus</a></li>
+    <li><a href="#s14">Quellen</a></li>
+  </ol>
+</nav>
+
+<div class="cards">
+  <div class="card"><div class="k">1 Board</div><div class="l">Boards sind hart isoliert — die ganze Firma lebt auf einem Board (<code>sw-company</code>).</div></div>
+  <div class="card"><div class="k">11 Profile</div><div class="l">Vom Markt-Scout bis zum Controller, jedes mit eigener <code>SOUL.md</code> und eigenem Modell-Tier.</div></div>
+  <div class="card"><div class="k">4 Gates</div><div class="l">Roadmap, Release, Entfernen von Funktionen, Budget-Eskalation — nur dort ist der CEO gefragt.</div></div>
+  <div class="card"><div class="k">≤ 3 / Tag</div><div class="l">Maximal drei Gate-Fragen pro Tageslauf. Die knappe Ressource ist Aufmerksamkeit, nicht Tokens.</div></div>
+</div>
+
+<!-- ================================================================ -->
+<section class="chapter" id="s1">
+  <span class="chapno">Kapitel 01</span>
+  <h2>Ausgangslage &amp; Zielbild</h2>
+  <div class="prose">
+    <p><strong>Gegeben</strong> ist eine bestehende B2B-Software in einem Git-Repository. <strong>Gesucht</strong> ist eine Organisation aus Agenten, die diese Software dauerhaft weiterentwickelt: Markt- und Wettbewerbsanalyse, eine lebende Feature-Roadmap, priorisierte Umsetzung in Sprints und Releases, kontinuierliche Qualitätssicherung — und der Mut, Funktionen auch zu <em>entfernen</em>, wenn einfachere, bessere Wege existieren. Der Endanwender soll seine Aufgaben so einfach und so automatisiert wie möglich erledigen können, bei voller Kontrolle.</p>
+    <p>Ein Mensch nimmt die Rolle des <strong>CEO</strong> ein. Er steckt nicht im Alltagsgeschäft, sondern entscheidet an definierten Gates: Roadmap-Freigaben, Release-Go, irreversible Eingriffe. Ihm wird die Planung regelmäßig hochverdichtet vorgelegt — mit der Option, jedes Detail bis auf Karten- und Commit-Ebene nachzuprüfen.</p>
+    <p><strong>Stabilität und Qualität haben hohe Priorität.</strong> Schon mit der ersten Analyse des Repositories wird eine <strong>browserbasierte End-to-End-Testsuite</strong> (Playwright) aufgebaut — oder eine vorhandene ausgebaut —, die alle Kernfunktionen systematisch aus Sicht des Endanwenders prüft. Sie wächst mit jedem Feature mit, dient als Regressionsnetz vor jedem Merge und Release, und ist zugleich das lebende Nutzerhandbuch: Wer die Suite liest, versteht, wie die Software bedient wird — und wo sie zu kompliziert ist (Kapitel&nbsp;6).</p>
+    <p>Jede Planung — Feature, Sprint, Release, Quartal — trägt eine <strong>Aufwandsschätzung</strong> (Dauer, Tokenverbrauch, Tokenkosten). Geschätzte und reale Aufwände werden kontinuierlich gemessen und verglichen, damit die Schätzungen über die Zeit belastbarer werden. Alle Arbeitsschritte — Recherche, Konzepte, Vorschläge, Prototypen, Planungen — werden systematisch dokumentiert, sodass Produkthistorie und Entscheidungswege dauerhaft nachvollziehbar bleiben.</p>
+    <p>Diese Organisation heißt im Folgenden <strong>ESF — Enterprise Software Factory</strong>. Das Konzept ist als <strong>generischer Blueprint</strong> angelegt: Es beschreibt die ESF so, dass sie auf ein beliebiges B2B-Repo aufgesetzt werden kann. Ein Onboarding-Prozess (Phase&nbsp;0, Kapitel&nbsp;12) analysiert die konkrete Codebasis, das Konzeptumfeld und den Markt und erzeugt daraus den ersten Plan. Festgelegt sind (Rückfragen vom 17.08.2026): CEO-Gates als blockierte Karten auf dem Board und PR-basierte Entwicklung mit Auto-Merge nach Agenten-Review — der CEO gibt Releases und Roadmap frei, nicht einzelne Pull Requests. Der Arbeitstakt ist <strong>inhaltsgetrieben</strong>: Sprint, Release und Quartal sind über Mengen-Limits definierte Ebenen, keine Zeiträume — die Organisation läuft ohne Unterbrechung bis zum Rand ihres Autonomie-Horizonts durch (Kapitel&nbsp;5 und&nbsp;7); Kalenderbegriffe dienen als Denkmodell und Berichtsrhythmus.</p>
+    <p>Technische Basis ist <strong>Hermes Agent v0.20.0</strong> mit dem Kanban-Board als Rückgrat — <strong>alle Agenten laufen Hermes-nativ</strong> als Profile auf dem Board, und auch die Betriebsführung besteht aus Hermes-Bordmitteln plus deterministischen Skripten (Kapitel&nbsp;9); kein äußerer Agent steuert das System. LLM-Provider ist <strong>OpenRouter</strong> (Modellwahl je Rolle über die Profil-Konfiguration, Kosten-Tracking über die OpenRouter-API, Kapitel&nbsp;8); die Feature-Umsetzung folgt der <strong>Superpowers</strong>-Methodik als profil-lokale Skills (Kapitel&nbsp;6). Das Konzept übernimmt den Verifikationsvertrag dieses Repos: Aussagen über Hermes sind an den elf verifizierten Tutorial-Stories belegt <span class="tag tag-v">belegt</span>; alles andere ist als Annahme markiert <span class="tag tag-a">Annahme</span>.</p>
+  </div>
+</section>
+
+<!-- ================================================================ -->
+<section class="chapter" id="s2">
+  <span class="chapno">Kapitel 02</span>
+  <h2>Stand der Technik: Was vergleichbare Projekte lehren</h2>
+  <div class="prose">
+    <p>Die Idee einer „Software-Firma aus Agenten" ist seit 2023 mehrfach gebaut worden — als Forschung, als Produkt und als Experiment mit echtem Geld. Drei Befunde tragen dieses Konzept:</p>
+    <p><strong>Erstens: Organisationsdesign schlägt Modellqualität.</strong> Die Berkeley-Studie <em>„Why Do Multi-Agent LLM Systems Fail?"</em> (MAST, 1.600+ Traces über 7 Frameworks) fand Fehlerraten von 41–87&nbsp;% und ordnet die Ursachen drei Klassen zu: Spezifikationsfehler, Inter-Agent-Misalignment und <em>fehlende Verifikation</em> — nicht Modellschwäche. Die Antwort von MetaGPT darauf: Agenten übergeben geprüfte <em>Artefakte</em> (Dokumente, strukturierte Daten) statt frei zu chatten. Genau dieses Muster liefert Hermes eingebaut: den strukturierten Handoff über <code>metadata</code> fertiger Elternkarten.</p>
+    <p><strong>Zweitens: Autonomie funktioniert nur mit Gates und Riegeln.</strong> Anthropics <em>Project Vend</em> wurde erst profitabel, als Phase&nbsp;2 einen CEO-Agenten mit OKRs, verpflichtende Prozeduren vor Entscheidungen und menschliches Veto einführte — und blieb trotzdem manipulierbar (ein Imposter-CEO wurde per gefälschter „Wahl" installiert). GitHub ersetzte Copilot Workspace durch den Coding Agent mit dem einfachsten robusten Gate: Jeder Agenten-Output ist ein PR, den ein Review passieren muss. Devins eigene Bilanz zeigt, <em>wo</em> Agenten stark sind: klar spezifizierte 4–8-Stunden-Aufgaben mit prüfbarem Ergebnis; ambige Anforderungen bleiben Sache der PM-Rolle.</p>
+    <p><strong>Drittens: Multi-Agent kostet real ~15× Tokens</strong> gegenüber einem Chat (Anthropic Multi-Agent Research System; Token-Einsatz erklärt dort 80&nbsp;% der Leistungsvarianz). Eine Agenten-Firma lohnt sich für parallelisierbare Arbeit — und braucht harte Budgets, sonst frisst der Koordinations-Overhead den Gewinn.</p>
+  </div>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Projekt / Quelle</th><th>Kernidee</th><th>Was die ESF übernimmt</th></tr></thead>
+      <tbody>
+        <tr><td><strong>MetaGPT / MGX</strong></td><td>Simulierte Firma mit Rollen; Kommunikation über geprüfte Artefakte statt Dialog (SOPs)</td><td>Artefakt-Übergaben: Akzeptanzkriterien, Review-Urteile und Schätzungen als maschinenlesbares <code>metadata</code></td></tr>
+        <tr><td><strong>ChatDev</strong></td><td>Phasenmodell CEO→CTO→Dev→Reviewer→Tester; Rückfragen statt Raten</td><td>Rollen-Pipeline mit explizitem Blockieren bei fehlendem Material (statt Halluzinieren)</td></tr>
+        <tr><td><strong>Devin (Cognition)</strong></td><td>Autonomer Engineer; stark bei 4–8h-Tasks, schwach bei Ambiguität</td><td>Taskzuschnitt: klein, klar spezifiziert, prüfbares Ergebnis; Ambiguität löst die PM-Rolle vorher auf</td></tr>
+        <tr><td><strong>Copilot Coding Agent</strong></td><td>Issue → asynchroner Agent → PR; Mensch merged</td><td>PR-basierte Entwicklung; hier: Agenten-Review + deterministischer Merge-Riegel statt Mensch pro PR</td></tr>
+        <tr><td><strong>Project Vend 2 (Anthropic)</strong></td><td>Agenten-Org mit OKR-CEO wird profitabel durch Pflicht-Prozeduren + menschliches Veto</td><td>Gates mit Pflicht-Prozedur (Entscheidungsvorlage in 8 Zeilen), CEO-Veto, Red-Teaming-Bewusstsein</td></tr>
+        <tr><td><strong>MAST-Studie (Berkeley)</strong></td><td>14 Fehlermodi; Hauptursache ist Organisationsdesign, v.a. fehlende Verifikation</td><td>Verifikation als eigene Station in jedem Fluss; Risiko-Katalog in Kapitel&nbsp;11 direkt auf MAST gemappt</td></tr>
+        <tr><td><strong>Anthropic Multi-Agent Research</strong></td><td>Orchestrator-Worker: +90&nbsp;% Leistung, ~15× Tokens</td><td>Parallelität nur wo sie trägt (Recherche, disjunkte Features); Budgets und <code>max_pro_lauf</code> als Deckel</td></tr>
+        <tr><td><strong>Evidence-Based Scheduling</strong> (Spolsky 2007)</td><td>Velocity-Verteilung Schätzung/Ist je Entwickler, Monte-Carlo statt Punkttermin</td><td>Das Kalibrierungsmodell in Kapitel&nbsp;8 — je (Profil × Tasktyp), nicht je Person</td></tr>
+        <tr><td><strong>METR-Zeithorizonte</strong></td><td>Tasklänge mit 50&nbsp;%-Erfolg verdoppelt sich ~alle 7 Monate; 80&nbsp;%-Horizont ist 4–6× kürzer</td><td>Referenzskala für den Kartenzuschnitt: lieber unter dem 80&nbsp;%-Horizont bleiben</td></tr>
+        <tr><td><strong>BAGEN (2026)</strong></td><td>Agenten sind konsistent überoptimistische Selbstschätzer (r&nbsp;≈&nbsp;0,35)</td><td>Schätzen und Arbeiten sind getrennte Rollen: eigenes <code>esf-estimator</code>-Profil mit Ledger-Zugriff</td></tr>
+        <tr><td><strong>Sakana AI Scientist</strong></td><td>57&nbsp;% der Paper mit falschen Zahlen — Output-Volumen ≠ Fortschritt</td><td>Deterministische Riegel (Tests, Linter) vor jedem Merge; Scheinproduktivität ist der Standardfehler</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ================================================================ -->
+<section class="chapter" id="s3">
+  <span class="chapno">Kapitel 03</span>
+  <h2>Leitprinzipien</h2>
+  <div class="prose">
+    <ol>
+      <li><strong>Artefakte statt Dialog.</strong> Jede Übergabe zwischen Rollen ist ein strukturiertes <code>metadata</code>-Objekt im Karten-Abschluss (Akzeptanzkriterien, <code>changed_files</code>, <code>verdict</code>, Schätzung, Istwerte). Der Hermes-Handoff (<code>## Parent task results</code>) macht das zum eingebauten Mechanismus. <span class="tag tag-v">belegt: Story 1, 3</span></li>
+      <li><strong>Eine Regel ist keine Vorbedingung.</strong> Eine Regel in einer <code>SOUL.md</code> gilt, solange das Modell sie liest; ein Riegel im Code gilt immer. Alles Kritische (Merge, Release-Paket, Format der Wissensbasis) hängt hinter deterministischen Skripten. <span class="tag tag-v">belegt: Story 11 — der Merge-Riegel hielt sogar einem 46-Minuten-Standby stand</span></li>
+      <li><strong>Qualität ist ein Regressionsvertrag.</strong> Jede Kernaufgabe des Endanwenders existiert als browserbasierter E2E-Test. Ein Feature ist erst fertig, wenn seine Journey in der Suite steht; ein Merge ist erst zulässig, wenn die ganze Suite grün ist. Die Suite ist damit dreierlei zugleich: Riegel, Regressionsnetz und ausführbare Bedienungsanleitung.</li>
+      <li><strong>Klein und prüfbar zuschneiden.</strong> Karten unterhalb des 80-%-Zeithorizonts, jede mit nachweisbarem Ergebnis (Test grün, Datei existiert, Urteil im metadata). Ambiguität wird <em>vor</em> der Umsetzung von PM/Architekt aufgelöst — oder die Karte blockiert.</li>
+      <li><strong>Die knappe Ressource ist Aufmerksamkeit am Gate.</strong> Nicht das Token-Budget. Maximal drei CEO-Fragen pro Tageslauf; Überzähliges wird zurückgestellt. Ein Gate mit zwölf wartenden Karten wird nicht sorgfältiger beantwortet, sondern durchgewinkt. <span class="tag tag-v">belegt: Story 11</span></li>
+      <li><strong>Wer arbeitet, schätzt nicht.</strong> Schätzungen kommen vom <code>esf-estimator</code>-Profil auf Basis des Ist-Ledgers, nie vom umsetzenden Agenten (BAGEN: Agenten sind überoptimistische Selbstschätzer).</li>
+      <li><strong>Präzision wohnt im Profil, nicht in der Karte.</strong> Ein knapper Tickettext trägt, solange die <code>SOUL.md</code> scharf ist — dort ist die Präzision wiederverwendbar. <span class="tag tag-v">belegt: Story 6 — Stichpunkt-Ticket und ausformulierter Body waren äquivalent</span></li>
+      <li><strong>Der Verifikationsvertrag gilt weiter.</strong> Auch die Organisation selbst dokumentiert jede Behauptung mit Beleg: Karten-Historie, Git-Log, Messwerte. Was nicht belegt ist, heißt Annahme.</li>
+    </ol>
+  </div>
+</section>
+
+<!-- ================================================================ -->
+<section class="chapter" id="s4">
+  <span class="chapno">Kapitel 04</span>
+  <h2>Die Organisation</h2>
+  <div class="prose">
+    <p>Elf Profile, ein Mensch. Alle Profilnamen tragen das Präfix <code>esf-</code> — Profile liegen bei Hermes global, und das Präfix hält den Namensraum der ESF von allem anderen auf der Maschine getrennt. Die Grenze zwischen Agenten und Mensch ist im System physisch: Sie verläuft durch <strong>Gate-Karten</strong> (<code>blocked</code>-Status), die nur der CEO per <code>unblock</code> öffnen kann. Unterhalb der Grenze orchestriert der <em>Chief of Staff</em> — ein Planer-Profil, das per <code>kanban_create</code> selbst Karten anlegt, wie in Story&nbsp;10/11 verifiziert.</p>
+  </div>
+
+  <figure>
+    <svg viewBox="0 0 920 500" role="img" aria-label="Organigramm der ESF: Der menschliche CEO steht oberhalb einer Freigabegrenze; darunter orchestriert der Chief of Staff drei Lanes — Markt, Produkt und Delivery — indem er Karten anlegt und Handoffs zurückerhält.">
+      <defs>
+        <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="currentColor"/>
+        </marker>
+        <marker id="arrg" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="var(--gate)"/>
+        </marker>
+      </defs>
+
+      <!-- CEO -->
+      <rect x="360" y="16" width="200" height="58" rx="10" fill="var(--gate-bg)" stroke="var(--gate)" stroke-width="1.6"/>
+      <text x="460" y="40" text-anchor="middle" class="svg-label" font-size="14" font-weight="600" fill="currentColor">CEO — Mensch</text>
+      <text x="460" y="60" text-anchor="middle" class="svg-label" font-size="11" fill="var(--muted)">Richtung · Freigaben · Veto</text>
+
+      <!-- Gate boundary -->
+      <line x1="30" y1="122" x2="890" y2="122" stroke="var(--gate)" stroke-width="1.4" stroke-dasharray="7 5"/>
+      <text x="30" y="112" class="svg-label" font-size="11" fill="var(--gate)">Freigabegrenze — jede Überquerung ist eine eigene Gate-Karte</text>
+
+      <!-- CEO <-> CoS arrows -->
+      <line x1="440" y1="74" x2="440" y2="160" stroke="var(--gate)" stroke-width="1.4" marker-end="url(#arrg)"/>
+      <text x="428" y="102" text-anchor="end" class="svg-label" font-size="11" fill="var(--gate)">unblock --reason</text>
+      <text x="428" y="116" text-anchor="end" class="svg-label" font-size="11" fill="var(--gate)">approve · modify · shelve</text>
+      <line x1="480" y1="160" x2="480" y2="74" stroke="var(--gate)" stroke-width="1.4" marker-end="url(#arrg)"/>
+      <text x="492" y="102" class="svg-label" font-size="11" fill="var(--gate)">Gate-Karte: kanban_block</text>
+      <text x="492" y="116" class="svg-label" font-size="11" fill="var(--gate)">+ Entscheidungsvorlage</text>
+
+      <!-- Chief of Staff -->
+      <rect x="320" y="160" width="280" height="58" rx="10" fill="var(--surface-2)" stroke="currentColor" stroke-width="1.4"/>
+      <text x="460" y="184" text-anchor="middle" class="svg-label" font-size="14" font-weight="600" fill="currentColor">esf-chief-of-staff</text>
+      <text x="460" y="204" text-anchor="middle" class="svg-label" font-size="11" fill="var(--muted)">Orchestrator: plant Sprints, legt Karten an</text>
+
+      <!-- arrows CoS -> lanes -->
+      <line x1="380" y1="218" x2="170" y2="278" stroke="currentColor" stroke-width="1.2" marker-end="url(#arr)"/>
+      <line x1="460" y1="218" x2="460" y2="278" stroke="currentColor" stroke-width="1.2" marker-end="url(#arr)"/>
+      <line x1="540" y1="218" x2="750" y2="278" stroke="currentColor" stroke-width="1.2" marker-end="url(#arr)"/>
+      <text x="245" y="245" text-anchor="middle" class="svg-label" font-size="11" fill="var(--muted)">kanban_create</text>
+      <text x="680" y="245" text-anchor="middle" class="svg-label" font-size="11" fill="var(--muted)">metadata-Handoffs zurück</text>
+
+      <!-- Lane: Markt -->
+      <rect x="30" y="278" width="260" height="196" rx="12" fill="none" stroke="var(--line)" stroke-width="1.4"/>
+      <text x="46" y="304" class="svg-label" font-size="12" font-weight="600" fill="var(--accent)">MARKT</text>
+      <rect x="46" y="318" width="228" height="40" rx="8" fill="var(--surface-2)" stroke="currentColor" stroke-width="1"/>
+      <text x="160" y="337" text-anchor="middle" class="svg-label" font-size="12.5" fill="currentColor">esf-market-scout</text>
+      <text x="160" y="351" text-anchor="middle" class="svg-label" font-size="10.5" fill="var(--muted)">liest sources/&lt;datum&gt;/</text>
+      <rect x="46" y="368" width="228" height="40" rx="8" fill="var(--surface-2)" stroke="currentColor" stroke-width="1"/>
+      <text x="160" y="387" text-anchor="middle" class="svg-label" font-size="12.5" fill="currentColor">esf-market-analyst</text>
+      <text x="160" y="401" text-anchor="middle" class="svg-label" font-size="10.5" fill="var(--muted)">Rubrik-Scoring, Feature-Vorschläge</text>
+      <rect x="46" y="418" width="228" height="40" rx="8" fill="var(--surface-2)" stroke="currentColor" stroke-width="1"/>
+      <text x="160" y="437" text-anchor="middle" class="svg-label" font-size="12.5" fill="currentColor">esf-controller</text>
+      <text x="160" y="451" text-anchor="middle" class="svg-label" font-size="10.5" fill="var(--muted)">Kalibrierung, Kosten- &amp; Sprint-Report</text>
+
+      <!-- Lane: Produkt -->
+      <rect x="330" y="278" width="260" height="196" rx="12" fill="none" stroke="var(--line)" stroke-width="1.4"/>
+      <text x="346" y="304" class="svg-label" font-size="12" font-weight="600" fill="var(--accent)">PRODUKT</text>
+      <rect x="346" y="318" width="228" height="40" rx="8" fill="var(--surface-2)" stroke="currentColor" stroke-width="1"/>
+      <text x="460" y="337" text-anchor="middle" class="svg-label" font-size="12.5" fill="currentColor">esf-product-manager</text>
+      <text x="460" y="351" text-anchor="middle" class="svg-label" font-size="10.5" fill="var(--muted)">Spezifikation, Akzeptanzkriterien</text>
+      <rect x="346" y="368" width="228" height="40" rx="8" fill="var(--surface-2)" stroke="currentColor" stroke-width="1"/>
+      <text x="460" y="387" text-anchor="middle" class="svg-label" font-size="12.5" fill="currentColor">esf-architect</text>
+      <text x="460" y="401" text-anchor="middle" class="svg-label" font-size="10.5" fill="var(--muted)">Konzepte, ADRs, Schnittstellenverträge</text>
+      <rect x="346" y="418" width="228" height="40" rx="8" fill="var(--surface-2)" stroke="currentColor" stroke-width="1"/>
+      <text x="460" y="437" text-anchor="middle" class="svg-label" font-size="12.5" fill="currentColor">esf-estimator</text>
+      <text x="460" y="451" text-anchor="middle" class="svg-label" font-size="10.5" fill="var(--muted)">schätzt aus dem Ledger, nie aus dem Bauch</text>
+
+      <!-- Lane: Delivery -->
+      <rect x="630" y="278" width="260" height="196" rx="12" fill="none" stroke="var(--line)" stroke-width="1.4"/>
+      <text x="646" y="304" class="svg-label" font-size="12" font-weight="600" fill="var(--accent)">DELIVERY</text>
+      <rect x="646" y="318" width="110" height="40" rx="8" fill="var(--surface-2)" stroke="currentColor" stroke-width="1"/>
+      <text x="701" y="342" text-anchor="middle" class="svg-label" font-size="12.5" fill="currentColor">esf-dev-a</text>
+      <rect x="764" y="318" width="110" height="40" rx="8" fill="var(--surface-2)" stroke="currentColor" stroke-width="1"/>
+      <text x="819" y="342" text-anchor="middle" class="svg-label" font-size="12.5" fill="currentColor">esf-dev-b</text>
+      <rect x="646" y="368" width="228" height="40" rx="8" fill="var(--surface-2)" stroke="currentColor" stroke-width="1"/>
+      <text x="760" y="387" text-anchor="middle" class="svg-label" font-size="12.5" fill="currentColor">esf-reviewer</text>
+      <text x="760" y="401" text-anchor="middle" class="svg-label" font-size="10.5" fill="var(--muted)">Fan-in, Urteil als metadata.verdict</text>
+      <rect x="646" y="418" width="228" height="40" rx="8" fill="var(--surface-2)" stroke="currentColor" stroke-width="1"/>
+      <text x="760" y="437" text-anchor="middle" class="svg-label" font-size="12.5" fill="currentColor">esf-qa-release</text>
+      <text x="760" y="451" text-anchor="middle" class="svg-label" font-size="10.5" fill="var(--muted)">Tests im fremden Worktree, Release-Paket</text>
+    </svg>
+    <figcaption><b>Abb. 1 — Das Operating Model.</b> Der CEO berührt das Board nur an Gate-Karten (bernstein). Der Chief of Staff legt alle Arbeitskarten per <code>kanban_create</code> an; die Lanes liefern strukturierte Handoffs zurück. Die Betriebsführung selbst — Gateway, Cron-Tick, Monitor- und Report-Skripte — ist deterministische Infrastruktur ohne eigenes Profil (Kapitel&nbsp;9).</figcaption>
+  </figure>
+
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Profil</th><th>Auftrag</th><th>Kern der SOUL.md</th><th>Modell-Tier</th></tr></thead>
+      <tbody>
+        <tr><td><code>esf-chief-of-staff</code></td><td>Sprint-Planung, Kartengraphen anlegen, Gate-Vorlagen schreiben, Sprint-Abschluss</td><td>„Never linger." <code>kanban_create</code> nur nach Plan, jede Kettenkarte mit <code>idempotency_key</code>; nie selbst implementieren</td><td>hoch</td></tr>
+        <tr><td><code>esf-market-scout</code></td><td>Signal-Eingang sichten: <code>sources/&lt;datum&gt;/</code> lesen, normalisieren, deduplizieren</td><td>Nur erkennen, nicht bewerten; „wissen wir schon" ist ein gültiges Ergebnis</td><td>günstig</td></tr>
+        <tr><td><code>esf-market-analyst</code></td><td>Signale nach Rubrik scoren, Feature-Hypothesen mit Nutzenargument formulieren</td><td>Score ist ein Urteil, Route ist eine Tabelle; Quellen zitieren oder blockieren</td><td>hoch</td></tr>
+        <tr><td><code>esf-product-manager</code></td><td>Ideen zu Spezifikationen verdichten, Akzeptanzkriterien in <code>metadata.acceptance</code></td><td>Ambiguität wird aufgelöst oder eskaliert, nie weitergereicht; auch Entfernen ist ein Feature</td><td>hoch</td></tr>
+        <tr><td><code>esf-architect</code></td><td>Technische Konzepte, ADRs, Schnittstellenverträge für parallele Entwicklung</td><td>Verträge wörtlich in jede betroffene Karte (Worktree-Worker sehen einander nicht)</td><td>hoch</td></tr>
+        <tr><td><code>esf-estimator</code></td><td>Jede geplante Karte mit Referenzklasse, Intervallschätzung und Konfidenz versehen</td><td>Nur aus <code>estimates.jsonl</code> schätzen; ohne Referenzklasse breite Intervalle und das sagen</td><td>mittel</td></tr>
+        <tr><td><code>esf-dev-a</code>, <code>esf-dev-b</code></td><td>Features in eigenen Git-Worktrees umsetzen, Tests schreiben</td><td>Definition of Done aus <code>AGENTS.md</code>; bei fehlendem Material <code>kanban_block</code> statt raten</td><td>hoch</td></tr>
+        <tr><td><code>esf-reviewer</code></td><td>Fan-in-Review über alle Feature-Branches eines Sprints</td><td>Urteil maschinenlesbar (<code>verdict: approved|rejected</code> + Befunde); fremde Tests selbst ausführen</td><td>hoch</td></tr>
+        <tr><td><code>esf-qa-release</code></td><td><strong>Eigner der E2E-Suite</strong> (Playwright): aufbauen, kuratieren, Flakes jagen; Integrationstests, Release Notes, Release-Paket</td><td>Merge macht nie das Modell — der Riegel (Skript) merged oder verweigert; jede Kern-Journey hat genau einen Spec-Eigentümer</td><td>mittel</td></tr>
+        <tr><td><code>esf-controller</code></td><td>Wöchentlich: Schätzgüte, Kosten, Velocity je Referenzklasse; CEO-Report</td><td>Nur belegte Zahlen; Kontaminationen (Gate-Wartezeit, Standby) ausweisen</td><td>mittel</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="prose">
+    <p>Drei Bau-Regeln aus den verifizierten Stories:</p>
+    <ul>
+      <li><strong>Dispatchbarkeit ist Handarbeit.</strong> <code>hermes profile create</code> genügt nicht; jedes Setup überträgt alle vier Modell-Schlüssel per <code>hermes -p &lt;profil&gt; config set</code> und prüft <code>ON DISK = yes</code> — sonst bleiben Karten stumm für immer auf <code>ready</code>. <span class="tag tag-v">belegt</span> Die Modellwahl je Rolle läuft über genau diese Profil-Konfiguration (verifiziert), nicht über <code>--model</code> je Karte (nur Hilfetext).</li>
+      <li><strong>Ein Provider, elf Schlüssel.</strong> Alle Profile laufen gegen <strong>OpenRouter</strong>: <code>setup.sh</code> setzt <code>model.provider</code>, <code>model.base_url</code> und <code>model.api_mode</code> auf OpenRouter (OpenAI-kompatibel) und <code>model.default</code> auf den Modell-Slug des Rollen-Tiers — dieselben vier Schlüssel, über die die Modellwahl ohnehin verifiziert läuft. Zusätzlich bekommt jedes Profil einen <strong>eigenen, per Provisioning-API angelegten OpenRouter-Key mit USD-Limit</strong> <span class="tag tag-a">Annahme: OpenRouter-Doku, nicht durchgespielt</span> — das ist zugleich der harte Kosten-Deckel je Rolle und die Messbasis für die Kostenzurechnung in Kapitel&nbsp;8.</li>
+      <li><strong>Skills sind der Flotten-Hebel.</strong> Jedes Profil bekommt nur die profil-lokalen Skills seiner Rolle — „wenn jeder Agent alles weiß, hat man keine Flotte, sondern elf Kopien desselben Agenten". Die rollenspezifischen Teilmengen kommen überwiegend aus der Superpowers-Bibliothek (Kapitel&nbsp;6). Der Decomposer routet über die <code>description</code>, also wird sie pro Profil geschärft.</li>
+      <li><strong>Namensräume schützen.</strong> Profile liegen global in <code>~/.hermes/profiles/</code> und kollidieren mit den Tutorial-Stories (<code>reviewer</code>, <code>backend-dev</code>…). Die ESF prefixt deshalb alle Profile mit <code>esf-</code> und markiert sie mit einer <code>.esf</code>-Datei, damit <code>teardown.sh</code> nur Eigenes löscht — das Story-11-Muster.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ================================================================ -->
+<section class="chapter" id="s5">
+  <span class="chapno">Kapitel 05</span>
+  <h2>Board &amp; Arbeitsstrukturen</h2>
+  <div class="prose">
+    <h3>Ein Board, drei Workspace-Arten</h3>
+    <p>Hermes-Boards sind hart isoliert — Worker eines Boards können Karten anderer Boards physisch nicht sehen <span class="tag tag-v">belegt</span>. Die gesamte Firma lebt deshalb auf <strong>einem Board</strong> <code>sw-company</code>. Getrennt wird nicht über Boards, sondern über Assignees, Eltern-Beziehungen und Namenskonventionen.</p>
+    <ul>
+      <li><strong>Produkt-Repo</strong>: Feature-Entwicklung läuft in <code>--workspace worktree:&lt;repo&gt; --branch feat/&lt;slug&gt;</code> — pro Karte ein eigener Git-Worktree, parallel und konfliktfrei; Worktrees überleben den Kartenabschluss, sodass der Reviewer fremde Tests im fremden Baum ausführen kann. <span class="tag tag-v">belegt: Story 9</span></li>
+      <li><strong>Firmen-Vault</strong>: Ein zweites Git-Repository <code>company/</code> (Roadmap, ADRs, Reports, Ledger, Markt-Korpus) als dauerhafter <code>--workspace dir:</code> für alle Analyse-, Planungs- und Berichtskarten. Ketten, die Dateien weiterreichen, brauchen dasselbe <code>dir:</code> — auf <code>scratch</code> geht die letzte Stufe leer aus. <span class="tag tag-v">belegt</span></li>
+      <li><strong>Scratch</strong> nur für Wegwerf-Experimente.</li>
+    </ul>
+    <p><strong>Wichtige Falle:</strong> Vom Orchestrator per <code>kanban_create</code> gesetzte <code>workspace_path</code> müssen absolut sein (aus <code>$HERMES_KANBAN_WORKSPACE</code> abgeleitet) — relative Pfade erzeugen Karten, die nie starten, ohne Fehlermeldung. <span class="tag tag-v">belegt: Story 10</span></p>
+
+    <h3>Karten-Taxonomie</h3>
+    <p>Die Hierarchie Quartal → Release → Feature (Epic) → Task wird über <strong>Eltern-Beziehungen und Titel-Präfixe</strong> abgebildet (<code>R7/F12/…</code>), die Sprint-Zugehörigkeit zusätzlich in <code>metadata.sprint</code>. Das ist bewusst konservativ: <code>--project</code> als Gruppierung ist in v0.20.0 nur Hilfetext <span class="tag tag-a">Annahme</span>, Eltern-Ketten und Fan-in sind gemessen <span class="tag tag-v">belegt: Story 1, 6, 9</span>. Ein Feature ist ein kleiner Graph: Spezifikation → Schätzung → n Implementierungs-Karten (Fan-out in Worktrees) → Review (Fan-in) → Merge-Karte.</p>
+
+    <h3>Die Kadenz: Inhalt statt Kalender</h3>
+    <p>Täglich–wöchentlich–monatlich–Quartal bleibt als Denkmodell erhalten — operativ ist die Kadenz aber <strong>inhaltsgetrieben</strong>: Jede Ebene ist über die Anzahl ihrer Elemente limitiert, nicht über den Kalender, und schließt ab, sobald ihr Inhalt fertig ist. Die Limits werden bei der Projektinitialisierung festgelegt und mit der ersten Roadmap vom CEO freigegeben:</p>
+  </div>
+  <pre><code># company/cadence.yaml — bei Init festgelegt, Teil der Roadmap-Freigabe
+releases_pro_quartal: 3
+sprints_pro_release: 4          # Plan · Umsetzung · Umsetzung · Härtung
+features_pro_release: 5
+karten_pro_feature: 8           # Deckel für den Planungsgraphen je Feature
+autonomie_horizont: release     # release (Default) | quartal — siehe Kapitel 7</code></pre>
+  <div class="prose">
+    <p><strong>Getrieben wird die Kadenz von unten nach oben.</strong> Der Gateway-Dispatcher arbeitet offene Karten kontinuierlich ab; sobald alle Karten eines Features fertig sind, gilt das Feature als abgeschlossen — sind alle Features eines Sprints fertig, legt die Abschluss-Erkennung (Kapitel&nbsp;9) die Sprint-Abschluss-Karte an, nach dem Härtungs-Sprint die Release-Abschluss-Karte, und erst dort steht der CEO: Update-Info oder Freigabe. Solange Hermes läuft und nicht unterbrochen wird, arbeitet die Organisation also <strong>bis zum Abschluss des aktuellen Release vollautomatisch weiter — unabhängig von Systemzeit, Tag oder Woche</strong>. Ein zügiges Team-Setup schließt ein „Quartal" in Tagen ab, ein zähes braucht Wochen; die Kalenderbegriffe sind Obergrenze und Berichtsrhythmus (der Gate-Report erscheint weiterhin täglich), nicht Taktgeber.</p>
+  </div>
+
+  <figure>
+    <svg viewBox="0 0 940 300" role="img" aria-label="Inhaltsgetriebene Kadenz: ein Quartal enthält maximal drei Releases, jedes Release maximal vier Sprints für maximal fünf Features. Abschlüsse propagieren von unten nach oben bis zum CEO-Gate; Tick und Dispatcher arbeiten kalenderunabhängig, solange Karten offen sind.">
+      <defs>
+        <marker id="arr2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="currentColor"/>
+        </marker>
+      </defs>
+      <!-- bottom-up arrows -->
+      <line x1="26" y1="178" x2="26" y2="136" stroke="var(--accent)" stroke-width="1.4" marker-end="url(#arr2)"/>
+      <line x1="26" y1="98" x2="26" y2="68" stroke="var(--accent)" stroke-width="1.4" marker-end="url(#arr2)"/>
+      <text transform="rotate(-90 12 150)" x="12" y="150" text-anchor="middle" class="svg-label" font-size="10.5" fill="var(--accent)">Abschluss propagiert nach oben</text>
+      <!-- Quarter bar -->
+      <rect x="40" y="30" width="864" height="34" rx="8" fill="var(--surface-2)" stroke="currentColor" stroke-width="1.2"/>
+      <text x="56" y="52" class="svg-label" font-size="13" font-weight="600" fill="currentColor">Quartal — max. 3 Releases</text>
+      <text x="500" y="52" text-anchor="middle" class="svg-label" font-size="11.5" fill="var(--muted)">Roadmap-Review · Marktbild · Budget</text>
+      <path d="M886 33 l14 14 l-14 14 l-14 -14 z" fill="var(--gate-bg)" stroke="var(--gate)" stroke-width="1.4"/>
+      <text x="886" y="80" text-anchor="middle" class="svg-label" font-size="10.5" fill="var(--gate)">Roadmap-Gate</text>
+
+      <!-- Releases -->
+      <g>
+        <rect x="40" y="102" width="278" height="30" rx="7" fill="var(--surface-2)" stroke="currentColor" stroke-width="1.1"/>
+        <rect x="333" y="102" width="278" height="30" rx="7" fill="var(--surface-2)" stroke="currentColor" stroke-width="1.1"/>
+        <rect x="626" y="102" width="278" height="30" rx="7" fill="var(--surface-2)" stroke="currentColor" stroke-width="1.1"/>
+        <text x="56" y="121" class="svg-label" font-size="12" fill="currentColor">Release R7 — ≤ 4 Sprints · ≤ 5 Features</text>
+        <text x="349" y="121" class="svg-label" font-size="12" fill="currentColor">Release R8</text>
+        <text x="642" y="121" class="svg-label" font-size="12" fill="currentColor">Release R9</text>
+        <path d="M303 106 l11 11 l-11 11 l-11 -11 z" fill="var(--gate-bg)" stroke="var(--gate)" stroke-width="1.3"/>
+        <path d="M596 106 l11 11 l-11 11 l-11 -11 z" fill="var(--gate-bg)" stroke="var(--gate)" stroke-width="1.3"/>
+        <path d="M889 106 l11 11 l-11 11 l-11 -11 z" fill="var(--gate-bg)" stroke="var(--gate)" stroke-width="1.3"/>
+        <text x="303" y="148" text-anchor="middle" class="svg-label" font-size="10.5" fill="var(--gate)">Release-Gate</text>
+      </g>
+
+      <!-- Sprints (first release zoomed) -->
+      <line x1="40" y1="132" x2="40" y2="180" stroke="var(--line)" stroke-width="1"/>
+      <line x1="318" y1="132" x2="904" y2="180" stroke="var(--line)" stroke-width="1"/>
+      <g>
+        <rect x="40" y="180" width="210" height="28" rx="6" fill="var(--surface-2)" stroke="currentColor" stroke-width="1"/>
+        <rect x="258" y="180" width="210" height="28" rx="6" fill="var(--surface-2)" stroke="currentColor" stroke-width="1"/>
+        <rect x="476" y="180" width="210" height="28" rx="6" fill="var(--surface-2)" stroke="currentColor" stroke-width="1"/>
+        <rect x="694" y="180" width="210" height="28" rx="6" fill="var(--surface-2)" stroke="currentColor" stroke-width="1"/>
+        <text x="145" y="198" text-anchor="middle" class="svg-label" font-size="11.5" fill="currentColor">Sprint 1 — Plan</text>
+        <text x="363" y="198" text-anchor="middle" class="svg-label" font-size="11.5" fill="currentColor">Sprint 2 — Umsetzung</text>
+        <text x="581" y="198" text-anchor="middle" class="svg-label" font-size="11.5" fill="currentColor">Sprint 3 — Umsetzung</text>
+        <text x="799" y="198" text-anchor="middle" class="svg-label" font-size="11.5" fill="currentColor">Sprint 4 — Härtung</text>
+      </g>
+
+      <!-- Daily ticks -->
+      <g>
+        <text x="40" y="252" class="svg-label" font-size="11.5" fill="var(--muted)">Tick + Dispatcher (tokenfrei, kalenderunabhängig):</text>
+        <circle cx="392" cy="248" r="4" fill="var(--accent)"/>
+        <circle cx="416" cy="248" r="4" fill="var(--accent)"/>
+        <circle cx="440" cy="248" r="4" fill="var(--accent)"/>
+        <circle cx="464" cy="248" r="4" fill="var(--accent)"/>
+        <circle cx="488" cy="248" r="4" fill="var(--accent)"/>
+        <text x="510" y="252" class="svg-label" font-size="11.5" fill="var(--muted)">arbeitet, solange Karten offen sind; überspringt sich bei unsauberem Baum · offenem Branch · wartendem Gate</text>
+      </g>
+      <line x1="145" y1="208" x2="145" y2="236" stroke="var(--line)" stroke-width="1" marker-end="url(#arr2)"/>
+    </svg>
+    <figcaption><b>Abb. 2 — Die inhaltsgetriebene Kadenz.</b> Die Ebenen sind Mengen-Limits (max. 3 Releases je Quartal, max. 4 Sprints und 5 Features je Release), keine Zeiträume: Abschlüsse propagieren von unten nach oben (teal), bis am Release- bzw. Quartalsrand der CEO steht (Bernstein-Rauten). Der Tick selbst kostet keine Tokens (<code>--no-agent</code>); Kosten entstehen erst bei den Workern, die der Dispatcher danach startet. Die Selbst-Übersprung-Logik (drei Bedingungen) ist das verifizierte Story-11-Muster — die dritte Bedingung verhindert, dass offene Gates sich stapeln, „denn ein Cron-Job kann niemanden fragen".</figcaption>
+  </figure>
+
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Ebene (Limit)</th><th>Beginn → Abschlusskriterium</th><th>Wer</th><th>Gate?</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Tick</strong> (Herzschlag; Cron täglich als Untergrenze)</td><td>Prüft Vorbedingungen, legt fällige Karten an (Markt-Sichtung, offene Arbeit); der Dispatcher arbeitet kontinuierlich; die Abschluss-Erkennung legt Abschluss-Karten an, sobald eine Ebene voll ist; abends Gate-Report</td><td>Tick-, Monitor- und Report-Skripte + Gateway</td><td>nein — Gates werden nur <em>gemeldet</em></td></tr>
+        <tr><td><strong>Feature</strong> (≤ <code>karten_pro_feature</code>)</td><td>Spezifikation → abgeschlossen, wenn alle Karten des Feature-Graphen <code>done</code> sind: Review bestanden, Riegel passiert, E2E-Journey grün</td><td><code>esf-dev-a/b</code>, <code>esf-reviewer</code></td><td>nein</td></tr>
+        <tr><td><strong>Sprint</strong> (Rolle im Release: Plan / Umsetzung / Härtung)</td><td>Sprint-Planung aus der Roadmap → abgeschlossen, wenn alle Sprint-Karten <code>done</code> oder per Gate zurückgestellt sind — nicht, wenn ein Wochentag erreicht ist; danach Kalibrierung + Controller-Report</td><td><code>esf-chief-of-staff</code>, <code>esf-estimator</code>, <code>esf-controller</code></td><td>nur bei Scope-Änderung</td></tr>
+        <tr><td><strong>Release</strong> (≤ 4 Sprints · ≤ 5 Features)</td><td>Beginnt mit Sprint 1 (Plan) → abgeschlossen, wenn der Härtungs-Sprint fertig ist: Integration, Release Notes, voller E2E-Regressionslauf, Paket am Riegel</td><td><code>esf-qa-release</code>, <code>esf-reviewer</code></td><td><strong>ja: Release-Go</strong> — im Quartals-Mandat nur Update-Info (Kapitel&nbsp;7)</td></tr>
+        <tr><td><strong>Quartal</strong> (≤ 3 Releases)</td><td>Beginnt mit der freigegebenen Roadmap → abgeschlossen mit dem dritten Release: Marktbild konsolidieren, Roadmap fortschreiben (auch: Features zur Entfernung vorschlagen), Budget</td><td><code>esf-market-analyst</code>, <code>esf-product-manager</code>, <code>esf-chief-of-staff</code></td><td><strong>immer: Roadmap + Budget</strong> — nicht delegierbar</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout risk">
+    <span class="callout-title">Betriebswarnung aus den Messläufen</span>
+    <p>Beschleunigung kommt nicht aus mehr Pipeline-Ticks — der Autor der Story-11-Vorlage rät ausdrücklich von stündlichen Läufen ab, weil jeder Tick eine ganze Pipeline nach sich zieht. Sie ist in der ESF auch nicht nötig: Der Gateway-Dispatcher (Tick 60&nbsp;s) arbeitet offene Karten ohnehin kontinuierlich ab, und die Abschluss-Erkennung ist ein billiger, tokenfreier <code>jq</code>-Check im stündlichen <code>monitor.sh</code>. Der tägliche Pipeline-Tick bleibt für den Markt-Eingang. Das Gateway läuft über launchd, nicht als Terminal-Skript — nach einem Rechner-Standby ist es sofort wieder da, und der Dispatcher räumt verwaiste Claims nachweislich selbst auf. <span class="tag tag-v">belegt</span></p>
+  </div>
+</section>
+
+<!-- ================================================================ -->
+<section class="chapter" id="s6">
+  <span class="chapno">Kapitel 06</span>
+  <h2>Der Feature-Fluss: vom Signal zum Release</h2>
+
+  <figure>
+    <svg viewBox="0 0 960 330" role="img" aria-label="Feature-Fluss: Marktsignale und interne Vorschläge fließen in Triage und Spezifikation, dann Schätzung, dann das Roadmap-Gate des CEO. Freigegebene Features werden als Sprint-Karten in parallelen Worktrees gebaut, im Fan-in reviewt, passieren den deterministischen Merge-Riegel und das Release-Gate.">
+      <defs>
+        <marker id="arr3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="currentColor"/>
+        </marker>
+      </defs>
+      <!-- Row 1 -->
+      <rect x="20" y="20" width="180" height="44" rx="8" fill="var(--surface-2)" stroke="currentColor" stroke-width="1.1"/>
+      <text x="110" y="39" text-anchor="middle" class="svg-label" font-size="12" fill="currentColor">Markt-Signale</text>
+      <text x="110" y="54" text-anchor="middle" class="svg-label" font-size="10.5" fill="var(--muted)">sources/&lt;datum&gt;/ · Scout + Analyst</text>
+      <rect x="20" y="76" width="180" height="44" rx="8" fill="var(--surface-2)" stroke="currentColor" stroke-width="1.1"/>
+      <text x="110" y="95" text-anchor="middle" class="svg-label" font-size="12" fill="currentColor">Interne Vorschläge</text>
+      <text x="110" y="110" text-anchor="middle" class="svg-label" font-size="10.5" fill="var(--muted)">jede Rolle · auch: Feature entfernen</text>
+
+      <line x1="200" y1="42" x2="260" y2="62" stroke="currentColor" stroke-width="1.2" marker-end="url(#arr3)"/>
+      <line x1="200" y1="98" x2="260" y2="78" stroke="currentColor" stroke-width="1.2" marker-end="url(#arr3)"/>
+
+      <rect x="262" y="48" width="170" height="44" rx="8" fill="var(--surface-2)" stroke="currentColor" stroke-width="1.1"/>
+      <text x="347" y="67" text-anchor="middle" class="svg-label" font-size="12" fill="currentColor">Spezifikation</text>
+      <text x="347" y="82" text-anchor="middle" class="svg-label" font-size="10.5" fill="var(--muted)">PM + Architekt · metadata.acceptance</text>
+
+      <line x1="432" y1="70" x2="492" y2="70" stroke="currentColor" stroke-width="1.2" marker-end="url(#arr3)"/>
+
+      <rect x="494" y="48" width="150" height="44" rx="8" fill="var(--surface-2)" stroke="currentColor" stroke-width="1.1"/>
+      <text x="569" y="67" text-anchor="middle" class="svg-label" font-size="12" fill="currentColor">Schätzung</text>
+      <text x="569" y="82" text-anchor="middle" class="svg-label" font-size="10.5" fill="var(--muted)">esf-estimator · Intervall + Referenzklasse</text>
+
+      <line x1="644" y1="70" x2="712" y2="70" stroke="var(--gate)" stroke-width="1.4" marker-end="url(#arr3)"/>
+
+      <path d="M760 40 l34 30 l-34 30 l-34 -30 z" fill="var(--gate-bg)" stroke="var(--gate)" stroke-width="1.6"/>
+      <text x="760" y="66" text-anchor="middle" class="svg-label" font-size="11.5" font-weight="600" fill="var(--gate)">Roadmap-</text>
+      <text x="760" y="80" text-anchor="middle" class="svg-label" font-size="11.5" font-weight="600" fill="var(--gate)">Gate CEO</text>
+      <text x="760" y="122" text-anchor="middle" class="svg-label" font-size="10.5" fill="var(--gate)">approve · modify · shelve</text>
+
+      <!-- wrap arrow to row 2 -->
+      <path d="M794 70 L900 70 L900 220 L868 220" fill="none" stroke="currentColor" stroke-width="1.2" marker-end="url(#arr3)"/>
+      <text x="908" y="150" text-anchor="end" class="svg-label" font-size="10.5" fill="var(--muted)">Sprint-Plan</text>
+
+      <!-- Row 2 (right to left) -->
+      <rect x="700" y="186" width="166" height="68" rx="8" fill="var(--surface-2)" stroke="currentColor" stroke-width="1.1"/>
+      <text x="783" y="208" text-anchor="middle" class="svg-label" font-size="12" fill="currentColor">Bau im Worktree</text>
+      <text x="783" y="223" text-anchor="middle" class="svg-label" font-size="10.5" fill="var(--muted)">esf-dev-a ∥ esf-dev-b · Fan-out</text>
+      <text x="783" y="238" text-anchor="middle" class="svg-label" font-size="10.5" fill="var(--muted)">feat/&lt;slug&gt; je Karte</text>
+
+      <line x1="700" y1="220" x2="640" y2="220" stroke="currentColor" stroke-width="1.2" marker-end="url(#arr3)"/>
+
+      <rect x="474" y="186" width="164" height="68" rx="8" fill="var(--surface-2)" stroke="currentColor" stroke-width="1.1"/>
+      <text x="556" y="208" text-anchor="middle" class="svg-label" font-size="12" fill="currentColor">Review-Fan-in</text>
+      <text x="556" y="223" text-anchor="middle" class="svg-label" font-size="10.5" fill="var(--muted)">esf-reviewer · führt fremde Tests aus</text>
+      <text x="556" y="238" text-anchor="middle" class="svg-label" font-size="10.5" fill="var(--muted)">verdict im metadata</text>
+
+      <line x1="474" y1="220" x2="414" y2="220" stroke="currentColor" stroke-width="1.2" marker-end="url(#arr3)"/>
+
+      <rect x="240" y="186" width="172" height="68" rx="8" fill="none" stroke="var(--accent)" stroke-width="2"/>
+      <text x="326" y="208" text-anchor="middle" class="svg-label" font-size="12" font-weight="600" fill="var(--accent)">Merge-Riegel</text>
+      <text x="326" y="223" text-anchor="middle" class="svg-label" font-size="10.5" fill="var(--muted)">Skript: Unit-Tests + E2E + Linter</text>
+      <text x="326" y="238" text-anchor="middle" class="svg-label" font-size="10.5" fill="var(--muted)">Code entscheidet, kein Modell</text>
+
+      <line x1="240" y1="220" x2="180" y2="220" stroke="var(--gate)" stroke-width="1.4" marker-end="url(#arr3)"/>
+
+      <path d="M130 190 l32 30 l-32 30 l-32 -30 z" fill="var(--gate-bg)" stroke="var(--gate)" stroke-width="1.6"/>
+      <text x="130" y="216" text-anchor="middle" class="svg-label" font-size="11.5" font-weight="600" fill="var(--gate)">Release-</text>
+      <text x="130" y="230" text-anchor="middle" class="svg-label" font-size="11.5" font-weight="600" fill="var(--gate)">Gate CEO</text>
+
+      <line x1="130" y1="250" x2="130" y2="288" stroke="currentColor" stroke-width="1.2" marker-end="url(#arr3)"/>
+      <rect x="70" y="290" width="120" height="34" rx="8" fill="var(--ok-bg)" stroke="var(--accent)" stroke-width="1.3"/>
+      <text x="130" y="311" text-anchor="middle" class="svg-label" font-size="12" font-weight="600" fill="var(--accent-ink)">Release</text>
+    </svg>
+    <figcaption><b>Abb. 3 — Der Feature-Fluss.</b> Zwei Eingänge (Markt, intern), zwei CEO-Gates (Rauten), ein deterministischer Riegel (teal). Einzelne PRs mergen ohne CEO: Reviewer-Urteil plus Riegel genügen. Zwischen Riegel und Release-Gate liegen die gesammelten Merges eines Monats.</figcaption>
+  </figure>
+
+  <div class="prose">
+    <h3>Phase 0: Onboarding einer Codebasis</h3>
+    <p>Beim Aufsetzen auf ein Repo läuft einmalig ein Analysegraph (alle Karten im Firmen-Vault, Fan-out → Fan-in wie Story&nbsp;6):</p>
+    <ol>
+      <li><strong>Codebasis-Analyse</strong> (<code>esf-architect</code>): Architektur, Modulkarte, Techschulden, Testabdeckung → <code>company/analysis/codebase.html</code></li>
+      <li><strong>Konzept- &amp; Nutzeranalyse</strong> (<code>esf-product-manager</code>): Was tut die Software für wen? Welche Aufgaben sind heute umständlich? → <code>analysis/product.html</code></li>
+      <li><strong>Marktbild</strong> (<code>esf-market-analyst</code>, aus initialem Korpus <code>sources/</code>): Wettbewerber, Kategoriestandards, Lücken → <code>analysis/market.html</code></li>
+      <li><strong>E2E-Grundgerüst</strong> (<code>esf-qa-release</code>, aus 1+2 gespeist): Die Kern-User-Journeys aus <code>product.html</code> werden als Playwright-Suite aufgebaut — bzw. eine vorhandene Suite übernommen und auf die Kernaufgaben ausgebaut → <code>tests/e2e/</code> im Produkt-Repo + Journey-Katalog <code>analysis/journeys.html</code>.</li>
+      <li><strong>Erster Plan</strong> (<code>esf-chief-of-staff</code>, Fan-in): Roadmap-Entwurf mit geschätzten Aufwänden → <strong>Roadmap-Gate</strong> an den CEO.</li>
+    </ol>
+
+    <h3>Die E2E-Suite: Regressionsnetz und lebendes Nutzerhandbuch</h3>
+    <p>Die E2E-Suite ist das zentrale Qualitätsinstrument der ESF und wird ab dem Onboarding geführt, nicht nachgereicht. Vier Regeln machen sie tragfähig:</p>
+    <ul>
+      <li><strong>Eine Journey, ein Spec, ein sprechender Name.</strong> Jede Kernaufgabe des Endanwenders ist ein eigener Spec (<code>angebot-anlegen.spec.ts</code>), geschrieben aus Nutzersicht — sichtbare Schritte, sichtbare Erwartungen. Der Katalog <code>analysis/journeys.html</code> hält den Überblick: Journey, Spec, Feature-Referenzen, Schrittzahl.</li>
+      <li><strong>Jedes Feature erweitert die Suite.</strong> Die Akzeptanzkriterien in <code>metadata.acceptance</code> benennen mindestens ein E2E-Szenario; der Entwickler schreibt oder erweitert den Spec im selben Feature-Worktree (Definition of Done im <code>AGENTS.md</code>), der Reviewer prüft ihn mit, und der <strong>Merge-Riegel führt die ganze Suite headless aus</strong> — ein Feature ohne grüne E2E-Journey merged nicht. Dass Agenten fremde Tests in fremden Worktrees ausführen, ist gemessen <span class="tag tag-v">belegt: Story 9</span>; die Playwright-Seite (Browser-Abhängigkeiten, Headless-Lauf) ist Standard-Tooling <span class="tag tag-a">Annahme: nicht durchgespielt</span>.</li>
+      <li><strong>Regressionsnetz im Takt.</strong> Zusätzlich zum Riegel läuft die volle Suite als deterministischer, tokenfreier Schritt im täglichen Tick und verpflichtend vor jedem Release; Traces und Screenshots jedes Laufs werden als Akte unter <code>company/reports/e2e-&lt;datum&gt;/</code> abgelegt. Ein roter Lauf erzeugt eine Karte für <code>esf-qa-release</code> — Flakiness wird behandelt wie ein Bug, nicht wie Wetter.</li>
+      <li><strong>Die Suite misst auch Bedienbarkeit.</strong> Weil jeder Spec eine Nutzeraufgabe in Einzelschritten nachspielt, ist die <strong>Schrittzahl pro Journey</strong> eine ehrliche UX-Komplexitätsmetrik. Der <code>esf-controller</code> führt sie im Wochenreport; Journeys, deren Schrittzahl wächst oder aus dem Rahmen fällt, sind die ersten Kandidaten der Subtraktions-Sichtung. So „vermittelt" die Suite die Bedienung nicht nur — sie treibt ihre Vereinfachung.</li>
+    </ul>
+
+    <h3>Die Bau-Methodik: Superpowers-Skills</h3>
+    <p>Für die Umsetzung der Features setzt die ESF auf <a href="https://github.com/obra/superpowers">obra/superpowers</a> — eine als komponierbare Skills verpackte Entwicklungsmethodik (MIT, sehr aktiv gepflegt, 14 Skills). Ihr Kern-Workflow deckt sich fast eins zu eins mit dem ESF-Feature-Fluss: <em>brainstorming</em> (sokratische Design-Verfeinerung) → <em>using-git-worktrees</em> → <em>writing-plans</em> (Zerlegung in Kleinst-Tasks) → <em>executing-plans</em> mit <em>test-driven-development</em> (erzwungenes RED-GREEN-REFACTOR) → <em>requesting-code-review</em> → <em>finishing-a-development-branch</em>. Die Skills liefern damit genau die Prozess-Disziplin in die <code>SOUL.md</code>-Welt, die Kapitel&nbsp;3 fordert — inklusive fertiger Reviewer-Prompts und einer <em>verification-before-completion</em>-Pflicht gegen Scheinproduktivität.</p>
+    <p><strong>Einbindung in Hermes:</strong> Es gibt drei Wege. Das Original-README nennt einen offiziellen: <code>hermes plugins install obra/superpowers --enable</code> <span class="tag tag-a">Annahme: gegen v0.20.0 nicht geprüft</span>. Der Community-Port <a href="https://github.com/satangel2222/obra-superpowers-hermes">satangel2222/obra-superpowers-hermes</a> installiert global nach <code>~/.hermes/skills/superpowers/</code> und liefert als wertvollste Zutat <code>hermes-tools.md</code> — das Mapping der Claude-spezifischen Tool-Referenzen aufs Hermes-Toolset (<code>skill_view</code>, <code>terminal</code>, <code>delegate_task</code>); als Ein-Commit-Snapshot ohne Pflege taugt er aber nur als Referenz. Die ESF geht den dritten Weg: <code>setup.sh</code> kopiert die <strong>rollenspezifischen Teilmengen profil-lokal</strong> nach <code>~/.hermes/profiles/&lt;p&gt;/skills/</code> — der verifizierte Mechanismus <span class="tag tag-v">belegt: Stories 10, 11</span>, der zugleich das Flotten-Prinzip wahrt: Eine globale Installation gäbe jedem Profil alle 14 Skills. Pro Karte bleibt ein Skill erzwingbar (<code>create --skill test-driven-development</code>).</p>
+  </div>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Profil</th><th>Superpowers-Skills (profil-lokal)</th></tr></thead>
+      <tbody>
+        <tr><td><code>esf-product-manager</code></td><td>brainstorming · verification-before-completion</td></tr>
+        <tr><td><code>esf-architect</code>, <code>esf-chief-of-staff</code></td><td>writing-plans · dispatching-parallel-agents · brainstorming</td></tr>
+        <tr><td><code>esf-dev-a</code>, <code>esf-dev-b</code></td><td>test-driven-development · executing-plans · systematic-debugging · using-git-worktrees · receiving-code-review</td></tr>
+        <tr><td><code>esf-reviewer</code></td><td>requesting-code-review (enthält den Reviewer-Prompt) · verification-before-completion</td></tr>
+        <tr><td><code>esf-qa-release</code></td><td>verification-before-completion · systematic-debugging · finishing-a-development-branch</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="prose">
+    <p>Ein Skill bleibt eine Regel, kein Riegel: Das TDD-Gebot wird deshalb doppelt abgesichert — der Merge-Riegel verweigert Merges ohne grüne, mitgelieferte Tests, egal was das Modell vom Skill behalten hat.</p>
+
+    <h3>Der Markt-Eingang — Hermes-nativ über den Cron-Tick</h3>
+    <p>Keine der elf verifizierten Stories demonstriert Webzugriff aus Hermes-Workern; alle Recherche-Stories arbeiten auf einem lokal abgelegten Korpus <span class="tag tag-v">belegt</span>. Die ESF übernimmt dieses Muster und hält auch den Eingang Hermes-nativ: Der tägliche Cron-Tick (<code>--no-agent</code>, also tokenfrei) führt ein deterministisches <strong>Fetch-Skript</strong> aus, das konfigurierte Quellen — Wettbewerber-Changelogs, GitHub-Releases, RSS-Feeds, Preisseiten — per <code>curl</code> abruft und als normalisierte Dumps in <code>company/sources/&lt;datum&gt;/</code> ablegt <span class="tag tag-a">Annahme: Skriptseite nicht durchgespielt; die Vorlagen der Stories 10/11 arbeiteten mit genau solchen Live-Quellen und tauschten sie nur der Reproduzierbarkeit halber gegen ein eingefrorenes Korpus</span>. Der <code>esf-market-scout</code> konsumiert ausschließlich dieses Verzeichnis — reproduzierbar, auditierbar, und der Recherche-Stand jedes Tages bleibt als Akte liegen. Quellen, die ein Skript nicht hergibt (Analystenberichte, Messenotizen, Kundenfeedback), legt der Mensch ins selbe Datumsverzeichnis (Story-7-Muster).</p>
+
+    <h3>Features entfernen ist ein Feature</h3>
+    <p>Der Auftrag verlangt nicht nur Hinzufügen, sondern auch Vereinfachen. Dafür führt der <code>esf-market-analyst</code> quartalsweise eine <strong>Subtraktions-Sichtung</strong>: Welche Funktionen erzeugen Komplexität ohne belegten Nutzen? Vorschläge zur Entfernung durchlaufen denselben Fluss wie neue Features (Spezifikation → Schätzung → Roadmap-Gate) — aber Entfernen ist irreversibel gegenüber Bestandskunden und damit <em>immer</em> gatepflichtig, auch außerhalb des Quartalsrhythmus. Kandidaten liefert neben dem Marktbild vor allem die E2E-Suite selbst: die Journeys mit der höchsten Schrittzahl je Nutzeraufgabe. Wird ein Feature entfernt oder vereinfacht, wird seine Journey im selben Zug entfernt bzw. verkürzt — die Suite bleibt das ehrliche Abbild der Software.</p>
+  </div>
+</section>
+
+<!-- ================================================================ -->
+<section class="chapter" id="s7">
+  <span class="chapno">Kapitel 07</span>
+  <h2>CEO-Gates: Kontrolle ohne Alltagsgeschäft</h2>
+  <div class="prose">
+    <p>Gates sind blockierte Karten. Das ist kein UI-Zucker, sondern der einzige Mechanismus in v0.20.0, der nachweislich hält: <code>hermes kanban block</code> (oder <code>kanban_block</code> im Worker) erzeugt ein echtes <code>blocked</code>-Ereignis, das den Dispatcher stoppt, bis ein Mensch <code>unblock</code> ruft. <code>--initial-status blocked</code> dagegen <strong>parkt nur</strong> — die Karte läuft durch, sobald ihre Eltern fertig sind, ohne Fehler und ohne Warnung. <span class="tag tag-v">belegt, zweimal real ausgelöst</span></p>
+
+    <h3>Die Gate-Arithmetik erzwingt das Design</h3>
+    <p><code>BLOCK_RECURRENCE_LIMIT = 2</code> ist hart kodiert (kein Konfigurationsschlüssel) und zählt <em>pro Blockgrund-Art</em> (<code>kind</code>): Blockiert eine Karte zweimal mit derselben Art, kippt sie still nach <code>triage</code>. Nutzbar für menschliche Gates sind nur zwei Arten (<code>needs_input</code>, <code>capability</code>) — also <strong>maximal zwei Gates pro Karte, je einmal</strong>. <span class="tag tag-v">belegt, tokenfrei nachgemessen</span></p>
+    <p>Konsequenz: <strong>Jede Entscheidung bekommt ihre eigene Gate-Karte.</strong> Eine stehende „CEO-Freigaben"-Karte wäre nach der zweiten Frage stumm in <code>triage</code> verschwunden. Der angenehme Nebeneffekt: Da Gate-Karten die Wartezeit auf den Menschen in ihrer Laufzeit mittragen, hält die Trennung zugleich die Messwerte der <em>Arbeits</em>karten sauber (Kapitel&nbsp;8).</p>
+
+    <h3>Welche Entscheidungen gehören dem CEO</h3>
+  </div>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Gate</th><th>Kadenz</th><th>Vorlage enthält</th><th>Antwort-Verben</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Roadmap-Freigabe</strong></td><td>je Quartals-Abschluss + bei Kurswechsel — <strong>nicht delegierbar</strong></td><td>Top-Features mit Nutzen, Schätzintervall, Marktbeleg; was <em>nicht</em> gemacht wird; Kadenz-Limits und Autonomie-Horizont</td><td><code>approve</code> · <code>modify: &lt;Änderung&gt;</code> · <code>shelve</code></td></tr>
+        <tr><td><strong>Release-Go</strong></td><td>je Release-Abschluss (inhaltsgetrieben, nicht kalendarisch); im Quartals-Mandat: Update-Info statt Gate</td><td>Inhalt, Testlage (Riegel-Protokoll, E2E-Lauf), bekannte Risiken, Rollback-Weg</td><td><code>approve</code> · <code>modify</code> · <code>shelve</code></td></tr>
+        <tr><td><strong>Irreversibles</strong></td><td>anlassbezogen</td><td>Feature-Entfernung, Breaking Changes, Datenmigrationen, alles Außenwirksame</td><td><code>approve</code> · <code>modify</code> · <code>shelve</code></td></tr>
+        <tr><td><strong>Budget-Eskalation</strong></td><td>anlassbezogen</td><td>Ist &gt; 150&nbsp;% der Schätzung auf Sprint- oder Feature-Ebene: Lage, Optionen, Empfehlung</td><td><code>continue</code> · <code>cut: &lt;Scope&gt;</code> · <code>stop</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="prose">
+    <p><strong><code>modify</code> ist das Verb, das ein Gate von einem Abnickvorgang unterscheidet.</strong> In beiden verifizierten Läufen wurde es real gebraucht — der Mensch korrigierte eine Fehlklassifikation, der Orchestrator führte die Korrektur aus und ließ das ursprüngliche Urteil dokumentiert stehen („nicht überschrieben, sondern widerlegt"). <span class="tag tag-v">belegt: Story 10, 11</span></p>
+
+    <h3>Der Autonomie-Horizont: wie weit die Organisation ohne den CEO läuft</h3>
+    <p>Der Horizont steht in <code>cadence.yaml</code> und kennt zwei Stufen:</p>
+    <ul>
+      <li><strong><code>release</code> (Default):</strong> Die Organisation arbeitet vollautomatisch bis zum Abschluss des aktuellen Release — Features schließen, Sprints schließen, das Release wird paketiert. Dort blockiert das Release-Gate, und nichts Weiteres startet, bis der CEO antwortet (die dritte Selbst-Übersprung-Bedingung des Ticks erzwingt genau das).</li>
+      <li><strong><code>quartal</code> (nur auf explizite Anweisung):</strong> Der CEO erteilt das Mandat am Roadmap-Gate (<code>unblock --reason "approve horizont: quartal"</code>). Dann laufen alle drei Releases des Quartals autonom durch; die inneren Release-Gates werden zu <strong>nicht-blockierenden Update-Infos</strong> im Gate-Report — paketiert, getestet und dokumentiert wird jedes Release trotzdem, nur die Freigabe wandert ans Quartalsende. <code>check-release.sh</code> liest den Horizont und entscheidet: blockieren oder melden.</li>
+    </ul>
+    <p>Spätestens nach dem dritten Release ist <strong>immer</strong> eine explizite CEO-Prüfung und -Freigabe nötig: Das Quartals-Gate (Roadmap + Budget) ist nicht delegierbar, und ein erteiltes Quartals-Mandat erlischt mit ihm — das nächste Quartal startet nie automatisch. So bleibt die Zusage aus Kapitel&nbsp;1 exakt: Solange Hermes läuft, arbeitet die ESF ununterbrochen bis zum Rand ihres Mandats — und keinen Schritt darüber hinaus.</p>
+
+    <h3>Der Bauplan eines Gates (verifiziert, Story 10/11)</h3>
+    <ol>
+      <li>Gate-Karte <strong>mit noch offenem Elternteil</strong> anlegen — sonst kann der Dispatcher zwischen <code>create</code> und <code>block</code> zuschlagen (real passiert).</li>
+      <li>Der Worker blockiert sich selbst mit einer <strong>Entscheidungsvorlage in acht Zeilen</strong>: Was steht an, Score/Beleg, was entsteht, was es kostet (Schätzintervall), was empfohlen wird, wie geantwortet wird. Maßstab: „Man kann entscheiden, ohne eine Datei zu öffnen" — aber jede Zeile verlinkt die Detailakte für den CEO, der prüfen will.</li>
+      <li><code>dispatch --dry-run</code> bestätigt: <code>Promoted: 0, Spawned: 0</code> — das Gate hält.</li>
+      <li>Der CEO antwortet über eine Hülle <code>gate.sh</code> (validiert die Verben), dahinter genau ein Befehl: <code>hermes kanban unblock &lt;id&gt; --reason "&lt;verb&gt;: …"</code>.</li>
+      <li>Lauf&nbsp;2 derselben Karte liest den Kommentar-Thread und führt die Entscheidung aus.</li>
+    </ol>
+
+    <h3>Aufmerksamkeits-Deckel und Gate-Report</h3>
+    <p>Maximal <strong>drei Gate-Fragen pro Tageslauf</strong>; Überzähliges wird als <code>zurückgestellt</code> markiert und am Folgetag zuerst vorgelegt (Story-11-Konsequenz aus zwölf Gate-Fragen in einem Sweep). Der abendliche <strong>Gate-Report</strong> (<code>report-gates.sh</code>, Kapitel&nbsp;9) listet alle wartenden Gates mit Vorlage und Alter — inklusive der Karten, die still nach <code>triage</code> gekippt sind, denn <em>nichts</em> in Hermes warnt davor; die Prüfung <code>status=="triage"</code> ist handgeschrieben, wie in Story&nbsp;11. Push-Benachrichtigung (Telegram o.&nbsp;ä.) ist wünschenswert, aber in v0.20.0 unverifiziert <span class="tag tag-a">Annahme</span> — der Report ist der verlässliche Weg.</p>
+  </div>
+</section>
+
+<!-- ================================================================ -->
+<section class="chapter" id="s8">
+  <span class="chapno">Kapitel 08</span>
+  <h2>Schätzen, Messen, Kalibrieren</h2>
+  <div class="prose">
+    <p>Die unbequeme Wahrheit zuerst: <strong>Hermes v0.20.0 misst keine Tokens und keine Kosten.</strong> Die Run-Telemetrie (<code>board.json</code>, 24 Felder) enthält kein einziges Kosten-Feld <span class="tag tag-v">belegt</span>. Verlässlich gemessen wird die <strong>Wanduhrzeit pro Karte</strong> (<code>started_at</code>/<code>completed_at</code> aus <code>hermes kanban runs</code>) und alles, was Worker selbst in ihr Abschluss-<code>metadata</code> schreiben. Genau darauf baut das Messsystem:</p>
+    <ul>
+      <li><strong>Primärmetrik: Wanduhrminuten je Karte</strong> — Board-Zeitstempel sind verlässlich, modellgeschriebene nicht <span class="tag tag-v">belegt: Story 7</span>. Zwei bekannte Kontaminationen werden strukturell vermieden: Gate-Wartezeit (Gates sind eigene Karten) und Rechner-Standby (Betrieb über launchd-Gateway; Ticks mit Standby-Überlappung markiert der Controller).</li>
+      <li><strong>Token/Kosten: OpenRouter liefert die Messung, die Hermes fehlt.</strong> OpenRouter rechnet in USD-Credits ab und legt in <em>jede</em> Response ein <code>usage</code>-Objekt inklusive <code>cost</code> (USD), Token-Zahlen nach nativem Tokenizer, Cache- und Reasoning-Details — Hermes loggt das zwar nicht, aber die API-Seite schon: <code>GET /api/v1/keys/{hash}</code> liefert <code>usage_daily</code> je Key, die Activity-API (<code>/api/v1/activity?api_key_hash=…</code>) Tagesaggregate (USD, Prompt-/Completion-/Reasoning-Tokens, Requests) der letzten 30 Tage je Modell und Key. Da jedes Profil seinen eigenen provisionierten Key hat (Kapitel&nbsp;4), holt <code>ledger-sync.sh</code> nachts die Tageswerte je Rolle und rechnet sie über die Laufzeitanteile den Karten zu <span class="tag tag-a">Annahme: an der offiziellen OpenRouter-Doku belegt, nicht durchgespielt</span>.</li>
+    </ul>
+    <p><strong>Zwei Ausbaustufen für die Karten-genaue Zurechnung:</strong> (1) Jede OpenRouter-Response trägt eine Generation-ID (<code>gen-…</code>); <code>GET /api/v1/generation?id=…</code> beantwortet sie mit <code>total_cost</code> und nativen Token-Zahlen pro Request — nutzbar, sobald sich die IDs aus Hermes-Logs ziehen lassen; die Aufbewahrungsdauer ist undokumentiert, also zeitnah abfragen. (2) Die Ideallösung wäre der OpenAI-kompatible <code>user</code>-Parameter mit der Task-ID (erscheint in Activity-Auswertungen und als <code>external_user</code> im Generation-Endpoint) — sie scheitert vorerst daran, dass Hermes v0.20.0 keinen dokumentierten Eingriff in den Request-Bau je Karte bietet; notiert als Feinschliff, falls spätere Versionen ihn erlauben.</p>
+
+    <h3>Das Schätz-Schema</h3>
+    <p>Jede geplante Karte trägt vor dem Start eine Schätzung, jeder Abschluss die Istwerte — beides im <code>metadata</code>, dem verifizierten Audit-Kanal:</p>
+  </div>
+  <pre><code>"metadata": {
+  "estimate": {
+    "reference_class": "feature-backend-S",   // Tasktyp × Größe, aus dem Ledger
+    "wall_minutes":   { "p50": 22, "p90": 45 },
+    "tokens_k":       { "p50": 160, "p90": 320 },
+    "cost_usd":       { "p50": 0.60, "p90": 1.20 },
+    "confidence": 0.6, "estimated_by": "esf-estimator", "at": "2026-08-17"
+  },
+  "actual": {
+    "wall_minutes": 31, "runs": 2, "standby_overlap": false,
+    "tokens_k": 205, "cost_usd": 0.74            // via OpenRouter zugerechnet (Key je Profil)
+  }
+}</code></pre>
+  <div class="prose">
+    <p>Der Controller schreibt jedes Paar in <code>company/ledger/estimates.jsonl</code> fort — das Ledger ist die einzige Quelle, aus der der <code>esf-estimator</code> schätzen darf.</p>
+    <h3>Kalibrierung nach Evidence-Based Scheduling</h3>
+    <p>Für jede Referenzklasse (Tasktyp × Größe × Profil) wird die Verteilung der Quotienten <em>Ist/Schätzung</em> („Velocity") geführt. Neue Schätzungen sind Ledger-Perzentile, keine Bauchwerte; Sprint- und Release-Termine entstehen per Monte-Carlo über die Kartenmenge als <strong>Lieferwahrscheinlichkeiten statt Punkttermine</strong> („Release R8: 85&nbsp;% bis 25.09."). Agenten-Läufe sind zahlreich und billig — die Historie wächst um Größenordnungen schneller als bei menschlichen Teams, die Schätzungen werden entsprechend schnell belastbar. Klassen ohne Historie starten mit breiten Intervallen und niedriger Konfidenz, und sagen das dem CEO.</p>
+  </div>
+
+  <figure>
+    <svg viewBox="0 0 880 300" role="img" aria-label="Kalibrierungsschleife: Der Estimator schätzt aus dem Ledger, die Schätzung steht im Karten-Metadata, der Lauf erzeugt Istwerte aus der Run-Historie und dem Tagesaggregat, der Controller schreibt beides ins Ledger zurück und kalibriert die Referenzklassen.">
+      <defs>
+        <marker id="arr4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="currentColor"/>
+        </marker>
+      </defs>
+      <rect x="30" y="110" width="200" height="60" rx="10" fill="var(--surface-2)" stroke="currentColor" stroke-width="1.2"/>
+      <text x="130" y="134" text-anchor="middle" class="svg-label" font-size="12.5" font-weight="600" fill="currentColor">Schätzung</text>
+      <text x="130" y="150" text-anchor="middle" class="svg-label" font-size="10.5" fill="var(--muted)">esf-estimator: Perzentile je Referenzklasse</text>
+      <text x="130" y="164" text-anchor="middle" class="svg-label" font-size="10.5" fill="var(--muted)">→ metadata.estimate</text>
+
+      <line x1="230" y1="140" x2="330" y2="140" stroke="currentColor" stroke-width="1.2" marker-end="url(#arr4)"/>
+      <text x="280" y="130" text-anchor="middle" class="svg-label" font-size="10.5" fill="var(--muted)">vor dem Start</text>
+
+      <rect x="332" y="110" width="190" height="60" rx="10" fill="var(--surface-2)" stroke="currentColor" stroke-width="1.2"/>
+      <text x="427" y="134" text-anchor="middle" class="svg-label" font-size="12.5" font-weight="600" fill="currentColor">Ausführung</text>
+      <text x="427" y="150" text-anchor="middle" class="svg-label" font-size="10.5" fill="var(--muted)">Worker-Läufe, ggf. Retries</text>
+      <text x="427" y="164" text-anchor="middle" class="svg-label" font-size="10.5" fill="var(--muted)">→ metadata.actual beim Abschluss</text>
+
+      <line x1="522" y1="140" x2="622" y2="140" stroke="currentColor" stroke-width="1.2" marker-end="url(#arr4)"/>
+
+      <rect x="624" y="110" width="220" height="60" rx="10" fill="var(--surface-2)" stroke="currentColor" stroke-width="1.2"/>
+      <text x="734" y="134" text-anchor="middle" class="svg-label" font-size="12.5" font-weight="600" fill="currentColor">Ist-Messung</text>
+      <text x="734" y="150" text-anchor="middle" class="svg-label" font-size="10.5" fill="var(--muted)">Wanduhr aus task_runs (verlässlich)</text>
+      <text x="734" y="164" text-anchor="middle" class="svg-label" font-size="10.5" fill="var(--muted)">USD &amp; Tokens je Profil-Key (OpenRouter)</text>
+
+      <path d="M734 170 L734 232 L470 232" fill="none" stroke="currentColor" stroke-width="1.2" marker-end="url(#arr4)"/>
+
+      <rect x="250" y="204" width="218" height="56" rx="10" fill="none" stroke="var(--accent)" stroke-width="1.8"/>
+      <text x="359" y="227" text-anchor="middle" class="svg-label" font-size="12.5" font-weight="600" fill="var(--accent)">Ledger estimates.jsonl</text>
+      <text x="359" y="243" text-anchor="middle" class="svg-label" font-size="10.5" fill="var(--muted)">jedes Paar (Schätzung, Ist) je Referenzklasse</text>
+
+      <path d="M250 232 L130 232 L130 174" fill="none" stroke="currentColor" stroke-width="1.2" marker-end="url(#arr4)"/>
+      <text x="140" y="212" class="svg-label" font-size="10.5" fill="var(--muted)">wöchentliche Kalibrierung</text>
+      <text x="140" y="226" class="svg-label" font-size="10.5" fill="var(--muted)">(esf-controller): Velocity-Verteilung</text>
+
+      <text x="440" y="52" text-anchor="middle" class="svg-label" font-size="11.5" fill="var(--muted)">Jede abgeschlossene Karte zahlt in die Kalibrierung ein —</text>
+      <text x="440" y="68" text-anchor="middle" class="svg-label" font-size="11.5" fill="var(--muted)">die Schätzgüte ist selbst eine Kennzahl im CEO-Report.</text>
+    </svg>
+    <figcaption><b>Abb. 4 — Die Kalibrierungsschleife.</b> Schätzen und Arbeiten sind getrennte Rollen; das Ledger (teal) ist die einzige zulässige Schätzgrundlage. Die Schleife ist Evidence-Based Scheduling, übertragen auf Referenzklassen statt Personen.</figcaption>
+  </figure>
+
+  <div class="prose">
+    <p>Was die verifizierten Messläufe fürs Budgetieren bereits hergeben: Die Laufzeit skaliert mit <em>Items × Stufen</em>, nicht mit der Menge der Quelldateien; Urteils-Karten kosten das Zehn- bis Vierzigfache von Nachschlage-Karten (10–26&nbsp;min gegen 0,6–1,4&nbsp;min); der wirksamste Kostenhebel ist der Mengen-Deckel <code>max_pro_lauf</code>, nicht ein kleineres Modell. <span class="tag tag-v">belegt: Story 11</span> Harte Deckel je Karte: <code>--max-runtime</code> (Achtung: zählt Wanduhr-, nicht Rechenzeit) und <code>--max-retries</code>; ein Budget-Gate eskaliert an den CEO, sobald ein Feature 150&nbsp;% seiner P90-Schätzung reißt.</p>
+    <div class="callout risk">
+      <span class="callout-title">Wechselwirkung Key-Limit × Respawn-Sperre</span>
+      <p>Das USD-Limit je OpenRouter-Key ist zugleich ein <em>stiller</em> Stopper: Läuft ein Key gegen sein Limit, sehen die Fehlertexte nach Billing/Quota aus — exakt das Muster (<code>quota|429|billing|…</code>), auf das Hermes' Respawn-Sperre anspringt und Karten kommentarlos auf <code>ready</code> liegen lässt, unsichtbar für <code>diagnostics</code> <span class="tag tag-v">belegt</span>. <code>monitor.sh</code> prüft deshalb beides zusammen: <code>respawn_guarded</code>-Events im Board <em>und</em> <code>limit_remaining</code> jedes Keys über die OpenRouter-API.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================ -->
+<section class="chapter" id="s9">
+  <span class="chapno">Kapitel 09</span>
+  <h2>Hermes-nativer Betrieb</h2>
+  <div class="prose">
+    <p>Die ESF läuft vollständig in Hermes: Das <strong>Gateway</strong> (launchd, Tick 60&nbsp;s) dispatcht alle Karten, <code>hermes cron</code> taktet den Tag — und alles Steuernde, das kein Urteil braucht, ist ein <strong>deterministisches Skript</strong>. Es gibt keinen äußeren Agenten-Supervisor: Die Betriebsführung ist die konsequente Anwendung des Regel-und-Riegel-Prinzips auf den Betrieb selbst. Urteile fällen die Profile auf ihren Karten; ob der Tag, der Sprint, das Release <em>fertig</em> ist, prüft Code.</p>
+    <div class="callout risk">
+      <span class="callout-title">Nicht verwendet</span>
+      <p>Hermes hat ein eigenes <code>hermes kanban create --goal [--goal-max-turns]</code> (ein Judge prüft nach jeder Runde). Das ist in v0.20.0 <strong>nur Hilfetext, nie durchgespielt</strong> — die ESF benutzt es nicht. Zielerreichung wird stattdessen deterministisch geprüft: durch Endzustands-Checks als Skripte, den verifizierten Weg.</p>
+    </div>
+
+    <h3>Vier Betriebs-Skripte</h3>
+  </div>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Skript</th><th>Takt</th><th>Aufgabe</th></tr></thead>
+      <tbody>
+        <tr><td><code>tick.sh</code></td><td>Cron 07:00, <code>--no-agent</code></td><td>Selbst-Übersprung prüfen (drei Bedingungen, Abb.&nbsp;2); Markt-Fetch ausführen (Kapitel&nbsp;6); täglichen E2E-Regressionslauf starten (headless, tokenfrei); fällige Karten anlegen — <code>--idempotency-key</code> mit Datum, damit ein zweiter Tick nichts dupliziert <span class="tag tag-v">belegt: Stories 5, 7, 10, 11</span></td></tr>
+        <tr><td><code>monitor.sh</code></td><td>stündlich</td><td>Das <strong>Event-Log</strong> lesen, nicht <code>diagnostics</code>: <code>respawn_guarded</code> (Karten sehen wie „wartend" aus und werden nie gemeldet <span class="tag tag-v">belegt</span>), <code>block_loop_detected</code>, <code>crashed</code>, still nach <code>triage</code> gekippte Karten; dazu <code>limit_remaining</code> jedes OpenRouter-Keys. Außerdem die <strong>Abschluss-Erkennung</strong>: Ist eine Ebene inhaltlich voll (alle Feature-Karten <code>done</code>, alle Sprint-Karten fertig, Härtungs-Sprint abgeschlossen), legt es die nächste Abschluss-Karte an — so treibt die Kadenz sich selbst von unten nach oben, kalenderunabhängig</td></tr>
+        <tr><td><code>report-gates.sh</code></td><td>Cron 18:00</td><td>Gate-Report für den CEO: alle wartenden Gates mit Vorlage und Alter, <code>triage</code>-Karten, Monitor-Befunde, Budget-Stand — das handgeschriebene <code>report_gates()</code>-Muster aus der Story-11-Pumpe <span class="tag tag-v">belegt</span></td></tr>
+        <tr><td><code>ledger-sync.sh</code></td><td>Cron 23:30</td><td>Wanduhrzeiten aus <code>hermes kanban runs</code>, Kosten je Profil-Key aus der OpenRouter-API (Kapitel&nbsp;8); schreibt jedes (Schätzung, Ist)-Paar nach <code>estimates.jsonl</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="prose">
+    <h3>Ziele ohne Goal-Loop: Endzustands-Checks</h3>
+    <p>Jede Kadenz-Ebene hat einen <strong>deterministischen Abschluss-Check</strong> — ein Skript aus <code>jq</code>-Abfragen auf <code>hermes kanban list --json</code>, Dateiprüfungen und Testläufen. Ein grüner Check schließt die Ebene ab; ein roter erzeugt eine Karte für den <code>esf-chief-of-staff</code> oder eskaliert als Gate. Das ist dieselbe Drei-Teile-Logik, die ein gutes Ziel ausmacht — messbarer Endzustand, benannter Nachweis, Constraints — nur ausgeführt von Code statt beurteilt von einem Modell:</p>
+  </div>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Ebene</th><th>Endzustands-Check (deterministisch)</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Phase 0</strong><br>(Onboarding)</td><td><code>check-onboarding.sh</code>: alle Onboarding-Karten <code>done</code>; <code>company/analysis/</code> enthält <code>codebase.html</code>, <code>product.html</code>, <code>market.html</code>, <code>journeys.html</code>; die E2E-Suite deckt jede dort gelistete Kern-Journey und läuft grün; die Roadmap-Gate-Karte steht auf <code>blocked</code> mit vollständiger Vorlage</td></tr>
+        <tr><td><strong>Tageslauf</strong></td><td><code>check-daily.sh</code> (Teil von <code>report-gates.sh</code>): keine Karte in <code>running</code>; jede heute abgeschlossene Karte hat <code>metadata.actual</code>; Gate-Report für &lt;datum&gt; existiert und listet alle <code>respawn_guarded</code>/<code>triage</code>-Fälle</td></tr>
+        <tr><td><strong>Sprint</strong></td><td><code>check-sprint.sh</code> (läuft, sobald die Abschluss-Erkennung den Sprint für voll erklärt — nicht an einem Wochentag): alle Karten des Sprints sind <code>done</code> oder per Gate zurückgestellt; Unit- <em>und</em> E2E-Suite grün (Exit&nbsp;0); jede Feature-Karte referenziert ihr E2E-Szenario; für jede das (estimate, actual)-Paar im Ledger; Sprint-Report geschrieben</td></tr>
+        <tr><td><strong>Release</strong></td><td><code>check-release.sh</code>: Changelog deckt die Merge-Liste vollständig; Riegel-Protokoll grün; voller E2E-Regressionslauf grün, Traces unter <code>reports/e2e-&lt;datum&gt;/</code> abgelegt; Release-Gate-Karte <code>blocked</code> und im Report gemeldet — bzw. im Quartals-Mandat: Update-Info im Report statt Block (Kapitel&nbsp;7). Kein Tag, kein Deploy vor dem CEO-<code>approve</code> — das erzwingt das Release-Skript selbst</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="prose">
+    <h3>Wer öffnet Gates: niemand außer dem Menschen</h3>
+    <p>Das Worker-Werkzeug <code>kanban_unblock</code> existiert — ein Worker <em>könnte</em> also ein Gate selbst öffnen. Dagegen stehen drei Linien: ein <strong>SOUL-Verbot</strong> in jedem Profil (Regel), der Umstand, dass <code>gate.sh</code> jede menschliche Antwort mit einem validierten Verb-Präfix kommentiert, sodass <code>monitor.sh</code> jedes <code>UNBLOCK:</code>-Ereignis ohne dieses Muster als Verstoß meldet (Riegel auf der Audit-Ebene), und die Gate-Arithmetik aus Kapitel&nbsp;7, die wiederholtes Blockieren ohnehin sichtbar macht.</p>
+    <p>Der Ausfallmodus des Gesamtsystems bleibt in jeder Schicht derselbe: <strong>anhalten und melden, nie raten.</strong> Der Dispatcher stoppt an Gates <span class="tag tag-v">belegt</span>, der Circuit Breaker stoppt Fehlerserien <span class="tag tag-v">belegt</span>, das USD-Limit je OpenRouter-Key stoppt Ausgaben hart — und <code>monitor.sh</code> macht jeden dieser Stopps im nächsten Report sichtbar.</p>
+  </div>
+</section>
+
+<!-- ================================================================ -->
+<section class="chapter" id="s10">
+  <span class="chapno">Kapitel 10</span>
+  <h2>Dokumentation &amp; Historie</h2>
+  <div class="prose">
+    <p>Nachvollziehbarkeit entsteht aus drei Schichten, die es ohnehin gibt — sie müssen nur konsequent benutzt werden:</p>
+    <ul>
+      <li><strong>Das Board ist das Protokoll.</strong> Jede Karte trägt ihre Run-Historie, Blockgründe, Kommentar-Threads und Abschluss-<code>metadata</code>; „die Historie <em>ist</em> die Darstellung". Gate-Karten konservieren wörtlich, was dem CEO vorlag und was er antwortete.</li>
+      <li><strong>Der Firmen-Vault ist das Gedächtnis</strong> — ein Git-Repo <code>company/</code> mit fester Struktur; jede Änderung ist ein Commit von einer Karte, referenziert per Task-ID:</li>
+    </ul>
+  </div>
+  <pre><code>company/
+├── AGENTS.md              # der Vertrag: Schreibform, Definition of Done, Report-Formate (Markdown: maschinengelesen)
+├── cadence.yaml           # Kadenz-Limits & Autonomie-Horizont — bei Init festgelegt, am Roadmap-Gate freigegeben
+├── roadmap/               # lebende Roadmap + eingefrorene, CEO-freigegebene Stände (.html)
+├── decisions/             # ADR-&lt;nr&gt;-&lt;slug&gt;.html — jede Architektur- und Produktentscheidung
+├── analysis/              # Phase-0-Berichte, fortgeschriebene Markt- und Codebasis-Bilder (.html)
+├── sources/&lt;datum&gt;/       # der Markt-Korpus des Tages (Eingang des Scouts, Rohformate)
+├── specs/                 # Feature-Spezifikationen mit Akzeptanzkriterien (.html)
+├── reports/               # Sprint-, Release-, Gate-, Controller-Reports (.html) + e2e-&lt;datum&gt;/-Akten
+└── ledger/estimates.jsonl # jedes (Schätzung, Ist)-Paar</code></pre>
+  <div class="prose">
+    <ul>
+      <li><strong>Dokumentation ist HTML, Umsetzung ist Markdown.</strong> Alle Doku-Artefakte — Analysen, Roadmap-Stände, ADRs, Spezifikationen, Journey-Katalog, sämtliche Reports inklusive der Gate-Vorlagen-Akten — werden als <code>.html</code> abgelegt: im Browser lesbar, untereinander verlinkbar, direkt als CEO-Vorlage tauglich; der Vault-Linter prüft das Format mit. Markdown bleibt der Umsetzungs-Ebene vorbehalten, wo die Werkzeuge es vorsehen: <code>SKILL.md</code> der Superpowers-Skills, die Pläne aus <em>writing-plans</em>, <code>SOUL.md</code> der Profile und die maschinengelesenen Verträge <code>AGENTS.md</code>.</li>
+      <li><strong>Die E2E-Suite ist die Bedienungs-Dokumentation.</strong> Jeder Spec spielt eine Nutzeraufgabe Schritt für Schritt nach — lesbar wie eine Anleitung, aber ausführbar und darum nie veraltet. Der Journey-Katalog <code>analysis/journeys.html</code> verweist auf die Specs, die Trace-/Screenshot-Akten unter <code>reports/e2e-&lt;datum&gt;/</code> zeigen jeden Stand der Oberfläche; zusammen ergeben sie die Nutzersicht-Historie der Software.</li>
+      <li><strong>Ein <code>AGENTS.md</code> mit Linter als Vertrag.</strong> Das stärkste verifizierte Doku-Muster: Die Rolle, die schreibt, und die Rolle, die prüft, lesen dieselbe Spezifikation; ein deterministischer Linter validiert dagegen und zitiert bei jedem Befund den Abschnitt (<code>AGENTS.md 2.2</code>). <span class="tag tag-v">belegt: Story 11</span> Die ESF führt zwei davon: eines im Produkt-Repo (Codestandards, Definition of Done) und eines im Vault (Berichtsformen, ADR-Schema).</li>
+      <li><strong>Zeitstempel schreibt das System, nie das Modell.</strong> Modellgeschriebene <code>ts</code>-Werte waren nachweislich unstimmig; verlässlich sind Board-Zeitstempel und Skript-Ausgaben. <span class="tag tag-v">belegt: Story 7</span></li>
+    </ul>
+    <p>Damit ist jede Frage der Form „Warum wurde Feature X gebaut / entfernt / verschoben?" in endlicher Zeit beantwortbar: Roadmap-Stand → Gate-Karte mit CEO-Antwort → Spezifikation → ADRs → Karten mit Runs → Commits.</p>
+  </div>
+</section>
+
+<!-- ================================================================ -->
+<section class="chapter" id="s11">
+  <span class="chapno">Kapitel 11</span>
+  <h2>Risiken &amp; Gegenmaßnahmen</h2>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Risiko (Quelle)</th><th>Wie es sich zeigt</th><th>Gegenmaßnahme in der ESF</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Scheinproduktivität / Slop</strong> (MAST: fehlende Verifikation; Sakana)</td><td>Viel Output, „fertige" Features ohne Substanz; schleichende Regressionen</td><td>Deterministische Riegel vor jedem Merge inkl. voller E2E-Suite; Akzeptanzkriterien als Prüfliste im Review; Reviewer führt fremde Tests selbst aus; täglicher E2E-Regressionslauf</td></tr>
+        <tr><td><strong>Zielverlust / Goal Drift</strong></td><td>Agent verfolgt Angrenzendes statt des Auftrags</td><td>Deterministische Endzustands-Checks je Kadenz-Ebene (Kapitel&nbsp;9); Originalauftrag in jeder Karte; „Never linger"-Regeln; verification-before-completion-Skill</td></tr>
+        <tr><td><strong>Endlosschleifen / Retry-Loops</strong></td><td>Fehlgeschlagener Lauf triggert den nächsten, Budget verbrennt still</td><td>Circuit Breaker (<code>failure_limit</code>) <span class="tag tag-v">belegt</span>; <code>--max-runtime</code>/<code>--max-retries</code> je Karte; <code>BLOCK_RECURRENCE_LIMIT</code> als eingebauter Schleifen-Stopper</td></tr>
+        <tr><td><strong>Kostenexplosion</strong> (Multi-Agent ≈ 15× Tokens)</td><td>Koordinations-Overhead frisst den Parallelisierungsgewinn</td><td><code>max_pro_lauf</code>-Deckel; Modell-Tier je Profil; USD-Limit je OpenRouter-Key; Urteilen von Nachschlagen trennen; Budget-Gate bei 150&nbsp;% P90</td></tr>
+        <tr><td><strong>Stille Ausfälle</strong> (Hermes-spezifisch)</td><td>Respawn-Sperre lässt Karten ewig auf <code>ready</code> stehen; <code>diagnostics</code> schweigt; Gate-Karten kippen nach <code>triage</code></td><td>Monitoring liest das Event-Log (<code>respawn_guarded</code>, <code>block_loop_detected</code>); Gate-Report listet <code>triage</code>-Karten <span class="tag tag-v">belegt</span></td></tr>
+        <tr><td><strong>Manipulierbarkeit / Naivität</strong> (Project Vend: Imposter-CEO)</td><td>Agenten priorisieren Gefallen über Geschäftsinteresse</td><td>Gates sind kryptografisch banal, aber physisch: <code>gate.sh</code> in Menschenhand ist der einzige legitime Weg; das Worker-Werkzeug <code>kanban_unblock</code> ist per SOUL-Verbot tabu, und <code>monitor.sh</code> meldet jedes UNBLOCK ohne <code>gate.sh</code>-Verbmuster; Außenwirksames ist immer gatepflichtig</td></tr>
+        <tr><td><strong>Konkurrierende Schreiber</strong> (Story-10-Vorfall: ungeplante Karten)</td><td>Zwei Worker im selben Verzeichnis auf derselben Datei</td><td><code>idempotency_key</code> je Kettenkarte (strukturell) + <code>kanban_create</code>-Verbote in der SOUL (Regel); Worktree-Isolation für Code</td></tr>
+        <tr><td><strong>Verwaiste Zerlegung</strong></td><td>Karte bleibt ohne Fehler in <code>triage</code> liegen, wenn der Decomposer nicht auflösbar ist</td><td>Auto-Decompose bleibt aus; der Chief of Staff zerlegt explizit — Zerlegung ist Planungsarbeit, kein Automatismus</td></tr>
+        <tr><td><strong>Profil-Kollisionen</strong></td><td><code>teardown</code> anderer Projekte löscht global liegende Profile gleichen Namens</td><td><code>co-</code>-Präfix + Markerdatei; Teardown entfernt nur Markiertes <span class="tag tag-v">belegt: Story 11</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ================================================================ -->
+<section class="chapter" id="s12">
+  <span class="chapno">Kapitel 12</span>
+  <h2>Umsetzungs-Roadmap</h2>
+  <div class="prose">
+    <p>Vier Phasen, jede mit deterministischem Abschluss-Check (Kapitel&nbsp;9). Autonomie wird schrittweise erhöht — erst wenn eine Phase ihre Nachweise erbracht hat, zieht die nächste. Die Schätzungen sind Startwerte mit niedriger Konfidenz <span class="tag tag-a">Annahme</span>; ab Phase&nbsp;2 schätzt das System sich selbst.</p>
+  </div>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Phase</th><th>Inhalt</th><th>Abschluss-Nachweis</th><th class="num">Schätzung</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><strong>0 — Gerüst</strong><br>Woche 1</td>
+          <td>Board <code>sw-company</code>, elf Profile mit SOUL/Modell-Tiers (<code>setup.sh</code>, idempotent, <code>ON DISK = yes</code>-Prüfung), Superpowers-Skills profil-lokal verteilt, OpenRouter-Keys je Profil provisioniert (USD-Limits), Firmen-Vault mit <code>AGENTS.md</code> + Linter, <strong>Kadenz-Limits und Autonomie-Horizont in <code>cadence.yaml</code></strong>, Merge-Riegel-Skript, <code>gate.sh</code>, Betriebs-Skripte inkl. Abschluss-Erkennung + <code>install-cron.sh</code>, Ledger-Gerüst</td>
+          <td>Probelauf: eine Dummy-Kette Spezifikation→Bau→Review→Riegel läuft durch; ein Probe-Gate hält (<code>dry-run: Spawned 0</code>)</td>
+          <td class="num">2–3 Tage<br>&lt; 5 USD</td>
+        </tr>
+        <tr>
+          <td><strong>1 — Onboarding</strong><br>Woche 2</td>
+          <td>Phase-0-Analysegraph auf dem Ziel-Repo: Codebasis, Produkt, Markt (initialer Korpus); <strong>E2E-Grundgerüst</strong> über alle Kern-Journeys (Playwright, aufgebaut oder ausgebaut); erste Roadmap mit Schätzintervallen</td>
+          <td>Vier Analyse-Artefakte im Vault (inkl. <code>journeys.html</code>); E2E-Suite deckt die Kern-Journeys und läuft grün; Roadmap-Gate-Karte wartet mit vollständiger Vorlage auf den CEO</td>
+          <td class="num">3–6 Tage<br>15–40 USD</td>
+        </tr>
+        <tr>
+          <td><strong>2 — Begleiteter Betrieb</strong><br>Wochen 3–6</td>
+          <td>Erste zwei Sprints unter Beobachtung: Mensch liest täglich mit, korrigiert SOULs und Vorlagen; Markt-Eingang zunächst manuell befüllt; Kalibrierung beginnt</td>
+          <td>Zwei Sprint-Reports mit (Schätzung, Ist)-Paaren; erstes Release durch das Release-Gate; Schätzgüte-Baseline im Controller-Report</td>
+          <td class="num">4 Wochen<br>~20–60 USD/Sprint</td>
+        </tr>
+        <tr>
+          <td><strong>3 — Dauerbetrieb</strong><br>ab Woche 7</td>
+          <td>Cron-Tick, Monitor- und Report-Skripte übernehmen vollständig; das Fetch-Skript befüllt den Markt-Eingang; CEO nur noch an Gates und beim Wochenreport</td>
+          <td>Zwei Wochen ohne manuellen Eingriff außer Gate-Antworten; Gate-Report täglich vollständig; Kalibrierung verengt die Intervalle messbar</td>
+          <td class="num">laufend<br>Budget je Quartal am Roadmap-Gate</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="callout">
+    <span class="callout-title">Erst messen, dann versprechen</span>
+    <p>Die Kostenspalte ist bewusst grob: Verlässliche Zahlen liefert das System ab Phase&nbsp;2 selbst — das ist der Zweck des Ledgers. Der erste Controller-Report ersetzt diese Spalte durch gemessene Perzentile je Referenzklasse.</p>
+  </div>
+</section>
+
+<!-- ================================================================ -->
+<section class="chapter" id="s13">
+  <span class="chapno">Kapitel 13</span>
+  <h2>Verifikationsstatus</h2>
+  <div class="prose">
+    <p>Im Geist des Repo-Verifikationsvertrags: Worauf dieses Konzept sich stützt — und worauf nicht.</p>
+  </div>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Baustein</th><th>Status</th><th>Beleg / Einordnung</th></tr></thead>
+      <tbody>
+        <tr><td>Profile, Dispatch, <code>config.yaml</code>-Falle, Handoffs, Fan-out/Fan-in, Eltern-Ketten</td><td><span class="tag tag-v">belegt</span></td><td>Stories 1–3, 6, 9; <code>VERIFIKATION.md</code></td></tr>
+        <tr><td>Planer-Agent legt Karten an (<code>kanban_create</code>), inkl. Fallen (absolute Pfade, Idempotenz)</td><td><span class="tag tag-v">belegt</span></td><td>Stories 10, 11 — je zweimal komplett durchgespielt</td></tr>
+        <tr><td>Gates: <code>block</code>/<code>unblock --reason</code>, Gate-Arithmetik, drei Verben, Aufmerksamkeits-Deckel</td><td><span class="tag tag-v">belegt</span></td><td>Stories 10, 11; Gate-Arithmetik tokenfrei nachgemessen</td></tr>
+        <tr><td>Worktree-Parallelität, Review über fremde Bäume, Merge-Riegel als Code</td><td><span class="tag tag-v">belegt</span></td><td>Stories 9, 11 (Riegel überstand realen 46-min-Standby)</td></tr>
+        <tr><td>Cron-Muster (<code>--no-agent</code>-Tick, Selbst-Übersprung, Idempotenz per Datum)</td><td><span class="tag tag-v">belegt</span></td><td>Stories 5, 7, 10, 11 — aber: launchd-Auslösung zur geplanten Zeit selbst ist ungeprüft</td></tr>
+        <tr><td>Wanduhr-Messung, <code>metadata</code> als Audit-Kanal, Kostenstruktur der Kartenarten</td><td><span class="tag tag-v">belegt</span></td><td>Story 11 Laufzeitanalyse (131 min Wanduhr / 455 min Kartenzeit)</td></tr>
+        <tr><td>Token-/Kostenzurechnung über OpenRouter (Key je Profil via Provisioning-API, <code>usage_daily</code>/Activity-API; optional Generation-Endpoint je Request)</td><td><span class="tag tag-a">Annahme</span></td><td>Hermes misst keine Tokens; die OpenRouter-Endpunkte sind offiziell dokumentiert, hier aber nicht durchgespielt — in Phase 0 als Erstes verproben</td></tr>
+        <tr><td>Markt-Eingang über deterministisches Fetch-Skript im Cron-Tick</td><td><span class="tag tag-a">Annahme</span></td><td>curl-Skriptseite nicht durchgespielt; das Korpus-Konsum-Muster dagegen ist belegt (Stories 7, 10, 11)</td></tr>
+        <tr><td>Browserbasierte E2E-Tests (Playwright) durch Agenten gebaut, im Riegel und Tick ausgeführt</td><td><span class="tag tag-a">Annahme</span></td><td>Playwright selbst ist Standard-Tooling, aber hier nicht durchgespielt (Browser-Abhängigkeiten, Headless im Worker-Kontext); dass Agenten fremde Tests in fremden Worktrees ausführen, ist belegt (Story 9)</td></tr>
+        <tr><td>Superpowers-Skills in Hermes (Installation und Wirkung)</td><td><span class="tag tag-a">Annahme</span></td><td>Original-README nennt <code>hermes plugins install obra/superpowers --enable</code>, der Port ein globales <code>~/.hermes/skills/</code> — beides gegen v0.20.0 ungeprüft. Die ESF kopiert deshalb profil-lokal: der belegte Weg (Stories 10, 11)</td></tr>
+        <tr><td>Bewusst <strong>nicht</strong> benutzt: <code>hermes --goal</code>, <code>review</code>-Spalte/<code>sdlc-review</code>, <code>swarm</code> (kein <code>--workspace</code>), <code>specify</code>, <code>--model</code> je Karte, <code>notify-subscribe</code>, Auto-Decompose</td><td><span class="tag tag-r">gemieden</span></td><td>Alles nur Hilfetext oder nie durchgespielt — für jedes gibt es oben einen verifizierten Ersatzweg</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ================================================================ -->
+<section class="chapter" id="s14">
+  <span class="chapno">Kapitel 14</span>
+  <h2>Quellen</h2>
+  <div class="prose">
+    <h4>Lokal (Verifikationsbasis)</h4>
+    <ul>
+      <li><code>02-hermes-agent-kanban-tutorials/TUTORIAL.md</code> — Befehlsreferenz v0.20.0</li>
+      <li><code>02-hermes-agent-kanban-tutorials/VERIFIKATION.md</code> — protokollierte Läufe, Gate-Arithmetik, Nicht-verifiziert-Tabelle</li>
+      <li>Stories 1–11, insbesondere Story 3 (Reviewer-Loop), 9 (Worktrees), 10 (Planer + Gate), 11 (Dauerbetrieb, Riegel, Laufzeitanalyse)</li>
+    </ul>
+    <h4>Vergleichsprojekte &amp; Forschung</h4>
+    <ul>
+      <li>MetaGPT: <a href="https://arxiv.org/abs/2308.00352">arxiv.org/abs/2308.00352</a> · ChatDev: <a href="https://www.ibm.com/think/topics/chatdev">ibm.com/think/topics/chatdev</a></li>
+      <li>MAST — „Why Do Multi-Agent LLM Systems Fail?": <a href="https://arxiv.org/abs/2503.13657">arxiv.org/abs/2503.13657</a></li>
+      <li>Project Vend (Anthropic): <a href="https://www.anthropic.com/research/project-vend-2">anthropic.com/research/project-vend-2</a></li>
+      <li>Anthropic Multi-Agent Research System (Token-Ökonomie): <a href="https://blog.bytebytego.com/p/how-anthropic-built-a-multi-agent">bytebytego.com — how anthropic built a multi-agent</a></li>
+      <li>Devin Jahresbilanz: <a href="https://cognition.com/blog/devin-annual-performance-review-2025">cognition.com/blog/devin-annual-performance-review-2025</a></li>
+      <li>BAGEN — Budget-Awareness von Agenten: <a href="https://arxiv.org/html/2606.00198v1">arxiv.org/html/2606.00198v1</a></li>
+      <li>METR-Zeithorizonte: <a href="https://metr.org/time-horizons/">metr.org/time-horizons</a></li>
+      <li>Evidence-Based Scheduling: <a href="https://www.joelonsoftware.com/2007/10/26/evidence-based-scheduling/">joelonsoftware.com — Evidence Based Scheduling</a></li>
+      <li>HITL-Muster: <a href="https://www.arthur.ai/column/human-in-the-loop-governance-for-ai-agents">arthur.ai — Human-in-the-Loop Governance</a></li>
+    </ul>
+    <h4>Superpowers</h4>
+    <ul>
+      <li>Original: <a href="https://github.com/obra/superpowers">github.com/obra/superpowers</a> (MIT; 14 Skills, Workflow-Doku im README)</li>
+      <li>Hermes-Port: <a href="https://github.com/satangel2222/obra-superpowers-hermes">github.com/satangel2222/obra-superpowers-hermes</a> (Ein-Commit-Snapshot; liefert das Tool-Mapping <code>hermes-tools.md</code>)</li>
+    </ul>
+    <h4>Testing</h4>
+    <ul>
+      <li>Playwright (browserbasierte E2E-Tests): <a href="https://playwright.dev/docs/intro">playwright.dev/docs/intro</a> · Traces: <a href="https://playwright.dev/docs/trace-viewer">playwright.dev/docs/trace-viewer</a></li>
+    </ul>
+    <h4>OpenRouter</h4>
+    <ul>
+      <li>Usage Accounting (Kosten in jeder Response): <a href="https://openrouter.ai/docs/use-cases/usage-accounting">openrouter.ai/docs/use-cases/usage-accounting</a></li>
+      <li>Generation-Endpoint (Kosten je Request): <a href="https://openrouter.ai/docs/api-reference/get-a-generation">openrouter.ai/docs/api-reference/get-a-generation</a></li>
+      <li>Activity-API (Tagesaggregate je Key): <a href="https://openrouter.ai/docs/api/api-reference/analytics/get-user-activity">openrouter.ai/docs — Get Activity</a></li>
+      <li>Provisioning API Keys (Key je Rolle, USD-Limit): <a href="https://openrouter.ai/docs/features/provisioning-api-keys">openrouter.ai/docs/features/provisioning-api-keys</a></li>
+      <li>User-Tracking (<code>user</code>-Parameter / <code>external_user</code>): <a href="https://openrouter.ai/docs/cookbook/administration/user-tracking">openrouter.ai/docs/cookbook/administration/user-tracking</a></li>
+    </ul>
+  </div>
+</section>
+
+<footer>
+  <p>ESF — Enterprise Software Factory. Konzept für eine autonome Agenten-Organisation auf Hermes Agent v0.20.0. Erstellt am 17.08.2026 im Repo <code>hermes-agent-playground</code>, Verzeichnis <code>03-hermes-agent-software-company/</code>. Anbieterzahlen aus Kapitel 2 sind Eigenangaben der Hersteller; Web-Quellen zuletzt geprüft am 17.08.2026.</p>
+</footer>
+
+</div>
+
+</body>
+</html>
