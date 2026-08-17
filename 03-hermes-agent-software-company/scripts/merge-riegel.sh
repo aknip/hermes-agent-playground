@@ -81,6 +81,22 @@ if [ -n "$PROTOKOLL" ]; then
     : > "$PROTOKOLL"
 fi
 
+# Bei einem Fehlschlag wandert die VOLLSTÄNDIGE Ausgabe ins Protokoll und nur
+# ein Auszug auf den Bildschirm. Das Protokoll ist die Akte, die archiviert und
+# später gelesen wird — ein abgeschnittener Stacktrace darin macht den Befund
+# unbrauchbar, und genau das ist einmal passiert.
+volltext() { # <logdatei> <zeilen-fuer-den-bildschirm>
+    local log="$1" zeilen="$2"
+    if [ -n "$PROTOKOLL" ]; then
+        {
+            printf '\n───── vollständige Ausgabe ─────\n'
+            cat "$log"
+            printf '───── Ende ─────\n'
+        } >> "$PROTOKOLL"
+    fi
+    tail -"$zeilen" "$log" | sed 's/^/    /'
+}
+
 zeile "ESF Merge-Riegel — $(date '+%Y-%m-%d %H:%M:%S')"
 zeile "Repo:   $REPO"
 zeile "Branch: $BRANCH"
@@ -113,11 +129,12 @@ git diff --name-only "$BASIS" "$BRANCH" | sed 's/^/    /' | tee -a "${PROTOKOLL:
 # ---------------------------------------------------------------------------
 titel "2/6  Konfliktfreiheit"
 # ---------------------------------------------------------------------------
-# --no-commit --no-ff prüft echt, hinterlässt aber einen Zustand — der wird in
-# jedem Fall zurückgenommen. Erst danach wird richtig gemerged.
+# --no-commit --no-ff mergt wirklich, schreibt aber noch keinen Commit. Der
+# Zustand bleibt ab hier STEHEN — die Prüfungen 3-6 laufen gegen ihn.
+# (Ihn hier zurückzunehmen und danach den Branch auschecken zu wollen war der
+# ursprüngliche Fehler: Die Prüfungen liefen dann gegen main und waren wertlos.)
 if git merge --no-commit --no-ff "$BRANCH" >/dev/null 2>&1; then
-    git merge --abort 2>/dev/null || git reset -q --hard HEAD
-    zeile "  konfliktfrei — der Merge bleibt jetzt STEHEN und wird geprüft"
+    zeile "  konfliktfrei — der Merge bleibt jetzt stehen und wird geprüft"
 else
     git merge --abort 2>/dev/null || git reset -q --hard HEAD
     verweigert "Der Merge nach main hat Konflikte. Der Branch muss aktualisiert werden."
@@ -149,7 +166,7 @@ else
         zeile "  sauber ($(printf '%s\n' "$DATEIEN" | wc -l | tr -d ' ') Dateien)"
         rm -f /tmp/esf-riegel-lint.$$
     else
-        tail -30 /tmp/esf-riegel-lint.$$ | sed 's/^/    /' | tee -a "${PROTOKOLL:-/dev/null}"
+        volltext /tmp/esf-riegel-lint.$$ 30
         rm -f /tmp/esf-riegel-lint.$$
         verweigert_und_aufraeumen "Der Linter beanstandet Dateien, die DIESER Branch geändert hat."
     fi
@@ -162,7 +179,7 @@ if pnpm typecheck > /tmp/esf-riegel-tc.$$ 2>&1; then
     zeile "  grün"
     rm -f /tmp/esf-riegel-tc.$$
 else
-    tail -25 /tmp/esf-riegel-tc.$$ | sed 's/^/    /' | tee -a "${PROTOKOLL:-/dev/null}"
+    volltext /tmp/esf-riegel-tc.$$ 25
     rm -f /tmp/esf-riegel-tc.$$
     verweigert_und_aufraeumen "Der Typecheck ist rot."
 fi
@@ -174,7 +191,7 @@ if pnpm test > /tmp/esf-riegel-ut.$$ 2>&1; then
     zeile "  grün"
     rm -f /tmp/esf-riegel-ut.$$
 else
-    tail -25 /tmp/esf-riegel-ut.$$ | sed 's/^/    /' | tee -a "${PROTOKOLL:-/dev/null}"
+    volltext /tmp/esf-riegel-ut.$$ 25
     rm -f /tmp/esf-riegel-ut.$$
     verweigert_und_aufraeumen "Die Unit-Tests sind rot."
 fi
@@ -193,7 +210,7 @@ if eval "$E2E_BEFEHL" > /tmp/esf-riegel-e2e.$$ 2>&1; then
     zeile "  grün"
     rm -f /tmp/esf-riegel-e2e.$$
 else
-    tail -30 /tmp/esf-riegel-e2e.$$ | sed 's/^/    /' | tee -a "${PROTOKOLL:-/dev/null}"
+    volltext /tmp/esf-riegel-e2e.$$ 30
     rm -f /tmp/esf-riegel-e2e.$$
     verweigert_und_aufraeumen "Die E2E-Suite ist rot. Kein Feature merged über ein rotes Regressionsnetz."
 fi

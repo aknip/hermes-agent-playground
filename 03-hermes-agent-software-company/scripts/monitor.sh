@@ -47,22 +47,39 @@ melde() { # grad text id
 # 1. Stille Ausfälle im Ereignis-Log
 # ---------------------------------------------------------------------------
 for id in $(printf '%s' "$liste" | jq -r '.[].id'); do
-    ereignisse="$(k show "$id" --json 2>/dev/null | jq -c '.events // []')"
+    karte="$(k show "$id" --json 2>/dev/null || echo '{}')"
+    ereignisse="$(printf '%s' "$karte" | jq -c '.events // []')"
     [ -n "$ereignisse" ] || continue
 
     for art in respawn_guarded block_loop_detected crashed; do
         n="$(printf '%s' "$ereignisse" | jq --arg a "$art" '[.[] | select(.kind==$a)] | length')"
-        [ "$n" -gt 0 ] && melde ERROR "$art ($n×)" "$id"
+        # ${n} geklammert: Ohne Klammern liest Bash 3.2 das folgende '×'
+        # (Mehrbyte-Zeichen) als Teil des Variablennamens und bricht unter
+        # `set -u` mit "unbound variable" ab — ausgerechnet das Skript, das
+        # stille Ausfälle melden soll, fiel dadurch selbst still aus.
+        if [ "${n:-0}" -gt 0 ]; then
+            melde ERROR "$art (${n}x)" "$id"
+        fi
     done
 
     # AGENTS.md 7: Ein Unblock ohne gültiges Verb-Präfix kam nicht von gate.sh.
-    unbefugt="$(printf '%s' "$ereignisse" | jq -r '
-        [.[] | select(.kind=="unblocked")
-             | (.payload.reason // "")
-             | select(test("^(approve|modify|shelve|continue|cut|stop|manuell)\\b") | not)]
+    #
+    # Gemessen: Das `unblocked`-EREIGNIS trägt eine leere Payload — der Grund
+    # landet als KOMMENTAR mit dem Präfix "UNBLOCK: ". Wer hier auf
+    # .payload.reason prüft, meldet jede legitime Gate-Antwort als Verstoss und
+    # hat nach drei Tagen einen Alarm, den niemand mehr liest.
+    #
+    # Verglichen wird deshalb die Anzahl: so viele Unblock-Ereignisse wie
+    # Kommentare mit gültigem Verb. Ein Ereignis ohne passenden Kommentar hat
+    # gate.sh nicht geschrieben.
+    unblocks="$(printf '%s' "$ereignisse" | jq '[.[] | select(.kind=="unblocked")] | length')"
+    legitim="$(printf '%s' "$karte" | jq '
+        [.comments[]? | (.text // .body // "")
+         | select(test("^UNBLOCK: *(approve|modify|shelve|continue|cut|stop|manuell)\\b"))]
         | length')"
-    [ "${unbefugt:-0}" -gt 0 ] && \
-        melde ERROR "Unblock ohne gate.sh-Verb — Governance-Verstoss (AGENTS.md 7)" "$id"
+    if [ "${unblocks:-0}" -gt "${legitim:-0}" ]; then
+        melde ERROR "Unblock ohne gate.sh-Verb ($unblocks Ereignisse, $legitim belegt) — AGENTS.md 7" "$id"
+    fi
 done
 
 # ---------------------------------------------------------------------------
