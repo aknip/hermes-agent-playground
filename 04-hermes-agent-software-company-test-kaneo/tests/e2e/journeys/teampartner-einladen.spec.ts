@@ -29,7 +29,7 @@ test.describe("J-06 Teammitglied einladen", () => {
     await arbeitsbereichAnlegen(page);
 
     // Schritt 6 — im Sidebar zur Mitgliederliste des Arbeitsbereichs.
-    await page.getByRole("link", { name: "Members" }).click();
+    await page.getByRole("button", { name: "Members" }).click();
     await expect(page).toHaveURL(/\/members/, { timeout: 30_000 });
 
     // Schritt 7 — den Einstieg „Invite member" öffnen.

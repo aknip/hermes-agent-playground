@@ -126,12 +126,28 @@ if [ -f "$VAULT/analysis/product.html" ] && [ -f "$VAULT/analysis/journeys.html"
     if [ "$n_soll" -eq 0 ]; then
         nein "product.html benennt keine Journeys mit J-nn-Kennung"
     else
-        offen=""
+        # Zwei verschiedene Zahlen, und die Unterscheidung ist der Punkt:
+        # Im Katalog ERWÄHNT zu sein heisst nur, dass die Journey bekannt ist —
+        # ein guter Katalog listet auch das noch nicht Abgedeckte. Zählen tut
+        # aber, ob eine Spec-Datei dazu existiert.
+        offen=""; mit_spec=0
         for j in $soll; do
             printf '%s\n' "$ist" | grep -qx "$j" || offen="$offen $j"
+            # Die Zeile des Katalogs, die diese Journey nennt, muss eine
+            # existierende Spec-Datei benennen.
+            spec="$(grep -o "$j[^<]*" "$VAULT/analysis/journeys.html" 2>/dev/null \
+                    | head -1 >/dev/null; grep -B4 -A8 "$j" "$VAULT/analysis/journeys.html" 2>/dev/null \
+                    | grep -oE '[a-z0-9-]+\.spec\.ts' | head -1)"
+            if [ -n "$spec" ] && [ -f "$REPO/$E2E_DIR/$spec" ]; then
+                mit_spec=$((mit_spec + 1))
+            fi
         done
-        printf '    %s von %s Kern-Journeys im Katalog\n' "$n_ist" "$n_soll"
-        [ -n "$offen" ] && printf '    noch offen:%s\n' "$offen"
+        printf '    %s von %s Kern-Journeys im Katalog erwähnt\n' "$n_ist" "$n_soll"
+        printf '    %s davon haben eine existierende Spec-Datei\n' "$mit_spec"
+        [ -n "$offen" ] && printf '    nicht einmal erwähnt:%s\n' "$offen"
+        if [ "$mit_spec" -eq 0 ]; then
+            nein "keine einzige Kern-Journey hat eine Spec"
+        fi
 
         # Harte Untergrenze: mindestens eine P1-Journey muss eine echte Spec
         # haben. Ohne das ist die Suite ein Katalog ohne Deckung.
