@@ -133,6 +133,45 @@ Was du dabei NICHT tust, und das ist die eigentliche Regel:
 EOF
 }
 
+# Das neue AK8 aus dem Spec-Nachtrag vom 17.08.2026 — verbindlich fuer jede
+# Karte, die nach R1-F5 an app.ts vorbeikommt.
+#
+# Vorgeschichte, weil sie die Regel erklaert: Das erste AK8 lautete "app.ts
+# bleibt < 450 Zeilen". Die Umsetzung landete bei 565, obwohl sie die
+# Zielstruktur genau befolgte — die Spezifikation forderte inhaltlich mehr, als
+# 450 Zeilen fassen. Der CEO hob das Limit auf; der esf-architect ersetzte es
+# und verwarf dabei den Kandidaten des CEO ("hoechstens N geaenderte Zeilen"),
+# weil N wieder eine nicht abgeleitete Zahl gewesen waere. Sein Kriterium misst
+# stattdessen die UEBERSCHRIEBENE FLAECHE, und das ist die Groesse, die
+# Merge-Konflikte wirklich verursacht.
+ak8() {
+cat <<'EOF'
+app.ts — DAS NEUE AK8: rein additiv, keine Zahl
+Nach der Haertung R1-F5 ist apps/api/src/app.ts die Montagestelle aller Routen.
+Fuer deinen Branch gilt:
+
+    git diff main...<dein Branch> -- apps/api/src/app.ts
+
+muss AUSSCHLIESSLICH additive Montagezeilen zeigen — je eine neue
+api.route(...)- bzw. register*-Registrierungszeile fuer deine Route. Keine
+bestehende Zeile wird geaendert, verschoben, umsortiert oder umformatiert. Jede
+geaenderte bestehende Zeile ist ein Verstoss, und der Reviewer prueft das in
+unter einer Minute.
+
+Zwei Gruende, und der zweite ist der wichtigere:
+· Merge-Konflikte entstehen dort, wo zwei Branches dieselbe bestehende Region
+  umschreiben. Zwei rein additive Branches koennen nicht kollidieren — und in
+  diesem Sprint baut ein zweites Feature gleichzeitig.
+· Die Montagereihenfolge um den api.use("*", …)-Auth-Block ist
+  VERHALTENSWIRKSAM (Invariante aus ADR-001). Wer sie umsortiert, aendert das
+  Verhalten, ohne eine Zeile Logik anzufassen.
+
+Lass also auch die Formatierung in Ruhe. Ein biome --write ueber die ganze
+Datei waere genau der Verstoss, den dieses Kriterium verhindert: er schreibt
+bestehende Zeilen um. Lintе nur, was du selbst geschrieben hast.
+EOF
+}
+
 gate_verbot() {
 cat <<'EOF'
 DIE GRENZE
@@ -671,6 +710,8 @@ Eigener Worktree, Branch '$BRANCH_F1'. Du mergst NICHT.
 
 $(env_hinweis)
 
+$(ak8)
+
 PARALLELBETRIEB — lies das, bevor du eine Datei anfasst
 esf-dev-b baut GLEICHZEITIG R1-F2 (2FA) in einem anderen Worktree. Zwei
 Feature-Branches, ein main. Deshalb:
@@ -912,6 +953,8 @@ DEIN BAUM
 Eigener Worktree, Branch '$BRANCH_F2'. Du mergst NICHT.
 
 $(env_hinweis)
+
+$(ak8)
 
 PARALLELBETRIEB
 esf-dev-a baut GLEICHZEITIG R1-F1 (globale Suche) in einem anderen Worktree.
