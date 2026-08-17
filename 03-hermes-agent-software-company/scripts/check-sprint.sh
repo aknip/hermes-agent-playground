@@ -120,8 +120,19 @@ for id in $(printf '%s' "$sprintkarten" | jq -r '.[] | select(.status=="done") |
     titel="$(printf '%s' "$sprintkarten" | jq -r --arg i "$id" '.[] | select(.id==$i) | .title')"
     karte="$(k show "$id" --json 2>/dev/null || echo '{}')"
 
-    klasse="$(printf '%s' "$karte" | jq -r '[.runs[]?.metadata.estimate.reference_class // empty] | last // ""')"
-    p50="$(printf '%s' "$karte" | jq -r '[.runs[]?.metadata.estimate.wall_minutes.p50 // empty] | last // ""')"
+    # BEIDE Formen annehmen. Das SOUL-Schema verschachtelt
+    # (estimate.reference_class, estimate.wall_minutes.p50); drei Karten haben
+    # am 17.08.2026 flach geschrieben (reference_class auf oberster Ebene,
+    # estimate.p50 direkt) — und mein eigener Kartentext hat das eingeladen, weil
+    # er "reference_class 'merge-repo-S'" als eigene Zeile nennt.
+    #
+    # Ein Prüfer, der nur eine Form kennt, meldet vorhandene Messungen als
+    # fehlend. Das ist schlimmer als gar nicht zu prüfen: Der Befund sieht aus
+    # wie ein Fehler der Organisation und ist einer des Prüfers. Genau dieselbe
+    # Fehlerklasse wie in Phase 1 (metadata auf Karten- statt Laufebene).
+    meta="$(printf '%s' "$karte" | jq -c '[.runs[]?.metadata // empty] | last // {}')"
+    klasse="$(printf '%s' "$meta" | jq -r '.reference_class // .estimate.reference_class // ""')"
+    p50="$(printf '%s' "$meta" | jq -r '.estimate.wall_minutes.p50 // .estimate.p50 // ""')"
 
     [ -n "$klasse" ] || ohne_klasse="$ohne_klasse $id"
 

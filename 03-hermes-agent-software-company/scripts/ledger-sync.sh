@@ -112,8 +112,44 @@ for id in $(printf '%s' "$liste" | jq -r '.[] | select(.status=="done")
     # Das Abschluss-metadata eines Workers hängt am LAUF, nicht an der Karte
     # (`.runs[].metadata`) — die Karte selbst hat gar kein metadata-Feld.
     # Gültig ist der letzte Lauf, der eines geschrieben hat.
-    schaetzung="$(printf '%s' "$karte" | jq -c '[.runs[]?.metadata.estimate // empty] | last // null')"
-    klasse="$(printf '%s' "$karte" | jq -r '[.runs[]?.metadata.estimate.reference_class // empty] | last // "unklassifiziert"')"
+    # NORMALISIEREN, nicht nur lesen. Liberal beim Annehmen, streng beim
+    # Speichern — sonst verliert das Ledger echte Messungen an einer
+    # Formfrage.
+    #
+    # Real am 17.08.2026: Drei Karten schrieben ihre Schätzung FLACH
+    # ("reference_class" auf oberster Ebene, "estimate": {"p50": 15, "p90": 40}),
+    # nicht verschachtelt wie im SOUL-Schema. Die Daten waren vollständig da;
+    # ledger-sync.sh und check-sprint.sh lasen nur den verschachtelten Pfad und
+    # meldeten "unklassifiziert" bzw. ein zerrissenes Paar. Dieselbe
+    # Fehlerklasse wie in Phase 1, wo vier Skripte `metadata` auf Kartenebene
+    # statt auf Laufebene lasen: EINE Form annehmen und die andere übersehen.
+    #
+    # Eingeladen hat die flache Form der Kartentext selbst — er nennt
+    # "reference_class 'merge-repo-S'" als eigene Zeile. Ein Modell, das das
+    # wörtlich befolgt, schreibt flach. Die Schuld liegt beim Leser.
+    #
+    # Ins Ledger geht ausschliesslich die kanonische, verschachtelte Form.
+    # Was dort steht, muss ein Auswertungsskript ohne Fallunterscheidung lesen
+    # können.
+    roh="$(printf '%s' "$karte" | jq -c '[.runs[]?.metadata // empty] | last // {}')"
+    schaetzung="$(printf '%s' "$roh" | jq -c '
+        (.estimate // null) as $e
+        | (.reference_class // $e.reference_class // null)          as $klasse
+        | ($e.wall_minutes // (if ($e.p50 // null) != null
+                               then {p50: $e.p50, p90: ($e.p90 // null)}
+                               else null end))                      as $wm
+        | if $e == null and $klasse == null then null
+          else {reference_class: $klasse,
+                wall_minutes:    $wm,
+                tokens_k:        ($e.tokens_k // null),
+                cost_usd:        ($e.cost_usd // null),
+                confidence:      ($e.confidence // null),
+                estimated_by:    ($e.estimated_by // null),
+                at:              ($e.at // null),
+                basis:           ($e.basis // $e.note // null)}
+          end')"
+    klasse="$(printf '%s' "$schaetzung" | jq -r '.reference_class // "unklassifiziert"' 2>/dev/null || echo unklassifiziert)"
+    [ -n "$klasse" ] && [ "$klasse" != "null" ] || klasse="unklassifiziert"
 
     # Wanduhrzeit aus den Läufen — Board-Zeitstempel, nicht Modelltext.
     # Sie sind Unix-Epoch-Sekunden (Integer), kein ISO-8601.
