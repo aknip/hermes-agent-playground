@@ -27,6 +27,38 @@ einer der elf verifizierten Stories belegt. Was das nicht deckt, steht unten in
 | **E2E-Gerüst** | Playwright 1.62.1, zwei Journeys, 4 Tests, 6,4 s. Zwei Produktfallen dokumentiert: das Passwort-Label zeigt per `for` auf den Wrapper-`div` statt aufs `input`; ein frisches Konto landet auf `/onboarding`, nicht auf `/dashboard`. |
 | **Fetch und Normalisierung** | 11 Quellen, 10 erreichbar. Roh 6,4 MB, normalisiert 168 KB. `height.app` antwortete nicht und hinterliess eine `.fehler`-Datei. |
 
+## Drei Befunde zur Git-Exklusivität — derselbe Satz, dreimal
+
+Git lässt einen Branch in **genau einem** Worktree auschecken. Das ist banal
+und stand trotzdem an drei Stellen im Weg, weil jede für sich plausibel aussah:
+
+1. **Die Reviewer-Karte** bekam `worktree:<repo> --branch feat/…` — denselben
+   Branch, den die Bau-Karte schon hielt. `git worktree add` verweigerte, der
+   Circuit Breaker gab nach zwei Versuchen auf (`gave_up`, `failures: 2`), die
+   Karte stand blockiert. Reparatur: `dir:<repo>`, der Hauptbaum.
+2. **Der Merge-Riegel** machte in den Schritten 3–6 `git checkout <branch>` im
+   Hauptbaum — derselbe Konflikt. Ein perfekt mergebarer Branch wurde deshalb
+   verweigert. Reparatur: Der Probemerge aus Schritt 2 bleibt stehen; geprüft
+   wird der **gemergte Baum**. Das ist ohnehin die richtige Frage: nicht „ist
+   der Branch grün", sondern „ist grün, was auf `main` landet".
+3. **Warum es der Selbsttest nicht fing:** `setup.sh` prüfte am Riegel nur den
+   Pfad *Branch existiert nicht*. Ein Verweigerungsfall als einziger Test
+   beweist, dass das Skript Nein sagen kann — nicht, dass es Ja sagen kann.
+
+## Betriebsbefund: ein flaky Unit-Test
+
+Im Riegel-Lauf um 15:37:50 fiel genau ein Test von 374:
+`tests/api/mcp-internal-api-url.test.ts` („advertises the public URL while
+fetching tools through the internal…"). Der Riegel verweigerte korrekt. Ein
+direkter Nachlauf desselben Befehls war **374/374 grün**.
+
+Der Test ist also flaky, vermutlich unter Last. Für die ESF ist das kein
+Ärgernis, sondern der vorgesehene Ablauf: Der Riegel hält, und Flakiness
+bekommt eine Karte für `esf-qa-release` — behandelt wie ein Bug, nicht wie
+Wetter. Was der Vorfall zusätzlich zeigt: Ein Riegel, der die volle Suite
+fährt, erbt deren Flakiness. Ohne die Regel „Flake = Bug + Karte" wird genau
+das der Grund, aus dem später jemand den Riegel abschaltet.
+
 ## Betriebsbefund: der hängende Worker
 
 Der erste Lauf der Bau-Karte blieb **16 Minuten bei 0 % CPU** stehen. `lsof`
