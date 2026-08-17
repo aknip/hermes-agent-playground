@@ -19,10 +19,19 @@
 #   Ohne diesen Wachhund beendet erst `--max-runtime` den Zustand. Bei einer
 #   Analysekarte mit 45 Minuten Deckel heisst das 45 Minuten Nichts.
 #
-# Zwei Kriterien, beide müssen zutreffen:
-#   1. Der Prozess verbraucht ~keine CPU (unter der Schwelle)
-#   2. Er hält mindestens ein Socket auf CLOSE_WAIT
-#      ODER er läuft länger als --min ohne jede CPU-Zeit
+# DREI Kriterien, alle müssen zutreffen:
+#   1. Der ganze PROZESSBAUM verbraucht ~keine CPU (unter der Schwelle) —
+#      Baum, nicht Prozess: bei `pnpm test` rechnet das Enkelkind, nicht der
+#      Worker.
+#   2. Der Worker hat KEINEN Kindprozess — sonst fährt er gerade ein Kommando
+#      und ist nicht untätig.
+#   3. Er hält mindestens ein Socket auf CLOSE_WAIT und KEINE lebende
+#      Verbindung.
+#
+# Kriterium 1 (als Baum) und Kriterium 2 wurden am 17.08.2026 nachgerüstet,
+# nachdem dieses Skript zwei produktive Läufe getötet hatte. Die Einzelheiten
+# stehen unten am Messpunkt. Der erste Entwurf tötete auf „0 % CPU + toter
+# Socket" — und genau so sieht ein Worker aus, der `pnpm test` fährt.
 #
 # Ein beendeter Worker ist kein Datenverlust: Der Dispatcher erkennt den
 # Absturz (`outcome: "crashed"`) und startet die Karte im Rahmen von
@@ -59,6 +68,27 @@ minuten_aus() {
     }'
 }
 
+# Alle Nachkommen eines Prozesses, breitenweise. `pgrep -P` liefert nur die
+# direkten Kinder; ein `pnpm test` hängt aber drei Ebenen tief (pnpm → node →
+# vitest), und die CPU sitzt unten. Deshalb der Durchlauf.
+baum_kinder() {
+    local ebene="$1" alle="" naechste
+    while [ -n "$ebene" ]; do
+        naechste=""
+        for p in $ebene; do
+            for kind in $(pgrep -P "$p" 2>/dev/null); do
+                naechste="$naechste $kind"
+            done
+        done
+        # shellcheck disable=SC2086
+        naechste="$(printf '%s' "$naechste" | tr -s ' ')"
+        [ -n "$(printf '%s' "$naechste" | tr -d ' ')" ] || break
+        alle="$alle $naechste"
+        ebene="$naechste"
+    done
+    printf '%s' "$alle" | tr -s ' ' | sed 's/^ //;s/ $//'
+}
+
 gefunden=0
 printf 'ESF Wachhund — %s  (CPU < %s%%, Mindestlaufzeit %s min)\n' \
     "$(date '+%Y-%m-%d %H:%M:%S')" "$CPU_SCHWELLE" "$MIN_MINUTEN"
@@ -83,17 +113,50 @@ for id in $(k list --json 2>/dev/null | jq -r '.[] | select(.status=="running") 
     tot="$(lsof -p "$pid" -i -a 2>/dev/null | grep -c 'CLOSE_WAIT' || true)"
     lebend="$(lsof -p "$pid" -i -a 2>/dev/null | grep -c 'ESTABLISHED' || true)"
 
+    # Der DRITTE Messwert, und er ist der wichtigste — nachgerüstet am
+    # 17.08.2026, nachdem dieses Skript zwei produktive Läufe getötet hat.
+    #
+    # Was schiefging: Ein Worker, der ein langes lokales Kommando fährt
+    # (`pnpm test` gemessen 41 s, ein Playwright-Lauf über eine Minute, im
+    # Protokoll ein Kommando mit 194 s), sieht von aussen exakt wie ein Hänger
+    # aus — er hält keine ESTABLISHED-Verbindung zum Modell, weil die letzte
+    # HTTP-Antwort abgeschlossen ist, alte Pool-Sockets liegen auf CLOSE_WAIT,
+    # und der Python-Prozess selbst verbraucht keine CPU, weil sein KIND
+    # arbeitet. Genau die Signatur, auf die dieses Skript getötet hat.
+    #
+    # Real: Läufe 6 und 7 der Karte S1 F5 3/5 wurden so beendet, nachdem sie
+    # den Umbau fertig hatten. Das agent.log zeigte 55 normale API-Aufrufe mit
+    # 5-24 s Latenz und endete mit `reason=interrupted_by_user` — der Kill.
+    #
+    # Die Lehre ist allgemeiner als der Bugfix: Wer über ein System urteilt,
+    # muss auch dessen Kinder ansehen. Ein Prozess mit arbeitenden Kindern ist
+    # nicht untätig, egal was seine Sockets sagen.
+    kinder="$(baum_kinder "$pid")"
+    n_kinder="$(printf '%s' "$kinder" | tr ' ' '\n' | grep -c . || true)"
+    baum_cpu="$cpu"
+    if [ "${n_kinder:-0}" -gt 0 ]; then
+        # shellcheck disable=SC2086
+        baum_cpu="$(ps -o %cpu= -p $(printf '%s' "$kinder" | tr ' ' ',')"," 2>/dev/null \
+                    | awk -v basis="${cpu:-0}" '{s+=$1} END{printf "%.1f", s + basis}')"
+    fi
+
     # awk statt bc: bc ist auf macOS nicht überall da.
-    leerlauf="$(awk -v c="${cpu:-0}" -v s="$CPU_SCHWELLE" 'BEGIN{print (c < s) ? 1 : 0}')"
+    leerlauf="$(awk -v c="${baum_cpu:-0}" -v s="$CPU_SCHWELLE" 'BEGIN{print (c < s) ? 1 : 0}')"
 
     verdacht=""; toeten=0
-    if [ "$leerlauf" -eq 1 ] && [ "${tot:-0}" -gt 0 ] && [ "${lebend:-0}" -eq 0 ]; then
-        # Keine lebende Verbindung, keine CPU, aber ein toter Socket: Der
-        # Worker wartet auf eine Antwort, die nie kommt. Das ist der Hänger.
-        verdacht="${tot} tote(r) Socket, KEINE lebende Verbindung, ${cpu}% CPU"
+    if [ "${n_kinder:-0}" -gt 0 ] && [ "$leerlauf" -eq 0 ]; then
+        # Kinder, die rechnen: Der Worker fährt ein Kommando. Kein Hänger,
+        # keine Meldung — sonst steht bei jedem Testlauf eine Warnung da.
+        continue
+    elif [ "$leerlauf" -eq 1 ] && [ "${tot:-0}" -gt 0 ] && [ "${lebend:-0}" -eq 0 ] \
+         && [ "${n_kinder:-0}" -eq 0 ]; then
+        # Keine lebende Verbindung, keine CPU im ganzen Baum, kein Kind, aber
+        # ein toter Socket: Der Worker wartet auf eine Antwort, die nie kommt.
+        # Das ist der Hänger.
+        verdacht="${tot} tote(r) Socket, KEINE lebende Verbindung, kein Kindprozess, ${baum_cpu}% CPU im Baum"
         toeten=1
     elif [ "$leerlauf" -eq 1 ] && [ "${dauer_min:-0}" -ge "$MIN_MINUTEN" ]; then
-        verdacht="${dauer_min} min bei ${cpu}% CPU, aber ${lebend} lebende Verbindung(en)"
+        verdacht="${dauer_min} min bei ${baum_cpu}% CPU im Baum, ${lebend} lebende Verbindung(en), ${n_kinder} Kindprozess(e)"
     fi
     [ -n "$verdacht" ] || continue
 
@@ -107,9 +170,10 @@ for id in $(k list --json 2>/dev/null | jq -r '.[] | select(.status=="running") 
     elif [ "$toeten" -eq 1 ]; then
         printf '    → mit --kill beenden; der Dispatcher startet die Karte dann neu.\n'
     else
-        printf '    → NICHT beendet: solange eine Verbindung steht, ist eine lange\n'
-        printf '      Modellantwort die wahrscheinlichere Erklärung. Dafür ist\n'
-        printf '      --max-runtime da. Ein Fehlkill kostet die ganze Karte.\n'
+        printf '    → NICHT beendet: solange eine Verbindung steht oder ein Kind läuft,\n'
+        printf '      ist eine lange Modellantwort bzw. ein laufendes Kommando die\n'
+        printf '      wahrscheinlichere Erklärung. Dafür ist --max-runtime da.\n'
+        printf '      Ein Fehlkill kostet die ganze Karte — zweimal real passiert.\n'
     fi
 done
 

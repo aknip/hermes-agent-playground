@@ -106,6 +106,33 @@ Nachweis ist, den Phase 2 nicht erbringen darf zu verlieren.
 EOF
 }
 
+# Für jede Karte, die im Worktree baut. Ohne diesen Absatz hat ein Entwickler
+# am 17.08.2026 rund 80 Minuten in Umgebungs-Archäologie gesteckt — und dabei
+# die `.env` des HAUPTBAUMS neu geschrieben. Ein Worker, der aus seinem Worktree
+# in den Hauptbaum schreibt, hebt die Isolation auf, auf der die ganze parallele
+# Arbeit beruht.
+env_hinweis() {
+cat <<EOF
+DIE .env IST NICHT IM GIT — und dein Worktree hat deshalb keine
+\`.env\` steht in .gitignore. Ein frischer Worktree bekommt sie also nicht, und
+ohne sie startet die Anwendung nicht (DATABASE_URL, POSTGRES_PASSWORD,
+AUTH_SECRET). Der Weg ist EINE Zeile, und nur diese:
+
+    ln -sf "$REPO/.env" "\$(git rev-parse --show-toplevel)/.env"
+
+Was du dabei NICHT tust, und das ist die eigentliche Regel:
+· Du schreibst NIE in $REPO — nicht in dessen .env, nicht in dessen
+  Arbeitsbaum, nicht in dessen Git. Der Hauptbaum gehört dem Reviewer und dem
+  Riegel. Real passiert und deshalb hier: ein Worker hat die .env des
+  Hauptbaums neu geschrieben, während er seine eigene suchte.
+· Du erzeugst keine Geheimnisse neu. Ein neues AUTH_SECRET macht bestehende
+  Sitzungen ungültig, und ein neues POSTGRES_PASSWORD trennt die Anwendung von
+  dem Container, der schon läuft.
+· Findest du die Datei nicht: abschliessen mit dem Befund im metadata. Eine
+  fehlende Umgebung ist ein Aufbau-Mangel, kein Rätsel für dich.
+EOF
+}
+
 gate_verbot() {
 cat <<'EOF'
 DIE GRENZE
@@ -334,6 +361,8 @@ DEIN BAUM
 Du arbeitest in deinem eigenen Worktree auf Branch '$BRANCH'. Kein anderer
 Worker fasst diesen Branch an. Du mergst NICHT — das tut der Riegel auf einer
 eigenen Karte, und kein Modell merged (Kapitel 6).
+
+$(env_hinweis)
 
 Die Spezifikation, das ADR und die Akzeptanzkriterien stehen in deinem
 Handoff-Kontext; die Dateien liegen im Vault unter
@@ -640,6 +669,8 @@ specs/r1-f1-suche.html.
 DEIN BAUM
 Eigener Worktree, Branch '$BRANCH_F1'. Du mergst NICHT.
 
+$(env_hinweis)
+
 PARALLELBETRIEB — lies das, bevor du eine Datei anfasst
 esf-dev-b baut GLEICHZEITIG R1-F2 (2FA) in einem anderen Worktree. Zwei
 Feature-Branches, ein main. Deshalb:
@@ -879,6 +910,8 @@ specs/r1-f2-zwei-faktor.html.
 
 DEIN BAUM
 Eigener Worktree, Branch '$BRANCH_F2'. Du mergst NICHT.
+
+$(env_hinweis)
 
 PARALLELBETRIEB
 esf-dev-a baut GLEICHZEITIG R1-F1 (globale Suche) in einem anderen Worktree.
