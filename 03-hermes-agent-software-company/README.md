@@ -84,7 +84,9 @@ Hermes-Root-Konfiguration.
 | `watchdog.sh` | nach Bedarf | Findet Worker, die laufen, aber nicht arbeiten: keine CPU, keine lebende Verbindung, nur tote Sockets. Der Zustand ist vom Board aus **nicht** von echter Arbeit zu unterscheiden |
 | `install-repo-hooks.sh` | einmalig | Schlanker Pre-Commit-Hook im Produkt-Repo (lintet nur Gestagetes). `--remove` stellt den Ausgangszustand her |
 | `dump-lauf.sh` | nach jedem Lauf | Sichert Board, Vault, Historien und Laufzeiten nach `beispiel-lauf-1/`. Ohne das ist der Lauf nach dem Rückbau spurlos weg |
-| `provision-keys.sh` | einmalig | Ein OpenRouter-Key je Profil mit USD-Limit. **Annahme**, siehe `VERIFIKATION.md` |
+| `assign-keys.sh` | nach jedem `setup.sh` | Ordnet elf vorhandene OpenRouter-Keys den elf Profilen zu (`--pruefen`, `--verbrauch`, `--entfernen`). Läuft automatisch aus `setup.sh` |
+| `check-keys.sh` | nach der Zuordnung | Der Nachweis, dass die Trennung wirkt: misst den Verbrauch aller elf Keys, lässt Probekarten laufen, misst erneut. `config get` beweist hier **nichts** |
+| `provision-keys.sh` | nur für den Deckel | Erzeugt Keys mit USD-Limit über die Provisioning-API. Für die Zurechnung **nicht** nötig — siehe `VERIFIKATION.md` |
 
 ## Die elf Profile
 

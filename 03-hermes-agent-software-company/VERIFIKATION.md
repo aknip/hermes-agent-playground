@@ -31,6 +31,62 @@ einer der elf verifizierten Stories belegt. Was das nicht deckt, steht unten in
 | **`triage` ist nicht das Ende der Arbeit** | Entgegen der Formulierung im Konzept holte der Dispatcher die Triage-Karte beim nächsten Tick nach `running` zurück. Zutreffend ist die schwächere Aussage: Die Karte fragt niemanden mehr, läuft aber weiter. |
 | **Der Unblock-Grund steht im Kommentar** | Das `unblocked`-Ereignis hat eine **leere** Payload; `gate.sh --reason` landet als Kommentar `UNBLOCK: <verb> …`. Wer den Governance-Check auf `.payload.reason` baut, meldet jede legitime Gate-Antwort als Verstoss. |
 | **Phase-0-Abschluss** | Kette Spezifikation→Bau→Review→Riegel durchgelaufen; Gate hielt; CEO-Antwort `modify` ausgeführt; Riegel bestand alle sechs Prüfungen und merged `c7eba96` nach `main`. Kein Worker rief je `kanban_unblock`. |
+| **Ein Key je Profil wirkt** | Siehe den eigenen Abschnitt unten — nachgewiesen am Verbrauchszähler von OpenRouter, nicht an der eigenen Konfigurationsdatei. |
+
+## Ein OpenRouter-Key je Profil — und warum die naheliegende Prüfung nichts wert ist
+
+`hermes -p <profil> config set OPENROUTER_API_KEY <wert>` schreibt nach
+`~/.hermes/profiles/<profil>/.env` (`hermes_cli/config.py:1153` schickt jeden
+Namen auf `_API_KEY` in die `.env`, `config.py:5087` ist die Abzweigung in
+`set_config_value`). Dass diese Datei die exportierte Shell-Variable schlägt,
+steht in `hermes_cli/env_loader.py:496`:
+
+```python
+_load_dotenv_with_fallback(user_env, override=True)
+```
+
+Damit war belegt, was die CLI tut. Offen blieb die Frage, auf die es ankommt:
+**Läuft ein Worker, den der Dispatcher startet, überhaupt mit `HERMES_HOME` auf
+dem Profilverzeichnis?** Erbt er stattdessen `~/.hermes` vom Gateway-Elternteil,
+wird die Profil-`.env` nie gelesen, alle elf Rollen laufen auf dem Root-Key —
+und `config get` meldet trotzdem grün, weil es dieselbe Datei liest, die
+`assign-keys.sh` gerade geschrieben hat. Eine Prüfung, die sich selbst bestätigt,
+ist dieselbe Bauart Fehler wie ein Merge-Riegel, der prüft, ohne zu prüfen.
+
+Der einzige Zeuge ausserhalb der eigenen Dateien ist OpenRouter:
+`GET /api/v1/key` meldet den Verbrauch **des Keys, mit dem gefragt wird**.
+`scripts/check-keys.sh` misst deshalb alle elf, lässt Probekarten über den
+Dispatcher laufen und misst erneut.
+
+Messung vom 17.08.2026, zweiter Durchgang (drei Keys trugen bereits Verbrauch
+aus dem ersten):
+
+| Profil | vorher | nachher | Delta |
+|--------|-------:|--------:|------:|
+| `esf-dev-a` | 0 | 0,004368826 | **+0,00436883** |
+| `esf-reviewer` | 0 | 0,002829120 | **+0,00282912** |
+| `esf-market-scout` | 0,004390536 | 0,004390536 | 0 |
+| `esf-estimator` | 0,002657672 | 0,002657672 | 0 |
+| `esf-controller` | 0,005610984 | 0,005610984 | 0 |
+| die übrigen sechs | 0 | 0 | 0 |
+
+Beide Hälften stimmen: Die geprüften Rollen haben ihren eigenen Key belastet,
+und **keine fremde Rolle wurde mitbelastet** — auch keine der drei, die schon
+vorher Verbrauch hatten. Das ist der Teil, der „jede Rolle hat einen eigenen
+Key" von „irgendein Key hat gearbeitet" unterscheidet.
+
+Zwei Nebenbefunde, beide mit Folgen:
+
+- **Der Zähler läuft nach.** Unmittelbar nach `done` standen alle elf Keys noch
+  auf 0; rund eine Minute später zeigten genau die geprüften ihren Verbrauch.
+  Der erste Lauf der Prüfung meldete deshalb einen Fehlschlag, den es nicht
+  gab. `check-keys.sh` wartet jetzt auf die Buchung und danach noch eine
+  Kontrollrunde — sonst prüft die zweite Hälfte einen Zählerstand, der bloss
+  noch nicht angekommen ist.
+- **`GET /api/v1/key` authentifiziert sich mit dem Key selbst.** Für den
+  Verbrauch je Rolle braucht es also **keinen** `OPENROUTER_PROVISIONING_KEY`.
+  Die Annahme in `scripts/provision-keys.sh`, die Zurechnung hänge an der
+  Provisioning-API, war falsch und ist dort korrigiert.
 
 ## Eine Korrektur, gefunden von der eigenen Organisation
 
@@ -160,8 +216,8 @@ Das ist Absicht: Der Rückbau entfernt die Organisation, nicht ihr Ergebnis.
 
 | Baustein | Status | Warum |
 |----------|--------|-------|
-| **OpenRouter-Key je Profil** (Provisioning-API, USD-Limit) | **Annahme** | `scripts/provision-keys.sh` ist geschrieben und an der offiziellen Doku belegt, aber nicht ausgeführt: In dieser Umgebung liegt kein `OPENROUTER_PROVISIONING_KEY` vor. Die ESF läuft mit dem Root-Key. Folge: kein harter USD-Deckel je Rolle, und `ledger-sync.sh` schreibt `cost_usd: null` statt einer Zurechnung. |
-| **Kostenzurechnung je Karte** | **Annahme** | Setzt Keys je Profil voraus (siehe oben). Die Tagessumme über `/api/v1/activity` wird geholt, aber nicht auf Rollen verteilt. |
+| **USD-Deckel je Rolle** | **entfällt mit diesen Keys** | Die elf zugeordneten Keys melden `limit: null` — sie haben keinen Deckel. Ein Key je Rolle bringt hier die Zurechnung, nicht die Bremse. Ein Limit setzt man bei OpenRouter je Key; über die API geht das nur mit `OPENROUTER_PROVISIONING_KEY` (`scripts/provision-keys.sh --limit`), der weiterhin nicht vorliegt. |
+| **Kostenzurechnung je Karte** | **geht nicht, und zwar grundsätzlich** | `GET /api/v1/key` meldet den **kumulativen** Verbrauch eines Keys, also je Rolle. Eine Rolle mit fünf Karten am Tag liesse sich nur durch Division aufteilen — genau die erfundene Zahl, die das Ledger nicht enthalten soll. `cost_usd` bleibt je Karte `null`; die Rollensummen stehen in `ledger/kosten-je-rolle.jsonl`. |
 | **Cron-Auslösung zur geplanten Zeit** | **nicht geprüft** | `install-cron.sh` trägt ein und `--remove` baut zurück; dass die Einträge um 07:00/18:00/23:30 tatsächlich feuern, wurde in diesem Lauf nicht abgewartet. Die Skripte selbst sind einzeln ausgeführt. |
 | **Gateway als Dauerbetrieb** | **nicht geprüft** | `hermes gateway status` meldete die Service-Definition als *stale*. Der ganze Lauf taktete deshalb über `pump.sh` von Hand. |
 | **Autonomie-Horizont `quartal`** | **nicht geprüft** | Der Pfad ist in `gate.sh` und im Gate-Auftrag angelegt, aber in diesem Lauf wurde nur `release` gefahren. |

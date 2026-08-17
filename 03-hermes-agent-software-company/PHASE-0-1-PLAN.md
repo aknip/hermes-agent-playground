@@ -56,11 +56,14 @@ der launchd-Dispatcher ist für diesen Lauf keine verlässliche Vorbedingung.
 - **Der Vault liegt in `workspace/company/`** und ist ein eigenes Git-Repo
   (aus `seed/company/` erzeugt, gitignored). Story-Invariante: `seed/` ist der
   Master, `workspace/` die Wegwerfkopie.
-- **Ein OpenRouter-Key statt elf.** Die Provisioning-API (Key je Profil mit
-  USD-Limit) ist im Konzept als *Annahme* markiert und braucht einen
-  Provisioning-Key, der hier nicht vorliegt. `provision-keys.sh` existiert,
-  meldet die fehlende Voraussetzung und bricht nicht ab; die Kostenzurechnung je
-  Rolle bleibt in diesem Lauf offen und steht in `VERIFIKATION.md`.
+- ~~**Ein OpenRouter-Key statt elf.**~~ **Überholt am 17.08.2026.** Elf Keys
+  liegen inzwischen vor und sind über `scripts/assign-keys.sh` den elf Profilen
+  zugeordnet — nachgewiesen am Verbrauchszähler, nicht an der eigenen
+  Konfiguration (`scripts/check-keys.sh`, siehe `VERIFIKATION.md`). Die
+  Kostenzurechnung je **Rolle** ist damit gemessen; je **Karte** bleibt sie
+  unmöglich, weil der Zähler kumulativ je Key läuft. Was weiterhin fehlt, ist
+  allein der USD-Deckel: Ein Limit setzt nur die Provisioning-API, und die
+  zugeordneten Keys melden `limit: null`.
 - **Superpowers werden vendored**, nicht per Plugin installiert: die
   rollenspezifischen Teilmengen liegen unter `skills/<profil>/` und werden von
   `setup.sh` nach `~/.hermes/profiles/<p>/skills/` kopiert — der belegte Weg

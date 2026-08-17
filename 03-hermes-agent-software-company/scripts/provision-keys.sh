@@ -6,15 +6,27 @@
 #   scripts/provision-keys.sh [--limit <USD>] [--list] [--remove]
 #
 # Legt über die OpenRouter-Provisioning-API je Profil einen eigenen API-Key mit
-# hartem USD-Limit an. Das ist zweierlei zugleich: der Kosten-Deckel je Rolle
-# und die Messbasis der Kostenzurechnung — ohne Key je Rolle lässt sich eine
-# Tagessumme nicht auf Rollen aufteilen.
+# hartem USD-Limit an.
 #
-# ⚠ NICHT VERIFIZIERT. Dieser Weg ist an der offiziellen OpenRouter-Doku
-#   belegt, aber gegen v0.20.0 nicht durchgespielt. Ohne
-#   OPENROUTER_PROVISIONING_KEY meldet das Skript das und bricht NICHT ab:
-#   Die ESF läuft dann mit dem einen Root-Key, und die Kostenzurechnung je
-#   Rolle bleibt offen. Siehe VERIFIKATION.md.
+# ⚠ BRAUCHT MAN NUR FÜR DAS LIMIT. Wer bereits Keys hat, ordnet sie mit
+#   scripts/assign-keys.sh zu — das ist der durchgespielte Weg (verifiziert am
+#   17.08.2026 am Verbrauchszähler, siehe VERIFIKATION.md).
+#
+# ⚠ EINE ANNAHME DIESES SKRIPTS WAR FALSCH und ist hier korrigiert: Die
+#   Kostenzurechnung je Rolle hängt NICHT an der Provisioning-API.
+#   `GET /api/v1/key` authentifiziert sich mit dem abgefragten Key selbst und
+#   meldet dessen Verbrauch. Elf Profil-Keys genügen also — gleich woher sie
+#   stammen. `scripts/assign-keys.sh --verbrauch` tut genau das, und
+#   ledger-sync.sh schreibt daraus ledger/kosten-je-rolle.jsonl.
+#
+#   Was allein hier bleibt, ist der harte USD-Deckel: Ein Limit lässt sich über
+#   die API nur mit einem Provisioning-Key setzen. Von Hand erzeugte Keys haben
+#   `limit: null` — gemessen an allen elf Keys dieses Laufs.
+#
+# ⚠ NICHT VERIFIZIERT. Der Weg unten ist an der offiziellen OpenRouter-Doku
+#   belegt, aber nicht ausgeführt: In dieser Umgebung liegt kein
+#   OPENROUTER_PROVISIONING_KEY vor. Ohne ihn meldet das Skript das und bricht
+#   NICHT ab.
 #
 # Zweite Wechselwirkung, die man kennen muss: Läuft ein Key gegen sein Limit,
 # sehen die Fehlertexte nach Billing/Quota aus — exakt das Muster, auf das die
@@ -53,14 +65,20 @@ if [ -z "${OPENROUTER_PROVISIONING_KEY:-}" ]; then
 
   OPENROUTER_PROVISIONING_KEY ist nicht gesetzt — übersprungen.
 
-  Ohne eigenen Key je Profil läuft die ESF mit dem Root-Key aus der
-  Hermes-Konfiguration. Das funktioniert; es fehlt nur:
+  Das ist kein Notstand. Was hier fehlt, ist genau eine Sache: der harte
+  USD-Deckel je Rolle. Ein Limit lässt sich über die API nur mit einem
+  Provisioning-Key setzen.
 
-    · der harte USD-Deckel je Rolle
-    · die Zurechnung der Tageskosten auf einzelne Rollen im Ledger
-      (ledger-sync.sh schreibt dann cost_usd: null statt einer Vermutung)
+  NICHT betroffen ist die Kostenzurechnung je Rolle. Die braucht nur elf
+  Keys, gleich woher:
 
-  Nachrüsten:
+    scripts/assign-keys.sh              vorhandene Keys zuordnen
+    scripts/assign-keys.sh --verbrauch  Verbrauch je Rolle abfragen
+
+  Läuft dagegen alles auf dem einen Root-Key, gibt es keine Aufteilung auf
+  Rollen — und ledger-sync.sh schreibt lieber nichts als eine Vermutung.
+
+  Deckel nachrüsten:
     1. Provisioning-Key erzeugen: https://openrouter.ai/settings/provisioning-keys
     2. export OPENROUTER_PROVISIONING_KEY=sk-or-v1-…
     3. scripts/provision-keys.sh --limit 5

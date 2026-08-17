@@ -33,22 +33,58 @@ mkdir -p "$(dirname "$LEDGER")"; : >> "$LEDGER"
 k() { hermes kanban --board "$BOARD" "$@"; }
 
 # ---------------------------------------------------------------------------
-# Tageskosten je Profil-Key aus der OpenRouter-Activity-API
+# Kosten je Rolle aus den Profil-Keys
 # ---------------------------------------------------------------------------
-# Solange jedes Profil keinen eigenen Key hat (provision-keys.sh), lässt sich
-# die Summe nicht auf Rollen aufteilen. Dann steht sie als Tagessumme im
-# Report und je Karte `null` — ehrlich statt erfunden.
+# Seit jedes Profil einen eigenen Key hat (scripts/assign-keys.sh), ist die
+# Zurechnung auf Rollen keine Schätzung mehr: `GET /api/v1/key` meldet den
+# Verbrauch DES KEYS, mit dem gefragt wird. Elf Keys, elf Zahlen.
+#
+# Zwei Dinge, die dabei leicht schiefgehen:
+#
+#  1. Die Zahl ist KUMULATIV, kein Tageswert. Der Tagesverbrauch ist deshalb
+#     die Differenz zum letzten Schnappschuss — und den führt diese Datei
+#     selbst, denn OpenRouter kennt keinen Verlauf je Key.
+#  2. Der Zähler läuft dem Lauf nach (gemessen 17.08.2026: gut eine Minute).
+#     Für einen Cron um 23:30 ist das ohne Belang; wer direkt nach einem Lauf
+#     abgleicht, bucht einen Teil auf den nächsten Tag.
+#
+# Was damit AUSDRÜCKLICH nicht geht: Kosten je KARTE. Kumulativ je Key heisst
+# je Rolle, nicht je Aufgabe — und eine Rolle mit fünf Karten am Tag liesse
+# sich nur durch Division aufteilen. Genau das wäre die erfundene Zahl, die
+# dieses Skript nicht schreibt. `cost_usd` bleibt je Karte `null`.
+ROLLENKOSTEN="$VAULT/ledger/kosten-je-rolle.jsonl"
+mkdir -p "$(dirname "$ROLLENKOSTEN")"; : >> "$ROLLENKOSTEN"
 KOSTEN_HEUTE="null"
-if [ -n "${OPENROUTER_API_KEY:-}" ]; then
-    antwort="$(curl -fsS --max-time 20 "https://openrouter.ai/api/v1/activity?date=$HEUTE" \
-        -H "Authorization: Bearer $OPENROUTER_API_KEY" 2>/dev/null || true)"
-    if [ -n "$antwort" ]; then
-        KOSTEN_HEUTE="$(printf '%s' "$antwort" | jq -r '[.data[]?.usage // 0] | add // 0' 2>/dev/null || echo null)"
+
+if [ -x "$HERE/assign-keys.sh" ] && [ -f "$ESF/key-zuordnung.txt" ]; then
+    messung="$("$HERE/assign-keys.sh" --verbrauch 2>/dev/null \
+               | awk 'NF==3 && $1 ~ /^esf-/ {print $1, $2}')"
+    if [ -n "$messung" ]; then
+        echo "Verbrauch je Rolle (kumulativ / seit dem letzten Abgleich)"
+        summe=0
+        while read -r profil gesamt; do
+            case "$gesamt" in ''|*[!0-9.]*) continue ;; esac
+            vorher="$(grep "\"profile\": *\"$profil\"" "$ROLLENKOSTEN" 2>/dev/null \
+                      | tail -1 | jq -r '.usage_total // 0' 2>/dev/null || echo 0)"
+            delta="$(python3 -c "print(round($gesamt - ${vorher:-0}, 8))")"
+            printf '  %-22s %12s   +%s\n' "$profil" "$gesamt" "$delta"
+            summe="$(python3 -c "print(round($summe + $delta, 8))")"
+            if [ "$DRY" -eq 0 ]; then
+                jq -n -c --arg p "$profil" --arg at "$HEUTE" \
+                    --argjson g "$gesamt" --argjson d "$delta" \
+                    '{at:$at, profile:$p, usage_total:$g, usage_delta:$d}' >> "$ROLLENKOSTEN"
+            fi
+        done <<< "$messung"
+        KOSTEN_HEUTE="$summe"
     fi
 fi
-echo "OpenRouter-Tagessumme $HEUTE: ${KOSTEN_HEUTE} USD"
-[ "$KOSTEN_HEUTE" = "null" ] && \
-    echo "  (nicht gemessen — OPENROUTER_API_KEY fehlt oder die API antwortete nicht)"
+
+echo "OpenRouter-Summe seit dem letzten Abgleich: ${KOSTEN_HEUTE} USD"
+[ "$KOSTEN_HEUTE" = "null" ] && cat <<'EOF'
+  (nicht gemessen — kein Key je Profil zugeordnet. Die ESF läuft dann auf dem
+   Root-Key, und eine Aufteilung auf Rollen gäbe es nur als Erfindung.
+   Abhilfe: scripts/assign-keys.sh)
+EOF
 
 # ---------------------------------------------------------------------------
 # Je fertige Karte eine Ledger-Zeile
@@ -94,6 +130,7 @@ for id in $(printf '%s' "$liste" | jq -r '.[] | select(.status=="done") | .id');
           estimate:$schaetzung,
           actual:{wall_minutes:$minuten, runs:$laeufe, standby_overlap:$standby,
                   tokens_k:null, cost_usd:null},
+          comment:"cost_usd je Karte gibt es nicht: der Key misst je Rolle. Siehe ledger/kosten-je-rolle.jsonl",
           at:$at}')"
 
     if [ "$DRY" -eq 1 ]; then

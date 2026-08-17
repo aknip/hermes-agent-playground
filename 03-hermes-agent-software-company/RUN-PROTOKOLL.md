@@ -266,10 +266,41 @@ ausgeführt, beide Roadmap-Stände im Vault.
 
 142 Minuten Kartenzeit über zehn Karten, verteilt auf gut zweieinhalb Stunden
 Wanduhrzeit. Die Differenz sind die Hänger, die Retries und die Wartezeit am
-Gate. Eine Kostenangabe in USD steht bewusst nicht hier: Ohne einen
-OpenRouter-Key je Profil lässt sich die Tagessumme nicht auf Rollen aufteilen,
-und `ledger-sync.sh` schreibt deshalb `cost_usd: null` statt einer Vermutung.
-Genau das ist der Zweck des Ledgers ab Phase 2.
+Gate. Eine Kostenangabe in USD steht für diesen Lauf nicht hier: Er lief auf
+dem einen Root-Key, und eine Aufteilung auf Rollen gäbe es nur als Erfindung.
+
+## Nachtrag: elf Keys, elf Rollen
+
+Nach dem Lauf kamen elf OpenRouter-Keys dazu. `scripts/assign-keys.sh` ordnet
+sie den elf Profilen zu — nach Reihenfolge, festgehalten in
+`key-zuordnung.txt` mit Fingerabdruck statt Geheimnis.
+
+Interessant ist nicht die Zuordnung, sondern was sie zu beweisen zwang. Dass
+`hermes -p <profil> config set` in die Profil-`.env` schreibt und die
+Shell-Variable schlägt, steht im Quelltext (`env_loader.py:496`, `override=True`).
+Offen war, ob ein vom **Dispatcher** gestarteter Worker überhaupt mit
+`HERMES_HOME` auf dem Profilverzeichnis läuft. Wäre es anders, liefen alle elf
+Rollen still auf dem Root-Key — und `config get` meldete trotzdem grün, weil es
+dieselbe Datei liest, die eben geschrieben wurde.
+
+`scripts/check-keys.sh` fragt deshalb OpenRouter statt sich selbst. Zwei
+Probekarten, vorher und nachher gemessen: `esf-dev-a` +0,00436883 USD,
+`esf-reviewer` +0,00282912 USD, die anderen neun exakt unverändert — drei davon
+mit Vorbelastung aus dem ersten Durchgang, die sich nicht bewegte.
+
+Der erste Lauf dieser Prüfung meldete einen Fehlschlag, den es nicht gab: Der
+Zähler bei OpenRouter läuft dem Lauf gut eine Minute nach, und direkt nach
+`done` stand alles auf null. Die Prüfung wartet jetzt auf die Buchung und
+danach noch eine Kontrollrunde.
+
+Nebenbei fiel eine falsche Annahme aus meinen eigenen Unterlagen: `GET
+/api/v1/key` authentifiziert sich mit dem abgefragten Key selbst. Die
+Kostenzurechnung je Rolle braucht also **keinen** Provisioning-Key —
+`provision-keys.sh` behauptete das Gegenteil. `ledger-sync.sh` schreibt seither
+echte Zahlen nach `ledger/kosten-je-rolle.jsonl`; die fünf Probekarten kosteten
+zusammen 0,0199 USD. Je **Karte** bleibt `cost_usd` trotzdem `null`: Der Zähler
+ist kumulativ je Key, also je Rolle, und alles Feinere wäre eine Division mit
+dem Anschein einer Messung.
 
 ## Bilanz
 
