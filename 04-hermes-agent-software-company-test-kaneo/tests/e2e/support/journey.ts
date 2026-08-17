@@ -58,3 +58,20 @@ export async function arbeitsbereichAnlegen(
   await expect(page).not.toHaveURL(/\/onboarding/, { timeout: 30_000 });
   return name;
 }
+
+/**
+ * Bis ins Board eines frisch angelegten Projekts. Erwartet eine Sitzung auf
+ * einer Arbeitsbereichsseite (nach `arbeitsbereichAnlegen` oder aus dem
+ * Dashboard) und wiederholt den sichtbaren Weg, den die Journey J-02
+ * dokumentiert: „Add project" — Projektname — „Create Project".
+ */
+export async function projektAnlegen(
+  page: Page,
+  name = `Projekt ${Date.now()}`,
+): Promise<string> {
+  await page.getByRole("button", { name: "Add project" }).click();
+  await page.getByPlaceholder("Project name").fill(name);
+  await page.getByRole("button", { name: "Create Project" }).click();
+  await expect(page).toHaveURL(/\/project\/[^/]+\/board/, { timeout: 30_000 });
+  return name;
+}

@@ -75,16 +75,25 @@ for id in $(k list --json 2>/dev/null | jq -r '.[] | select(.status=="running") 
     cpu="$(printf '%s' "$werte" | cut -d' ' -f2)"
     dauer_min="$(minuten_aus "$laufzeit")"
 
-    sockets="$(lsof -p "$pid" -i -a 2>/dev/null | grep -c 'CLOSE_WAIT' || true)"
+    # Beide Zahlen zählen, nicht nur die tote Verbindung: Ein Worker hält
+    # oft mehrere Sockets. Ein einzelnes CLOSE_WAIT NEBEN einer lebenden
+    # Verbindung ist ein Überbleibsel einer abgeschlossenen Anfrage, kein
+    # Hänger — wer darauf tötet, wirft laufende Arbeit weg. Beim ersten Entwurf
+    # dieses Skripts wäre genau das passiert.
+    tot="$(lsof -p "$pid" -i -a 2>/dev/null | grep -c 'CLOSE_WAIT' || true)"
+    lebend="$(lsof -p "$pid" -i -a 2>/dev/null | grep -c 'ESTABLISHED' || true)"
 
     # awk statt bc: bc ist auf macOS nicht überall da.
     leerlauf="$(awk -v c="${cpu:-0}" -v s="$CPU_SCHWELLE" 'BEGIN{print (c < s) ? 1 : 0}')"
 
-    verdacht=""
-    if [ "$leerlauf" -eq 1 ] && [ "${sockets:-0}" -gt 0 ]; then
-        verdacht="CLOSE_WAIT-Socket bei ${cpu}% CPU"
+    verdacht=""; toeten=0
+    if [ "$leerlauf" -eq 1 ] && [ "${tot:-0}" -gt 0 ] && [ "${lebend:-0}" -eq 0 ]; then
+        # Keine lebende Verbindung, keine CPU, aber ein toter Socket: Der
+        # Worker wartet auf eine Antwort, die nie kommt. Das ist der Hänger.
+        verdacht="${tot} tote(r) Socket, KEINE lebende Verbindung, ${cpu}% CPU"
+        toeten=1
     elif [ "$leerlauf" -eq 1 ] && [ "${dauer_min:-0}" -ge "$MIN_MINUTEN" ]; then
-        verdacht="${dauer_min} min bei ${cpu}% CPU, kein CLOSE_WAIT — vermutlich lange Modellantwort"
+        verdacht="${dauer_min} min bei ${cpu}% CPU, aber ${lebend} lebende Verbindung(en)"
     fi
     [ -n "$verdacht" ] || continue
 
@@ -93,13 +102,14 @@ for id in $(k list --json 2>/dev/null | jq -r '.[] | select(.status=="running") 
     printf '\n  %s  %s\n' "$id" "$titel"
     printf '    pid %s, läuft %s, %s\n' "$pid" "$laufzeit" "$verdacht"
 
-    if [ "${sockets:-0}" -gt 0 ] && [ "$KILL" -eq 1 ]; then
+    if [ "$toeten" -eq 1 ] && [ "$KILL" -eq 1 ]; then
         kill "$pid" 2>/dev/null && printf '    → beendet. Der Dispatcher startet die Karte neu.\n'
-    elif [ "${sockets:-0}" -gt 0 ]; then
+    elif [ "$toeten" -eq 1 ]; then
         printf '    → mit --kill beenden; der Dispatcher startet die Karte dann neu.\n'
     else
-        printf '    → NICHT beendet: ohne CLOSE_WAIT ist eine lange Modellantwort\n'
-        printf '      die wahrscheinlichere Erklärung. --max-runtime deckelt es.\n'
+        printf '    → NICHT beendet: solange eine Verbindung steht, ist eine lange\n'
+        printf '      Modellantwort die wahrscheinlichere Erklärung. Dafür ist\n'
+        printf '      --max-runtime da. Ein Fehlkill kostet die ganze Karte.\n'
     fi
 done
 
