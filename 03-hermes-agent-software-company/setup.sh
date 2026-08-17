@@ -49,7 +49,7 @@ tier_von() {
 say() { printf '\n\033[1m%s\033[0m\n' "$*"; }
 
 # ---------------------------------------------------------------------------
-say "1/6  Vorbedingungen"
+say "1/7  Vorbedingungen"
 # ---------------------------------------------------------------------------
 for werkzeug in hermes jq git python3 pnpm; do
     command -v "$werkzeug" >/dev/null || { echo "FEHLER: '$werkzeug' fehlt."; exit 1; }
@@ -86,7 +86,7 @@ if [ -n "$fremde" ]; then
 fi
 
 # ---------------------------------------------------------------------------
-say "2/6  Board '$BOARD'"
+say "2/7  Board '$BOARD'"
 # ---------------------------------------------------------------------------
 BOARD_NAME="ESF — Enterprise Software Factory"
 if hermes kanban boards list 2>/dev/null | grep -qE "^[● ] *${BOARD} "; then
@@ -105,7 +105,7 @@ else
 fi
 
 # ---------------------------------------------------------------------------
-say "3/6  Provider-Einstellungen"
+say "3/7  Provider-Einstellungen"
 # ---------------------------------------------------------------------------
 # Ein Profil zählt für den Dispatcher erst dann als Assignee, wenn in seinem
 # Verzeichnis eine config.yaml liegt. `hermes profile create` legt sie NICHT
@@ -132,7 +132,7 @@ done
 printf '  %-18s = %s / %s / %s\n' "Tiers (h/m/g)" "$MODELL_HOCH" "$MODELL_MITTEL" "$MODELL_GUENSTIG"
 
 # ---------------------------------------------------------------------------
-say "4/6  Profile"
+say "4/7  Profile"
 # ---------------------------------------------------------------------------
 for name in "${PROFILE_NAMES[@]}"; do
     if [ -d "$HOME/.hermes/profiles/$name" ]; then
@@ -177,7 +177,24 @@ for name in "${PROFILE_NAMES[@]}"; do
 done
 
 # ---------------------------------------------------------------------------
-say "5/6  Firmen-Vault und Produkt-Repo"
+say "5/7  Ein OpenRouter-Key je Profil"
+# ---------------------------------------------------------------------------
+# Muss NACH den Profilen laufen: `hermes -p <p> config set` braucht das
+# Profilverzeichnis. Und muss bei JEDEM setup.sh laufen, denn ./teardown.sh
+# löscht die Profilverzeichnisse mitsamt ihrer .env.
+#
+# Fehlt die Schlüsseldatei, ist das kein Abbruchgrund — die ESF läuft dann auf
+# dem einen Root-Key. Es ist aber auch kein Nebensatz: Ohne Key je Rolle gibt
+# es keine Kostenzurechnung, und der Rückfall passiert lautlos. Deshalb sagt
+# assign-keys.sh in dem Fall laut, was fehlt, und der Selbsttest unten warnt
+# ein zweites Mal.
+set +e
+"$HERE/scripts/assign-keys.sh" 2>&1 | sed 's/^/  /'
+keys_rc=${PIPESTATUS[0]}
+set -e
+
+# ---------------------------------------------------------------------------
+say "6/7  Firmen-Vault und Produkt-Repo"
 # ---------------------------------------------------------------------------
 "$HERE/reset-workspace.sh"
 
@@ -189,7 +206,7 @@ echo
 "$HERE/scripts/install-repo-hooks.sh" | sed 's/^/  /'
 
 # ---------------------------------------------------------------------------
-say "6/6  Modellfreie Selbsttests"
+say "7/7  Modellfreie Selbsttests"
 # ---------------------------------------------------------------------------
 fehler=0
 
@@ -231,6 +248,24 @@ else
     echo "FEHLER: der Riegel hätte verweigern müssen (Exit $riegel_rc)."
     printf '%s\n' "$riegel_aus" | tail -5 | sed 's/^/    /'
     fehler=1
+fi
+
+# (d) Ein Key je Rolle — und elf VERSCHIEDENE. Der Rückfall auf den Root-Key
+#     ist die gefährlichere Hälfte, weil nichts daran auffällt: Das Board
+#     läuft, die Karten werden fertig, nur die Kostenzurechnung ist erfunden.
+say "Ein Key je Profil"
+set +e
+"$HERE/scripts/assign-keys.sh" --pruefen 2>&1 | tail -13
+keys_pruefung=${PIPESTATUS[0]}
+set -e
+if [ "$keys_pruefung" -ne 0 ]; then
+    if [ "${keys_rc:-1}" -eq 0 ]; then
+        echo "FEHLER: Keys wurden zugeordnet, aber die Prüfung ist rot."
+        fehler=1
+    else
+        printf '\033[33m  ⚠ Die ESF läuft auf dem Root-Key. Das ist erlaubt, aber\033[0m\n'
+        printf '\033[33m    ledger-sync.sh kann dann keine Kosten je Rolle ausweisen.\033[0m\n'
+    fi
 fi
 
 if [ "$fehler" -eq 0 ]; then

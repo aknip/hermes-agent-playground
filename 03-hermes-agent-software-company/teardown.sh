@@ -131,6 +131,12 @@ if [ "$KEEP_PROFILES" -eq 0 ] && [ ${#zu_loeschen[@]} -gt 0 ]; then
         rm -rf "$HOME/.hermes/profiles/$name"
         echo "  $name entfernt"
     done
+    # Mit dem Profilverzeichnis geht auch profiles/<name>/.env — und damit der
+    # OPENROUTER_API_KEY dieser Rolle. Die Keys SELBST bleiben bei OpenRouter
+    # gültig; sie werden hier nur nicht mehr benutzt. Das nächste ./setup.sh
+    # ordnet sie über key-zuordnung.txt wieder denselben Rollen zu, sodass die
+    # Verbrauchszahlen über einen Rückbau hinweg vergleichbar bleiben.
+    echo "  Die Keys aus den .env-Dateien sind damit weg (bei OpenRouter bleiben sie gültig)."
 fi
 
 # ---------------------------------------------------------------------------
