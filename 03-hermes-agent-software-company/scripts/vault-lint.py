@@ -176,6 +176,12 @@ def pruefe_vault(wurzel, b):
             if re.match(r"^reports[/\\]e2e-", rel):
                 continue
 
+            # AGENTS.md 2.1 — Maschinenprotokolle unter reports/ (Riegel-Läufe,
+            # Testausgaben) bleiben Rohtext. Ein Rohbeleg, den jemand fürs
+            # Format angefasst hat, ist keiner mehr.
+            if oberster == "reports" and datei.endswith((".txt", ".log")):
+                continue
+
             if oberster not in ERLAUBTE_ORDNER:
                 continue  # oben schon gemeldet
 

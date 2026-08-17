@@ -36,6 +36,12 @@ Ausgenommen und bewusst Markdown sind nur die Dateien, deren Werkzeuge es
 vorsehen: `AGENTS.md`, `SOUL.md`, `SKILL.md`, die Pläne aus `writing-plans` —
 und `cadence.yaml` plus `estimates.jsonl`, die maschinengelesen werden.
 
+Ebenfalls ausgenommen sind **Maschinenprotokolle** unter `reports/`: die
+Ausgabe eines Riegel-Laufs, eines Testlaufs, eines Skripts. Sie liegen als
+`.txt` oder `.log` und werden **nicht** umformatiert. Sie sind Rohbelege, und
+ein Rohbeleg, den jemand für die Darstellung angefasst hat, ist keiner mehr.
+Wer sie zitiert, verlinkt sie aus einem `.html`-Report.
+
 ### 2.2 Jedes HTML-Dokument trägt einen Kopf
 
     <!doctype html>
