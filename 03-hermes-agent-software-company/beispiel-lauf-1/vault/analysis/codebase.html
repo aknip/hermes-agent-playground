@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <title>Kaneo — Codebasis-Analyse — ESF</title>
+  <meta name="esf-typ" content="analyse">
+  <meta name="esf-karte" content="t_3c0f38b8">
+  <meta name="esf-datum" content="2026-08-17">
+  <style>
+    body{font:16px/1.65 -apple-system,system-ui,sans-serif;max-width:56rem;margin:2rem auto;padding:0 1rem}
+    h1{border-bottom:3px solid #111;padding-bottom:.4rem}
+    h2{margin-top:2.4rem;border-bottom:1px solid #ddd;padding-bottom:.2rem}
+    code{background:#f3f3f3;padding:.1rem .3rem;border-radius:3px;font-size:14px}
+    table{border-collapse:collapse;width:100%;margin:1rem 0}
+    td,th{border-bottom:1px solid #ddd;padding:.45rem .5rem;text-align:left;vertical-align:top}
+    th{background:#fafafa}
+    .meta{color:#666;font-size:14px}
+    .beleg{color:#444;font-size:14px}
+    .risiko{border-left:4px solid #d97706;padding:.4rem 0 .4rem 1rem;margin:.6rem 0}
+    ul{margin:.3rem 0 .8rem 0}
+  </style>
+</head>
+<body>
+<h1>Kaneo — Codebasis-Analyse</h1>
+<p class="meta">Karte <code>t_3c0f38b8</code> · 2026-08-17 · Repository
+<code>/Users/aknipschild/github/hermes-agent-playground/04-hermes-agent-software-company-test-kaneo</code> ·
+Baseline-Commit <code>e714f87 «Kaneo v2.19.1 — Baseline vor ESF-Onboarding»</code> ·
+Version laut <code>package.json:46</code> (top-level) <b>2.19.1</b></p>
+
+<p>Diese Analyse ist Nur-Lese (die Quelle wurde nicht verändert; <code>.env</code> wurde nicht
+geöffnet). Berufsmaßstab: Jede strukturelle Aussage nennt Datei und Zeile nach
+AGENTS.md 3.1.</p>
+
+<h2>1. Architektur</h2>
+<p>Kaneo ist ein <b>pnpm-Monorepo</b> mit Turbo als Task-Runner (<code>pnpm-workspace.yaml:1-2</code>
+deklariert <code>packages/**</code> und <code>apps/**</code>; <code>turbo.json</code> definiert build/lint/test/typecheck). Die
+App-Boundary ist eine klassische Drei-Schichten-Webapp: React-SPA im Browser, eine
+einzige HTTP-API (<b>Hono</b>), PostgreSQL als Datenhaltung.</p>
+
+<h3>1.1 Die drei Anwendungen + Doku-Standort</h3>
+<table>
+<tr><th>App</th><th>Zweck</th><th>Beleg</th></tr>
+<tr><td><code>apps/api</code></td><td>Der HTTP-/WebSocket-Server: REST + Realtime. 274 TS-Dateien, ~36 Modul-Ordner in <code>src/</code>.</td><td><code>apps/api/src/index.ts:154</code> (Hono-App) · <code>apps/api/src/index.ts:776</code> (<code>app.route("/api", api)</code>)</td></tr>
+<tr><td><code>apps/web</code></td><td>Das Haupt-Frontend (Spa, Vite/React): 574 TS/TSX-Dateien in <code>src/</code>.</td><td><code>apps/web/src/main.tsx:1-60</code> · <code>apps/web/package.json</code> (scripts <code>dev: vite</code>)</td></tr>
+<tr><td><code>apps/site</code></td><td>Next.js Marken-/Landing-Site (Blog, pricing, „Jira-Alternative"-Seiten) auf Port 3001.</td><td><code>apps/site/package.json</code> (<code>dev: next dev -p 3001</code>) · <code>apps/site/app/page.tsx</code></td></tr>
+<tr><td><code>apps/docs</code></td><td>Mintlify-Dokumentation, speist sich aus <code>apps/api/scripts/export-openapi.ts</code>.</td><td><code>apps/docs/docs.json:1-3</code> (Mintlify-Schema) · <code>apps/docs/openapi.json</code></td></tr>
+</table>
+
+<h3>1.2 Grenzen zwischen Frontend, API und Datenhaltung</h3>
+<ul>
+<li><b>Frontend → API:</b> Das Web spricht ausschließlich die Hono-API an; der Client wird
+als typisierter Hono-Client aus <code>@kaneo/libs</code> importiert (<code>packages/libs/src/index.ts</code> exportiert
+<code>client</code> und <code>resolveApiBaseUrl</code>). Basis-URL via <code>apps/web/src/fetchers/get-api-url.ts</code>.</li>
+<li><b>API-Assembly:</b> Ein 968-Zeilen-Hub <code>apps/api/src/index.ts</code> bindet jede Modul-Route an,
+montiert CORS, Auth-Variablen, OpenAPI-Handling und startet Server + WS (<code>apps/api/src/index.ts:207</code>
+erzeugt den API-Sub-Hono, <code>:644</code> und <code>:776</code> bündeln die Routen, <code>:862</code> ruft <code>serve(...)</code>).</li>
+<li><b>Datenhaltung:</b> Postgres 16 + Drizzle ORM. Schema zentral in
+<code>apps/api/src/database/schema.ts</code> (1173 Zeilen) und <code>relations.ts</code>;
+Dialect laut <code>apps/api/drizzle.config.ts:10</code> (<code>postgresql</code>). Start-Migrationen laufen beim
+Boot automatisch (<code>apps/api/src/index.ts:828</code> <code>migrate(getDatabase(), {...})</code>).</li>
+<li><b>Realtime:</b> Websocket über <code>@hono/node-ws</code> mit austauschbarem Broadcast-Adapter —
+In-Memory oder Redis (<code>apps/api/src/ws/</code>: <code>broadcast-adapter.ts</code>, <code>redis-broadcast-adapter.ts</code>,
+<code>in-memory-broadcast-adapter.ts</code>; Initialisierung <code>apps/api/src/index.ts:846</code>).</li>
+<li><b>Datenhaltung Out-of-Band:</b> Dateien/S3 via AWS SDK (<code>apps/api/src/storage/s3.ts:1-11</code>),
+Cache/Broadcast optional über ioredis (<code>apps/api/src/redis/index.ts:1</code>), E-Mails über das
+@kaneo/email-Paket.</li>
+</ul>
+
+<h2>2. Modulkarte (wichtigste Module)</h2>
+<table>
+<tr><th>Modul</th><th>Eine Satz</th><th>Beleg</th></tr>
+<tr><td>Hono-API-Hub (<code>apps/api/src/index.ts</code>)</td><td>Assembly aller Routen, Middleware, OpenAPI und Server-/WS-Start.</td><td><code>apps/api/src/index.ts:154,207,776,846,862</code></td></tr>
+<tr><td>Datenbank/ORM</td><td>Drizzle-Schema, Relations, Verbindung und Boot-Migrationen; die zentrale Datenschicht.</td><td><code>apps/api/src/database/schema.ts</code>, <code>drizzle.config.ts:10</code></td></tr>
+<tr><td>Auth/Accounts</td><td>better-auth mit Session-, Org-, Access-Control-Plugin; RBAC-Statements in @kaneo/permissions.</td><td><code>apps/api/src/auth.ts</code> · <code>packages/permissions/src/index.ts:1-26</code></td></tr>
+<tr><td>Task</td><td>Kern-Domäne: Erzeugen/Mutieren/Import/Export/Reihenfolge der Aufgaben inkl. Berechtigungsprüfung.</td><td><code>apps/api/src/task/controllers/*.ts</code></td></tr>
+<tr><td>Projekt &amp; Workspace</td><td>Projekt-/Arbeitsbereichs-Routen inkl. Reihenfolge und öffentlicher Projekt-Ansicht.</td><td><code>apps/api/src/project/controllers/*.ts</code>, <code>get-public-project.ts</code></td></tr>
+<tr><td>WS/Broadcast</td><td>Realtime-Push an Clients; Adapter-Wechsel In-Memory ↔ Redis pro Instanz.</td><td><code>apps/api/src/ws/broadcast-adapter.ts</code></td></tr>
+<tr><td>Scheduler</td><td>croner-Jobs: Fälligkeits-/Trial-/Seat-Erinnerungen, Webhook-Reminder.</td><td><code>apps/api/src/scheduler/index.ts:10-13</code></td></tr>
+<tr><td>Integrationen</td><td>GitHub, Gitea, Slack, Telegram, Discord, generischer Webhook — OAuth-/Webhook-Flächen nach außen.</td><td><code>apps/api/src/{github,gitea,slack,telegram,discord}-integration/</code></td></tr>
+<tr><td>Billing</td><td>Creem-Anbindung, Abo-/Trial-Logik, Seat-Reconciliation.</td><td><code>apps/api/src/billing/</code> · <code>scheduler/seat-reconciliation.ts</code></td></tr>
+<tr><td>Speicher/S3 + Redis</td><td>Asset-Uploads/präsignierte URLs; optionaler verteilter Cache/Broadcast.</td><td><code>apps/api/src/storage/s3.ts:1-11</code> · <code>apps/api/src/redis/index.ts:1,5-6</code></td></tr>
+<tr><td>Web-Frontend</td><td>React-SPA: Router, Query-Cache, Views (Kanban/Liste/Board/Gantt/Backlog), Such-Kommandopalette, Settings.</td><td><code>apps/web/src/main.tsx:1-60</code> · <code>apps/web/src/routes/_layout/_authenticated/.../dashboard/workspace/</code></td></tr>
+<tr><td>@kaneo/libs</td><td>Geteilter typisierter API-Client und URL-Auflösung für alle Konsumenten.</td><td><code>packages/libs/src/index.ts</code></td></tr>
+<tr><td>@kaneo/permissions</td><td>Zentrale RBAC-Statements/­Rollen (viewer/member/owner/admin) auf Basis better-auth Access-Control.</td><td><code>packages/permissions/src/index.ts:1-26</code></td></tr>
+<tr><td>@kaneo/mcp</td><td>Model-Context-Protocol-Server: exponierte Kaneo-Tools für Agenten/Clients.</td><td><code>packages/mcp/src/server.ts</code>, <code>tools/register.ts</code></td></tr>
+<tr><td>@kaneo/planka-import</td><td>Importer aus dem Planka-Format (Mapping/Felder/Formatort).</td><td><code>packages/planka-import/src/mapping.ts:96-100</code></td></tr>
+</table>
+
+<h2>3. Technischer Stand</h2>
+<table>
+<tr><th>Dimension</th><th>Wert</th><th>Beleg</th></tr>
+<tr><td>Sprache</td><td>TypeScript (Package 7.0.2 als devDependency)</td><td><code>package.json</code> devDeps · <code>apps/api/tsconfig.json</code></td></tr>
+<tr><td>Api-Framework</td><td>Hono (REST + CORS + OpenAPI via hono-openapi), WebSocket via @hono/node-ws</td><td><code>apps/api/src/index.ts:11-13,154,168</code> · deps in <code>apps/api/package.json</code></td></tr>
+<tr><td>Frontend-Framework</td><td>React (Vite-Build), TanStack Router + Query, Zustand/nanostores/i18next</td><td><code>apps/web/src/main.tsx:1-60</code> · <code>apps/web/vite.config.ts</code></td></tr>
+<tr><td>Datenbank</td><td>PostgreSQL (compose postgres:16-alpine), Drizzle ORM + drizzle-kit</td><td><code>compose.yml:3</code> · <code>apps/api/drizzle.config.ts:8-10</code></td></tr>
+<tr><td>Auth</td><td>better-auth mit Drizzle-Adapter, Organization-/Access-Plugin, @better-auth/api-key</td><td><code>apps/api/package.json</code> deps · <code>apps/api/src/auth.ts</code></td></tr>
+<tr><td>Paketmanager</td><td>pnpm 10.32.1 (Workspace), Overrides im Lock</td><td><code>package.json:46</code> · <code>pnpm-workspace.yaml</code></td></tr>
+<tr><td>Build/Task-Runner</td><td>Turbo + esbuild (API), Vite (Web), Next (Site)</td><td><code>turbo.json</code> · <code>apps/api/package.json</code> (build-Script) · <code>apps/site/package.json</code></td></tr>
+<tr><td>Lint/Format</td><td>Biome 2.5.7 (zusätzlich commitlint + Husky)</td><td><code>biome.json:1</code> · <code>package.json</code> devDeps / <code>prepare: husky</code></td></tr>
+<tr><td>Tests</td><td>Vitest (Unit + Integration, V8-Coverage), Playwright (E2E), Testing-Library + jsdom (Web)</td><td><code>apps/api/vitest.config.ts</code> · <code>tests/e2e/journeys/*.spec.ts</code> · <code>apps/web/package.json</code> devDeps</td></tr>
+<tr><td>Deployment</td><td>Docker-Multi-Stage: API als Node-Service + Web als nginx-Static; Compose für lokal</td><td><code>Dockerfile.kaneo:86-104</code> · <code>compose.yml</code></td></tr>
+<tr><td>Observability</td><td>Sentry (API + Web), Gesundheits-Endpunkt für Compose-Healthcheck</td><td><code>apps/api/src/instrument.ts</code> · <code>compose.yml:29-30</code></td></tr>
+<tr><td>Validierung</td><td>valibot (API) + zod (beides im API-Deps); Better-Auth-typed</td><td><code>apps/api/package.json</code> deps</td></tr>
+<tr><td>i18n</td><td>i18next/react-i18next im Web; Skripte <code>scripts/i18n/*.mjs</code> für Check/Report</td><td><code>apps/web/src/lib/i18n/provider.tsx</code> · <code>package.json</code> scripts</td></tr>
+</table>
+
+<h2>4. Testabdeckung</h2>
+<ul>
+<li><b>API-Unit (Logik/Controller):</b> 58 Dateien unter <code>tests/api/</code>, ausgeführt via
+<code>apps/api/vitest.config.ts:5</code> (<code>include: ["../../tests/api/**/*.test.ts"]</code>). Abdecken u.a.
+billing, integrationen, redis, scheduler, search, storage, user, ws.</li>
+<li><b>API-Integration (echtes Postgres):</b> 29 Dateien unter <code>tests/api-integration/</code>,
+<code>apps/api/vitest.integration.config.ts:6-11</code> (Bootet die Hono-App gegen eine echte DB, seriell,
+<code>fileParallelism: false</code>). README: „Coverage ist bewusst inkrementell".</li>
+<li><b>Web-Unit:</b> 35 Dateien in <code>apps/web/src/**/*.test.ts*</code> (vitest + testing-library + jsdom).</li>
+<li><b>Paket-Tests:</b> mcp 8, email 3, libs 1, permissions 1.</li>
+<li><b>E2E (Playwright):</b> 2 Journeys unter <code>tests/e2e/</code>
+(<code>anwendung-erreichbar.spec.ts</code>, <code>konto-anlegen.spec.ts</code>) + <code>support/journey.ts</code>-Helfer;
+Konfiguration <code>playwright.config.ts</code>.</li>
+</ul>
+<p><b>Nicht abgedeckt:</b></p>
+<ul>
+<li>Keine Coverage-Schranke — <code>coverage.enabled: false</code> in beiden API-Vitest-Configs
+(<code>apps/api/vitest.config.ts:7</code>, <code>vitest.integration.config.ts:10</code>); CI erzwingt keinen Prozentsatz.</li>
+<li><code>apps/site</code> (Next.js) hat kein Test-Skript, nur <code>lint</code> (Biome) und Build.</li>
+<li>Große Teile der Web-Komponenten- und Store-Schicht (35 Tests für 574 Quell-Dateien; z.B.
+Store, Views, DnD, Such-Kommandopalette, i18n-Vollständigkeit, die meisten Settings-Bereiche).</li>
+<li>WebSocket-Client-Verhalten und Broadcast-Adapter-Konformität rein clientseitig nicht geprüft.</li>
+<li>i18n wird nur über Skripte gecheckt (<code>i18n:check</code>), nicht in Tests verdrahtet.</li>
+<li>E2E deckt erst 2 Journeys der geplanten Kette ab (die ESF hat dazu <code>tests/e2e/journeys/</code> und
+einen Playwright-Harness angelegt — <code>tests/e2e/support/journey.ts</code>).</li>
+</ul>
+
+<h2>5. Technische Schulden</h2>
+<h3>5.1 Der biome-Befund — Größenordnung und Ursache</h3>
+<p><b>Befund aus der Karte:</b> <code>pnpm exec biome ci .</code> sei „auf dem Ausgangs-Commit bereits rot". Das
+habe ich nachgemessen — und es ist in zwei Ebenen zu zerlegen:</p>
+<ul>
+<li><b>Echte Lint-Restmenge (Bestandsschuld) ist winzig:</b> Auf dem auscheckten Stand
+(<code>HEAD</code> = <code>c7eba96</code>), wenn man nur die Quellpfade prüft (ohne die ESF-Worktrees),
+meldet Biome <b>12 Warnings, 0 Errors, Exit-Code 0</b> (<code>biome ci apps packages i18n scripts</code>,
+1088 Dateien, 217 ms). Aufschlüsselung: 8× <code>lint/complexity/useOptionalChain</code>
+(auto-fixable, u.a. <code>apps/api/src/mcp/controllers/oauth-consent.ts:126</code>,
+<code>apps/web/src/routes/_layout/_authenticated/dashboard/workspace/$workspaceId/index.tsx:393</code>),
+2× <code>lint/performance/noImgElement</code> (<code>apps/site/components/landing/sponsors.tsx:69,110</code>),
+1× <code>noUnusedImports</code> (<code>apps/site/components/landing/hero.tsx:3</code>),
+1× <code>noUnusedFunctionParameters</code> (<code>packages/planka-import/src/mapping.ts:98</code>).
+Alle sind automatisch oder trivial behebbar.</li>
+<li><b>Der rote Exit kommt NICHT vom Code, sondern von der Konfiguration + dem ESF-Worktree-Runtime:</b>
+<code>biome.json:4-6</code> setzt <code>"vcs": {"enabled": false, "useIgnoreFile": false}</code> — Biome ignoriert also
+<code>.gitignore</code> (das <code>.worktrees/</code> führt, <code>.gitignore:46-47</code>). Sobald die ESF einen Worktree erzeugt
+(vorhanden: <code>.worktrees/t_3f496fe8/</code>), wandert Biome in dessen <code>biome.json</code> und bricht mit
+„nested root configuration" ab (Exit 1), bevor überhaupt gelingt. Ohne Worktree ist derselbe Befehl grün.</li>
+</ul>
+<p><b>Fazit:</b> Es ist beides — die <i>sichtbare</i> Röte ist ein Konfigurations-/Runtime-Problem
+(Worktree-Nesting), die <i>tatsächliche</i> Bestandsschuld ist klein (12 auto-fixbare Warnings). Empfohlene
+Korrektur: <code>.worktrees</code> in <code>biome.json → files.includes</code> ausschließen oder <code>vcs.enabled: true</code> setzen.
+Danach ist der Befund auf eine kleine, mechanisch behebbare Warnings-Liste reduziert.</p>
+
+<h3>5.2 Weitere Befunde</h3>
+<ul>
+<li><b>Assembler-Monolith:</b> <code>apps/api/src/index.ts</code> ist mit 968 Zeilen der Verdrahtungshub; er
+importiert alle Module, trägt OpenAPI-Normalisierung (<code>utils/openapi-spec.ts</code>) und mehrere
+Inline-Migrationen. Jede Serviceänderung berührt tendenziell diese Datei — ein Kollisions-Hotspot.</li>
+<li><b>Großes Zentral-Schema:</b> <code>apps/api/src/database/schema.ts</code> (1173 Zeilen) plus
+<code>relations.ts</code> — Schemaänderungen strahlen auf alle Module und Migrationspfade aus.</li>
+<li><b>Migrationen teils wenig formal:</b> neben Drizzle-Migrator (<code>index.ts:828</code>) existieren
+Inline-Migrationen (<code>utils/migrate-*.ts</code>, <code>migrations/column-migration.ts</code>) und
+Plattform-Migrationsübergänge (<code>migrateGitHubIntegration</code>, <code>index.ts:47</code>) — überlagernde Pfade.</li>
+<li><b>Test-Berge pro Schicht ungünstig verteilt:</b> viel API-Unit/Integration, aber Zurückhaltung bei
+Web-Store/Component-Tests und gar keine automatisierten Tests im <code>site</code>-App; keine Coverage-Schwelle.</li>
+<li><b>Doku-Format-Deviations in App-Tests:</b> <code>tests/e2e</code> ist ESF-Neuaufbau (Playwright-Journeys),
+der bestehende Test-Stack (vitest) läuft parallel — zwei Testparadigmen im Repo.</li>
+<li><b>Optional Redis-Komplexität:</b> Broadcast und Cache sind über <code>isRedisConfigured()</code>
+(<code>apps/api/src/redis/index.ts:8</code>) optional; die zwei Pfade (In-Memory vs. Redis) müssen beide
+getestet bleiben.</li>
+</ul>
+
+<h2>6. Wo Änderungen riskant sind</h2>
+<div class="risiko"><b>1. <code>apps/api/src/index.ts</code> (968 Z.) — höchster Hotspot.</b>
+Die zentrale Assembly: Jede neue Route, jedes neue Middleware-Element, jede Variablen-/OpenAPI-Änderung
+landet hier. Parallel-Branches kollidieren hier am leichtesten. → In Deck-Dateien zerlegen, bevor mehrere
+Karten daran arbeiten (Hotspot-Markierung i.S.d. ESF-Prozesses).</div>
+<div class="risiko"><b>2. Datenbank-Schema und Migrationen.</b> <code>schema.ts</code> + <code>relations.ts</code> + die
+overlay-Migrationen sind der empfindlichste Datenpfad; ein Fehler beim Boot (Index <code>:828</code>) legt die
+ganze API still. Schemaänderungen erfordern generate+migrate und die Integrationstests
+(<code>tests/api-integration/</code>).</div>
+<div class="risiko"><b>3. Auth und Berechtigungen.</b> better-auth-Integration und
+<code>@kaneo/permissions</code> (RBAC) sind sicherheitskritisch; ein Fehl-Update = Privilegien-Eskalation oder
+Komplett-Sperre. Hier ist Review-Pflicht.</div>
+<div class="risiko"><b>4. Realtime/Broadcast.</b> Änderungen am WS-Adapter müssen im Redis- und
+Im-Memory-Pfad verhalten gleich bleiben; nur einen Pfad zu testen erzeugt latente Inkonsistenz zwischen
+Einzel- und Multi-Instanz-Betrieb.</div>
+<div class="risiko"><b>5. Nach-außen-Integrationen.</b> GitHub/Gitea/Slack/Telegram/Discord/generic-Webhook
+sind OAuth-/Webhook-Flächen (Secrets!). Änderungen an Signaturprüfung oder Callback-Routen sind
+Releases mit erhöhtem Risiko; die bestehenden <code>tests/api/</code>- und `integration`-Suite samt
+Playwright-Regressionspfad einbeziehen.</div>
+<div class="risiko"><b>6. Billing/Seat-Logik.</b> Creem-Anbindung und die croner-Seat-Reconciliation
+(<code>scheduler/seat-reconciliation.ts:12</code>) wirken auf Abo- und Nutzungsrechte; Fehler hier haben
+wirtschaftliche Folgen und sind über die Integrationstests <code>billing-*.test.ts</code> abgedeckt.</div>
+
+<h2>7. Zusammenfassung für die Folgekarten</h2>
+<ul>
+<li>Die Codebasis ist <b>kompakt und modern</b>: Hono+Postgres/Drizzle-API, React/Vite/TanStack-Web,
+pnpm+Turbo-Repo, sauber geschichtete Boundary via @kaneo/libs-Client.</li>
+<li>Die <i>sichtbar rote</i> Biome-Pipeline ist <b>Worktree-Konfigurationsbefund</b>, nicht Codewucher;
+der echte Lint-Rest sind 12 auto-fixbare Warnings.</li>
+<li>Erste sinnvolle (kleine) Härtungs-Maßnahmen, falls in den Plan aufgenommen: <code>.worktrees</code> aus
+<code>biome.json</code> ausschließen, Wetende biome-Warnings fixen, <code>index.ts</code>-Zerlegung, i18n-/Site-Testlücke
+schließen.</li>
+<li>Alle Strukturbehauptungen sind oben mit Datei:Zeile belegt; Zeitaufwand für die Analyse
+(Terminal, Nur-Lese) unter ca. 30 Minuten Arbeitstakt.</li>
+</ul>
+
+</body>
+</html>

@@ -1,0 +1,13 @@
+KARTE        PROFIL                  MINUTEN LAEUFE  TITEL
+t_3f15fa7f   esf-product-manager           2      1  Probelauf 1/4 — Spezifikation
+t_3f496fe8   esf-dev-a                    21      2  Probelauf 2/4 — Bau
+t_43cc8968   esf-reviewer                  2      1  Probelauf 3/4 — Review
+t_b28eaa18   esf-chief-of-staff           11      4  GATE Roadmap — Probelauf 4/4
+t_3c0f38b8   esf-architect                15      2  Onboarding 1/6 — Codebasis-Analyse
+t_cb915d07   esf-product-manager          12      2  Onboarding 2/6 — Produkt- und Nutzeranalyse
+t_1dbfd0c6   esf-market-analyst           18      2  Onboarding 3/6 — Marktbild
+t_eb30ed57   esf-qa-release               33      2  Onboarding 4/6 — E2E-Suite über die Kern-Journeys
+t_b4da6586   esf-chief-of-staff           11      1  Onboarding 5/6 — Erste Roadmap mit Schätzintervallen
+t_8a275a77   esf-chief-of-staff           14      2  GATE Roadmap — Q1-Freigabe
+
+Summe Kartenzeit: 142 Minuten

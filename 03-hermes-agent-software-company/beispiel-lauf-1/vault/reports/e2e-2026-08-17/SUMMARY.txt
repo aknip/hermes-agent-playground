@@ -1,0 +1,2 @@
+8 passed (24.6s) — 6 Specs, 2 mit Doppel-Test
+Quelle: pnpm exec playwright test, Lauf 2026-08-17 16:27
