@@ -1,0 +1,26 @@
+WEBVTT
+
+1
+00:00:00.000 --> 00:00:06.842
+Video-Zusammenfassung (Sprechertext) Kaneo ist ein schlankes, selbst gehostetes Projektmanagement für kleine Produkt- und Entwicklungsteams.
+
+2
+00:00:06.842 --> 00:00:16.617
+Unsere Analyse zeigt: Der Anwender pflegt im Alltag vor allem Vorgänge — anlegen, zuweisen, im Board weiterziehen, im Detail ergänzen.
+
+3
+00:00:16.617 --> 00:00:26.880
+Die Kernaufgabe „einen Vorgang anlegen und einem Kollegen zuweisen" ist heute in zwei bis fünf Schritten erledigt, über Popovers je Eigenschaft.
+
+4
+00:00:26.880 --> 00:00:40.075
+Die E2E-Suite wächst dafür von zwei auf acht Journeys: neu kommen Projekt anlegen, Vorgang zuweisen, Status ziehen, Detail pflegen, Teammitglied einladen, Workflow anpassen und Backlog sichten dazu.
+
+5
+00:00:40.075 --> 00:00:55.714
+Die ersten drei davon haben höchste Priorität, weil sie den Alltag abbilden; die Dokumentation verspricht ein unsichtbares, schnelles Werkzeug, das die Oberfläche weitgehend einlöst — nur „schnell" bleibt ohne Messung eine Behauptung.
+
+6
+00:00:55.714 --> 00:01:05.000
+Wir empfehlen, die acht priorisierten Journeys als Regressionsnetz festzuschreiben; das ist der Grundstein für jede spätere Änderung am Produkt.
+

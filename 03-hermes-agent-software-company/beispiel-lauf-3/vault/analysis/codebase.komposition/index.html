@@ -1,0 +1,399 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1920, height=1080">
+<title>Kaneo — Codebasis-Analyse — ESF Video-Zusammenfassung</title>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    width: 1920px; height: 1080px; overflow: hidden;
+    background: #0b1220; color: #e8edf4;
+    font-family: "Avenir Next", Avenir, "Segoe UI", system-ui, sans-serif;
+  }
+  #root { position: relative; width: 100%; height: 100%; overflow: hidden; }
+
+  .mono { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
+
+  /* Dauer-In-Header */
+  .kopf {
+    position: absolute; top: 0; left: 0; right: 0;
+    padding: 44px 72px 0; display: flex; justify-content: space-between;
+    align-items: baseline; z-index: 50; pointer-events: none;
+  }
+  .kopf .marke { font-size: 22px; letter-spacing: 0.14em; text-transform: uppercase; color: #8fa7b3; }
+  .kopf .marke b { color: #60a5fa; font-weight: 700; }
+  .kopf .geo { font-size: 46px; font-weight: 700; color: #e8edf4; }
+  .kopf .geo small { display: block; font-size: 20px; font-weight: 500; color: #8fa7b3; letter-spacing: 0.06em; margin-top: 2px; }
+
+  /* Szenen flächig */
+  .scene {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    padding: 150px 72px 110px;
+  }
+  .inner { width: 100%; max-width: 1600px; }
+
+  .eyebrow {
+    font-size: 24px; letter-spacing: 0.22em; text-transform: uppercase;
+    color: #60a5fa; margin-bottom: 26px; font-weight: 600;
+  }
+  .inner h2 { font-size: 66px; line-height: 1.12; font-weight: 700; max-width: 20em; }
+  .inner .sub { font-size: 30px; line-height: 1.5; color: #b9c6d4; margin-top: 22px; max-width: 34em; }
+  .inner .sub b { color: #e8edf4; }
+
+  .chip {
+    display: inline-block; padding: 10px 20px; border-radius: 999px;
+    border: 1px solid #2a3a52; background: #13203a; color: #c3d1e0;
+    font-size: 24px; margin: 10px 12px 0 0;
+  }
+  .chip b { color: #fff; }
+
+  /* Architektur (Szene 1) */
+  .arch { display: flex; flex-direction: column; gap: 0; margin-top: 16px; }
+  .layer {
+    display: flex; align-items: center; gap: 34px;
+    border: 2px solid #2a3a52; border-radius: 18px; background: rgba(18,30,52,0.55);
+    padding: 26px 40px; position: relative;
+  }
+  .layer .tag { width: 220px; font-size: 24px; font-weight: 700; }
+  .layer .desc { font-size: 25px; color: #b9c6d5; line-height: 1.4; flex: 1; }
+  .layer .note { font-size: 22px; color: #76a9f5; text-align: right; max-width: 460px; line-height: 1.35; }
+  .arrow { width: fit-content; margin: 6px auto; font-size: 32px; color: #60a5fa; line-height: 1; }
+  .lapi { border-color: #2dd4bf; } .lapi .tag { color: #2dd4bf; }
+  .lweb { border-color: #60a5fa; } .lweb .tag { color: #60a5fa; }
+  .ldb  { border-color: #fbbf24; } .ldb .tag { color: #fbbf24; }
+
+  /* Urteil (Szene 2) */
+  .urteil {
+    display: flex; align-items: center; gap: 48px;
+    border: 2px solid #2a3a52; border-radius: 26px; background: #0f1b30;
+    padding: 46px 56px; margin-top: 20px; max-width: 1150px;
+  }
+  .okring {
+    width: 128px; height: 128px; border-radius: 50%; flex: none;
+    background: radial-gradient(circle at 32% 28%, #164e2d, #0b2b18 70%);
+    border: 3px solid #34d399; display: grid; place-items: center;
+    font-size: 60px; color: #34d399;
+  }
+  .urteil h3 { font-size: 48px; font-weight: 700; line-height: 1.2; }
+  .urteil h3 small { display: block; font-size: 27px; font-weight: 500; color: #9fb6c9; margin-top: 14px; line-height: 1.4; }
+
+  /* Lint (Szene 3) */
+  .lintstats { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 30px; align-items: end; }
+  .lintcol .zahl { font-size: 120px; font-weight: 800; line-height: 1; }
+  .lintcol .lab { font-size: 27px; color: #b9c6d5; margin-top: 10px; line-height: 1.4; }
+  .zig { font-size: 34px; }
+
+  /* Wartungs-Commit (Szene 4) */
+  .flow { display: flex; align-items: center; gap: 22px; margin-top: 44px; flex-wrap: wrap; }
+  .fstep {
+    flex: 1; min-width: 250px; border: 2px solid #2a3a52; border-radius: 20px;
+    background: rgba(18,30,48,0.55); padding: 30px 34px;
+  }
+  .fstep .n { font-size: 22px; color: #60a5fa; letter-spacing: .2em; font-weight: 600; }
+  .fstep h3 { font-size: 33px; margin-top: 8px; line-height: 1.25; }
+  .fstep p { font-size: 23px; color: #9fb6c9; margin-top: 10px; line-height: 1.4; }
+  .farrow { font-size: 40px; color: #60a5fa; }
+  .grun { border-color: #34d399; background: rgba(18,46,34,0.5); }
+  .grun .n { color: #34d399; }
+
+  /* Zweistellige Stats (Szene 5,7) */
+  .duo { display: grid; grid-template-columns: 1.1fr 1fr; gap: 56px; margin-top: 30px; align-items: center; }
+  .statrow { display: flex; gap: 48px; }
+  .stat .zahl { font-size: 128px; font-weight: 800; line-height: 1; }
+  .stat .lab { font-size: 25px; color: #b9c6d5; margin-top: 8px; }
+
+  /* Risiko (Szene 6) */
+  .risks { display: grid; grid-template-columns: 1fr 1fr; gap: 34px; margin-top: 30px; }
+  .risk {
+    border: 2px solid #7f1d1d; border-radius: 24px; background: rgba(60,16,16,0.35);
+    padding: 34px 36px;
+  }
+  .risk .k { font-size: 22px; letter-spacing: .18em; text-transform: uppercase; color: #f87171; font-weight: 600; }
+  .risk h3 { font-size: 34px; margin-top: 10px; line-height: 1.3; }
+  .risk .chain { display: flex; align-items: center; gap: 12px; margin-top: 18px; flex-wrap: wrap; }
+  .chain .cell {
+    background: #101d33; border: 1px solid #2a3a52; border-radius: 12px;
+    padding: 12px 18px; font-size: 23px; color: #cfe0ef;
+  }
+  .chain .sep { color: #f87171; font-size: 30px; }
+  .risk .cfg { font-size: 23px; color: #c9b8d7; margin-top: 16px; line-height: 1.45; }
+  .risk.warn { border-color: #b45309; background: linear-gradient(180deg, rgba(70,40,10,0.35), rgba(40,26,8,0.35)); }
+  .risk.warn .k { color: #fbbf24; }
+  .risk.warn .cfg { color: #e3d3a6; }
+
+  /* Test-Gap (Szene 7 Verteil) */
+  .gapbar { margin-top: 26px; }
+  .grow { display: flex; align-items: center; gap: 18px; margin-bottom: 14px; }
+  .grow .g-l { width: 300px; font-size: 25px; color: #c3d1e0; }
+  .grow .g-b { flex: 1; height: 42px; border-radius: 9px; }
+  .grow .g-v { width: 110px; text-align: right; font-size: 27px; font-weight: 700; }
+  .fill { height: 100%; border-radius: 9px; }
+
+  /* Fußrinne + Fortschritt */
+  .fuss {
+    position: absolute; left: 72px; bottom: 46px; font-size: 20px; color: #6d8294;
+    display: flex; justify-content: space-between; width: calc(100% - 144px);
+  }
+  .ctrl { position: absolute; left: 72px; right: 72px; bottom: 26px; height: 4px; background: #1c2a3e; }
+  #fort { height: 100%; width: 0; background: #60a5fa; }
+</style>
+</head>
+<body>
+<div id="root"
+     data-composition-id="codebase"
+     data-start="0"
+     data-duration="84.05"
+     data-width="1920"
+     data-height="1080">
+
+  <div class="kopf">
+    <div class="marke">ESF · <b>Video-Zusammenfassung</b></div>
+    <div class="geo">Kaneo <small>Codebasis-Analyse</small></div>
+  </div>
+
+  <!-- Szene 1 · Architektur (0.000–14.177) -->
+  <section class="scene clip" id="s1" data-start="0" data-duration="14.177" data-track-index="1">
+    <div class="inner">
+      <div class="eyebrow s">TypeScript-Monorepo</div>
+      <h2 class="s b">Eine Hono-API besitzt die Domäne &amp; die Autorisierung.</h2>
+      <div class="arch">
+        <div class="layer lweb">
+          <div class="tag">apps/web</div>
+          <div class="desc">React-Web-App konsumiert die API <b>ausschließlich</b> über den getypten Client.</div>
+          <div class="note">kein untypisierter Request-Layer</div>
+        </div>
+        <div class="arrow">↓</div>
+        <div class="layer lapi">
+          <div class="tag">apps/api</div>
+          <div class="desc">Domäne · AuthN/AuthZ · Datenbank · Events · WebSockets — der Sicherheits- und Domänen-Kern.</div>
+          <div class="note">Web, MCP, CLI, Integrationen — alle hängen an ihr</div>
+        </div>
+        <div class="arrow">↓</div>
+        <div class="layer ldb">
+          <div class="tag">PostgreSQL</div>
+          <div class="desc">Drizzle ORM · Postgres 16 — <b>einzige Pflicht-Datenhaltung</b>; Redis nur optional.</div>
+          <div class="note"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Szene 2 · Urteil (14.177–21.266, Dauer 7.089) -->
+  <section class="scene clip" id="s2" data-start="14.177" data-duration="7.089" data-track-index="1">
+    <div class="inner">
+      <div class="eyebrow s a2">Fazit zur Architektur</div>
+      <div class="urteil s">
+        <div class="okring">✓</div>
+        <h3>solide &amp; gut belegt
+          <small>die Architektur sollte die Schätzung <b>nicht erschweren</b>.</small>
+        </h3>
+      </div>
+    </div>
+  </section>
+
+  <!-- Szene 3 · Rotes Linting (21.266–33.924, Dauer 12.658) -->
+  <section class="scene clip" id="s3" data-start="21.266" data-duration="12.658" data-track-index="1">
+    <div class="inner">
+      <div class="eyebrow s">Das eine auffällige Signal</div>
+      <h2 class="s">Rotes Linting — aber <span style="color:#fbbf24">bedeutungslos</span> rot.</h2>
+      <div class="lintstats">
+        <div class="lintcol">
+          <div class="zahl" style="color:#8fa7b3">80</div>
+          <div class="lab">Warnungen aus <span class="mono">biome ci</span> — kein Logikdefekt.</div>
+        </div>
+        <div class="lintcol" style="text-align:right">
+          <div class="zahl zig" style="color:#fbbf24">12<small style="font-size:50px;color:#c3d1e0"> echte</small></div>
+          <div class="lab">inhaltliche Stil-Findings, alle <b>automatisch reparierbar</b> (auto-fix).</div>
+        </div>
+      </div>
+      <div style="margin-top:34px; display:flex; gap:14px; flex-wrap:wrap">
+        <div class="fstep" style="flex:0 0 330px">
+          <div class="n">64</div>
+          <p style="margin:6px 0 0">reine Turbo-/Env-Tooling-Meldungen — keine Logikdefekte (<span class="mono">noUndeclaredEnvVars</span>).</p>
+        </div>
+        <div class="fstep" style="flex:0 0 auto">
+          <div class="n">12 = Stil</div>
+          <p style="margin:6px 0 0"><span class="mono">useOptionalChain</span> ×8 · <span class="mono">noImgElement</span> ×2 · <span class="mono">noUnusedImports</span> ×1 · <span class="mono">noUnusedFunctionParameters</span> ×1</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Szene 4 · Wartungs-Commit (33.924–47.595, Dauer 13.671) -->
+  <section class="scene clip" id="s4" data-start="33.924" data-duration="13.671" data-track-index="1">
+    <div class="inner">
+      <div class="eyebrow s">Konsequenz</div>
+      <h2 class="s">Kein Feature-Blocker, sondern <span style="color:#fbbf24">Bestandsschuld</span> vom Ausgangs-Commit.</h2>
+      <div class="flow">
+        <div class="fstep">
+          <div class="n">Zustand</div>
+          <h3>12 inhaltliche Findings</h3>
+          <p>alles auto-fixierbar · keine rote Datei vom Onboarding-Gerüst berührt.</p>
+        </div>
+        <div class="farrow">→</div>
+        <div class="fstep grun">
+          <div class="n">Empfohlen</div>
+          <h3>Wartungs-Commit vor der Feature-Arbeit</h3>
+          <p class="mono">biome check --write</p>
+        </div>
+        <div class="farrow">→</div>
+        <div class="fstep grun">
+          <div class="n">Ergebnis</div>
+          <h3>Linting grün</h3>
+          <p>Merge-Riegel künftiger Feature-Branches entlastet.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Szene 5 · Datenhaltung (47.595, S. 7.594) -->
+  <section class="scene clip" id="s5" data-start="47.595" data-duration="7.594" data-track-index="1">
+    <div class="inner">
+      <div class="eyebrow s">Datenhaltung</div>
+      <h2 class="s">Wer das Schema anfasst, muss <span class="mono" style="color:#fbbf24">Bestandsinstallationen</span> bedenken.</h2>
+      <div class="duo s">
+        <div class="statrow">
+          <div class="stat"><div class="zahl" style="color:#2dd4bf">36</div><div class="lab">Tabellen im Drizzle-Schema</div></div>
+          <div class="stat"><div class="zahl" style="color:#60a5fa">44</div><div class="lab">Migrationen unter <span class="mono">apps/api/drizzle</span></div></div>
+        </div>
+        <p class="sub">Das Verhältnis zeigt häufige Schema-Umbauten — jede Änderung trifft bestehende Installationen (AGENTS.md:54).</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Szene 6 · Risiken (55.189–66.835, Dauer 11.646) -->
+  <section class="scene clip" id="s6" data-start="55.189" data-duration="11.646" data-track-index="1">
+    <div class="inner">
+      <div class="eyebrow s">Größte Risiken für künftige Arbeit</div>
+      <div class="risks">
+        <div class="risk warn">
+          <div class="k">Realtime-Kette</div>
+          <div class="chain">
+            <span class="cell">API-Route</span><span class="sep">→</span>
+            <span class="cell">publishEvent</span><span class="sep">→</span>
+            <span class="cell">WS (in-memory/Redis)</span><span class="sep">→</span>
+            <span class="cell">Client-Cache</span>
+          </div>
+          <div class="cfg">Eine Mutation an der Realtime berührt alle vier Ebenen; die E2E-Absicherung baut erst gerade auf.</div>
+        </div>
+        <div class="risk">
+          <div class="k">Zentrale Startdatei</div>
+          <h3 class="mono">apps/api/src/index.ts</h3>
+          <div class="cfg">Konflikt-Hotspot: alle Router sind hier verdrahtet — parallele Feature-Branches kollidieren hier.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Szene 7 · Tests (66.835–76.455, 9.62) -->
+  <section class="scene clip" id="s7" data-start="66.835" data-duration="9.62" data-track-index="1">
+    <div class="inner">
+      <div class="eyebrow s">Testabdeckung — die Lücke</div>
+      <h2 class="s">Web-Tests decken fast nur Logik ab — <span style="color:#fbbf24">die Oberfläche kaum</span>.</h2>
+      <div class="duo s">
+        <div style="min-width:300px">
+          <div class="stat"><div class="zahl" style="color:#60a5fa">35</div><div class="lab">jsdom-Testdateien, fast nur Hooks/Utilities</div></div>
+          <div class="stat" style="margin-top:22px"><div class="zahl" style="color:#34d399">2</div><div class="lab">Playwright-E2E-Journeys (J-00, J-01)</div></div>
+        </div>
+        <p class="sub" style="margin:0"><b>Keiner der 35 Web-Tests</b> ist ein Component-Rendering-Test einer Seite/eines Dialogs.<br>Den UI-Mangel schließt die laufende E2E-Karte.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Szene 8 · Nächster Schritt (76.455–84.05, 7.595) -->
+  <section class="scene clip" id="s8" data-start="76.455" data-duration="7.595" data-track-index="1">
+    <div class="inner">
+      <div class="eyebrow s">Nächster Schritt</div>
+      <h2 class="s">Die Lint-Bereinigung als <span style="color:#60a5fa">eigener Auftrag</span> — dann Schätzung.</h2>
+      <div class="flow">
+        <div class="fstep">
+          <div class="n">1</div>
+          <h3>Lint-Bereinigung beauftragen</h3>
+          <p>eigenes Ticket für die 12 Stellen + die 64 Env-Vars in <span class="mono">turbo.json</span>.</p>
+        </div>
+        <div class="farrow">→</div>
+        <div class="fstep grun">
+          <div class="n">2</div>
+          <h3>Schätzung auf dieser Analyse aufsetzen</h3>
+          <p>grünes Linting als saubere Grundlage — diese Analyse ist das Fundament.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="fuss">
+    <span>Zahlen aus <span class="mono">analysis/codebase.html</span></span>
+    <span>Untertitel zuschaltbar</span>
+  </div>
+  <div class="ctrl"><div id="fort"></div></div>
+</div>
+
+<audio id="audio" src="audio.m4a" data-start="0" data-track-index="0" data-volume="1"></audio>
+
+<script>
+  window.__timelines = window.__timelines || {};
+  const tl = gsap.timeline({ paused: true });
+
+  // Fortschrittslinse über die ganze Dauer.
+  tl.to("#fort", { width: "100%", duration: 84.05, ease: "none" }, 0);
+
+  // Szenen-Reveals — nur innere (Nicht-Clip) Elemente; `set` genau an der
+  // Szenen-Grenze sperrt die Ausgangspose deterministisch, `to` spielt ein.
+  function reveal(sel, at, stagger) {
+    const dur = 0.75;
+    tl.set(sel, { y: 34, opacity: 0 }, at);
+    tl.to(sel, { y: 0, opacity: 1, duration: dur, ease: "power3.out", stagger: stagger || 0.09 }, at);
+  }
+
+  // Szenen-Inhalte an ihrer eigenen Szenen-Grenze verstecken, dann einspielen.
+  function hideAt(sel, at) { tl.set(sel, { y: 34, opacity: 0 }, at); }
+
+  // Szene 1 (Start 0)
+  hideAt("#s1 .s", 0); hideAt("#s1 .layer", 0); hideAt("#s1 .arrow", 0);
+  reveal("#s1 .s", 0.05, 0.12);
+  reveal("#s1 .layer", 0.45, 0.18);
+  reveal("#s1 .arrow", 0.85, 0.10);
+
+  // Szene 2 (Start 14.177)
+  hideAt("#s2 .s", 14.177);
+  reveal("#s2 .s", 14.22, 0.12);
+
+  // Szene 3 (Start 21.266)
+  hideAt("#s3 .s", 21.266); hideAt("#s3 .lintstats", 21.266); hideAt("#s3 .fstep", 21.266);
+  reveal("#s3 .s", 21.31, 0.12);
+  reveal("#s3 .lintstats", 23.8, 0.1);
+  reveal("#s3 .fstep", 24.9, 0.12);
+
+  // Szene 4 (Start 33.924)
+  hideAt("#s4 .s", 33.924); hideAt("#s4 .flow .fstep", 33.924); hideAt("#s4 .farrow", 33.924);
+  reveal("#s4 .s", 33.97, 0.1);
+  reveal("#s4 .flow .fstep", 35.5, 0.1);
+  reveal("#s4 .farrow", 35.9, 0.05);
+
+  // Szene 5 (Start 47.595)
+  hideAt("#s5 .s", 47.595); hideAt("#s5 .statrow", 47.595);
+  reveal("#s5 .s", 47.63, 0.1);
+  reveal("#s5 .statrow", 50.0, 0.1);
+
+  // Szene 6 (Start 55.189)
+  hideAt("#s6 .eyebrow", 55.189); hideAt("#s6 .risks", 55.189);
+  reveal("#s6 .eyebrow", 55.23, 0.1);
+  reveal("#s6 .risks", 57.1, 0.12);
+
+  // Szene 7 (Start 66.835)
+  hideAt("#s7 .s", 66.835);
+  reveal("#s7 .s", 66.87, 0.1);
+
+  // Szene 8 (Start 76.455)
+  hideAt("#s8 .s", 76.455); hideAt("#s8 .fstep", 76.455); hideAt("#s8 .farrow", 76.455);
+  reveal("#s8 .s", 76.49, 0.1);
+  reveal("#s8 .fstep", 77.7, 0.1);
+  reveal("#s8 .farrow", 78.2, 0.05);
+
+  window.__timelines["codebase"] = tl;
+</script>
+</body>
+</html>

@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <title>Probelauf 1/4 — docs/ESF-PROBELAUF.md — ESF</title>
+  <meta name="esf-typ" content="spec">
+  <meta name="esf-karte" content="t_c6c2f9d7">
+  <meta name="esf-datum" content="2026-08-18">
+</head>
+<body>
+  <h1>Spezifikation: docs/ESF-PROBELAUF.md</h1>
+  <p class="meta">Karte <code>t_c6c2f9d7</code> · Probelauf 1/4 (Mechanik-Test der Kette Spezifikation → Bau → Review → Riegel)</p>
+
+  <h2>1. Problem und Zweck</h2>
+  <p id="problem">Dieses Feature ist kein Produkt-Nutzen, sondern ein <strong>Organisations-Mechanik-Test</strong>: Es prüft, ob die Übergabe Spezifikation → Bau → Review → Riegel trägt. Das Ergebnis ist eine winzige, risikofreie, überprüfbare Änderung am Produkt-Repo.</p>
+
+  <h2>2. Gewünschtes Ergebnis (Verhalten)</h2>
+  <p>Das Produkt-Repo — das Repo, das in den Bau- und Riegel-Schritten verändert wird — enthält eine neue Datei <code>docs/ESF-PROBELAUF.md</code> mit genau drei Zeilen, in dieser Reihenfolge:</p>
+  <ol>
+    <li>eine Überschrift (beliebiger Text, der die Datei als Probelauf-Nachweis kennzeichnet),</li>
+    <li>das heutige Datum,</li>
+    <li>der Satz <code>Diese Datei belegt, dass die ESF-Kette Spezifikation → Bau → Review → Riegel durchgelaufen ist.</code></li>
+  </ol>
+  <p>Weder Inhalt noch Länge der drei Zeilen ändern den Zweck der Karte; es zählt die Form: <em>genau</em> drei Zeilen, kein zusätzlicher Inhalt.</p>
+
+  <h2>3. Grenzen</h2>
+  <ul>
+    <li>Die Änderung berührt <strong>ausschließlich</strong> die neue Doku-Datei <code>docs/ESF-PROBELAUF.md</code>. Kein bestehender Code, keine Konfiguration, keine bestehende Datei wird verändert.</li>
+    <li>Es entsteht keine eigene E2E-Journey für diese Doku-Datei — eine Doku-Datei hat kein nutzbares Verhalten, das eine Journey abbilden könnte.</li>
+    <li>Es entsteht kein Rückbau- oder Migrationspfad: Die Datei ist ein statischer Nachweis, den keine Nutzer-Rolle konsumiert.</li>
+  </ul>
+
+  <h2>4. Akzeptanzkriterien</h2>
+  <ul id="kriterien">
+    <li><code>docs/ESF-PROBELAUF.md</code> existiert im Produkt-Repo und hat genau drei Zeilen: Überschrift, heutiges Datum, der Probelauf-Satz.</li>
+    <li>Die Datei <code>docs/ESF-PROBELAUF.md</code> beginnt mit einer Überschrift (Zeile 1), trägt das Datum des Bautags (Zeile 2) und endet mit dem Satz <code>Diese Datei belegt, dass die ESF-Kette Spezifikation → Bau → Review → Riegel durchgelaufen ist.</code> (Zeile 3).</li>
+    <li><strong>E2E-Szenario:</strong> Die vorhandene E2E-Suite des Produkts läuft nach Einbau der Doku-Datei weiterhin grün — kein bestehender E2E-Test fällt, keine Journey ändert sich. (Diese Doku-Datei bekommt keine eigene Journey.)</li>
+    <li>Keine andere Datei im Produkt-Repo wird durch diese Karte verändert.</li>
+  </ul>
+
+  <aside class="hinweis">Hinweis an den Bau: Der Satz in Zeile 3 muss den Pfeil <code>→</code> (U+2192) enthalten, wie in dieser Spezifikation geschrieben.</aside>
+</body>
+</html>

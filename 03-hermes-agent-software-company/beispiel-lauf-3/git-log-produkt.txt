@@ -1,3 +1,7 @@
+ecac536 Merge feat/esf-probelauf (Riegel bestanden)
+e38f6a0 docs: esf-probelauf-nachweis anlegen
+ docs/ESF-PROBELAUF.md | 3 +++
+ 1 file changed, 3 insertions(+)
 4430537 chore: esf-hook-verzeichnis ignorieren
  .gitignore | 3 +++
  1 file changed, 3 insertions(+)

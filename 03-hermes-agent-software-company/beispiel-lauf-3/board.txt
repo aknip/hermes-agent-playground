@@ -4,3 +4,13 @@ done  esf-market-analyst   t_6142d9c1  Onboarding 3/6 — Marktbild
 done  esf-qa-release       t_74d35a8f  Onboarding 4/6 — E2E-Suite über die Kern-Journeys
 done  esf-chief-of-staff   t_583218e7  Onboarding 5/6 — Erste Roadmap mit Schätzintervallen
 done  esf-chief-of-staff   t_95b30a23  GATE Roadmap — Q1-Freigabe
+done  esf-video-designer   t_84b70d60  Video-Komposition — analysis/market.html
+done  esf-video-designer   t_895e9428  Video-Komposition — analysis/product.html
+done  esf-video-designer   t_edbfe97b  Video-Komposition — analysis/codebase.html
+done  esf-video-designer   t_e9ef7395  Video-Komposition — roadmap/q1-freigegeben.html
+done  esf-video-designer   t_01e6bead  Video-Komposition — roadmap/q1-entwurf.html
+done  esf-video-designer   t_a9436877  Video-Komposition — analysis/market.html
+done  esf-product-manager  t_c6c2f9d7  Probelauf 1/4 — Spezifikation
+done  esf-dev-a            t_011969fc  Probelauf 2/4 — Bau
+done  esf-reviewer         t_19932b0d  Probelauf 3/4 — Review
+done  esf-chief-of-staff   t_0cb952ad  GATE Roadmap — Probelauf 4/4

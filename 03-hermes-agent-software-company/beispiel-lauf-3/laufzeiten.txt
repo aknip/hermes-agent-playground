@@ -5,5 +5,15 @@ t_6142d9c1   esf-market-analyst            4      1  Onboarding 3/6 — Marktbil
 t_74d35a8f   esf-qa-release              103      2  Onboarding 4/6 — E2E-Suite über die Kern-Journeys
 t_583218e7   esf-chief-of-staff           11      1  Onboarding 5/6 — Erste Roadmap mit Schätzintervallen
 t_95b30a23   esf-chief-of-staff            6      2  GATE Roadmap — Q1-Freigabe
+t_84b70d60   esf-video-designer           11      1  Video-Komposition — analysis/market.html
+t_895e9428   esf-video-designer            4      1  Video-Komposition — analysis/product.html
+t_edbfe97b   esf-video-designer            4      1  Video-Komposition — analysis/codebase.html
+t_e9ef7395   esf-video-designer            4      1  Video-Komposition — roadmap/q1-freigegeben.html
+t_01e6bead   esf-video-designer            5      1  Video-Komposition — roadmap/q1-entwurf.html
+t_a9436877   esf-video-designer            6      1  Video-Komposition — analysis/market.html
+t_c6c2f9d7   esf-product-manager           2      1  Probelauf 1/4 — Spezifikation
+t_011969fc   esf-dev-a                    36      2  Probelauf 2/4 — Bau
+t_19932b0d   esf-reviewer                  3      1  Probelauf 3/4 — Review
+t_0cb952ad   esf-chief-of-staff           10      2  GATE Roadmap — Probelauf 4/4
 
-Summe Kartenzeit: 160 Minuten
+Summe Kartenzeit: 252 Minuten

@@ -1,3 +1,61 @@
+ab641e5 video: fuenf individuelle kompositionen mit der neuen sprecherstimme
+ analysis/codebase.komposition/audio.tts-weg        |   1 +
+ analysis/codebase.komposition/auftrag.json         |  49 +++
+ analysis/codebase.komposition/hyperframes.json     |   5 +
+ analysis/codebase.komposition/index.html           | 399 +++++++++++++++++
+ analysis/codebase.vtt                              |  16 +-
+ analysis/market.komposition/audio.tts-weg          |   1 +
+ analysis/market.komposition/auftrag.json           |  49 +++
+ analysis/market.komposition/hyperframes.json       |   5 +
+ analysis/market.komposition/index.html             | 412 ++++++++++++++++++
+ analysis/market.vtt                                |  16 +-
+ analysis/product.komposition/audio.tts-weg         |   1 +
+ analysis/product.komposition/auftrag.json          |  39 ++
+ analysis/product.komposition/hyperframes.json      |   5 +
+ analysis/product.komposition/index.html            | 351 +++++++++++++++
+ analysis/product.vtt                               |  12 +-
+ roadmap/q1-entwurf.komposition/audio.tts-weg       |   1 +
+ roadmap/q1-entwurf.komposition/auftrag.json        |  49 +++
+ roadmap/q1-entwurf.komposition/hyperframes.json    |   5 +
+ roadmap/q1-entwurf.komposition/index.html          | 481 +++++++++++++++++++++
+ roadmap/q1-entwurf.vtt                             |  16 +-
+ roadmap/q1-freigegeben.komposition/audio.tts-weg   |   1 +
+ roadmap/q1-freigegeben.komposition/auftrag.json    |  54 +++
+ .../q1-freigegeben.komposition/hyperframes.json    |   5 +
+ roadmap/q1-freigegeben.komposition/index.html      | 368 ++++++++++++++++
+ roadmap/q1-freigegeben.vtt                         |  18 +-
+ 25 files changed, 2320 insertions(+), 39 deletions(-)
+43f3a7c video: alle kompositionen und videos verworfen — neue sprecherstimme
+ AGENTS.md                                    |  45 ++-
+ analysis/market.komposition/auftrag.json     |  49 ----
+ analysis/market.komposition/hyperframes.json |   5 -
+ analysis/market.komposition/index.html       | 414 ---------------------------
+ cadence.yaml                                 |  19 +-
+ 5 files changed, 59 insertions(+), 473 deletions(-)
+ccda718 video(komposition): erste MODELL-gestaltete komposition fuer market
+ analysis/market.komposition/auftrag.json     |  49 ++++
+ analysis/market.komposition/hyperframes.json |   5 +
+ analysis/market.komposition/index.html       | 414 +++++++++++++++++++++++++++
+ 3 files changed, 468 insertions(+)
+8b57a55 video: attrappe entfernt — der esf-video-designer gestaltet market selbst
+ analysis/market.komposition/auftrag.json     |  49 ------------
+ analysis/market.komposition/hyperframes.json |   5 --
+ analysis/market.komposition/index.html       | 108 ---------------------------
+ 3 files changed, 162 deletions(-)
+92fa344 video(komposition): individuelle komposition fuer market, AGENTS.md 8.1
+ .gitignore                                   |   8 ++
+ AGENTS.md                                    |  47 ++++++++++++
+ analysis/market.komposition/auftrag.json     |  49 ++++++++++++
+ analysis/market.komposition/hyperframes.json |   5 ++
+ analysis/market.komposition/index.html       | 108 +++++++++++++++++++++++++++
+ 5 files changed, 217 insertions(+)
+a426ee1 video(zusammenfassung): untertitel der fuenf phase-1-dokumente
+ analysis/codebase.vtt      | 34 ++++++++++++++++++++++++++++++++++
+ analysis/market.vtt        | 34 ++++++++++++++++++++++++++++++++++
+ analysis/product.vtt       | 26 ++++++++++++++++++++++++++
+ roadmap/q1-entwurf.vtt     | 34 ++++++++++++++++++++++++++++++++++
+ roadmap/q1-freigegeben.vtt | 38 ++++++++++++++++++++++++++++++++++++++
+ 5 files changed, 166 insertions(+)
 8e33331 roadmap: Q1-Freigabe nach CEO-Entscheidung modify (karte t_95b30a23)
  analysis/market.html        | 370 +++++++++++++++++++++++++++++++++++++++
  analysis/product.html       | 246 ++++++++++++++++++++++++++
