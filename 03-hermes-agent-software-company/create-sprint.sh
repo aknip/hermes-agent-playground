@@ -147,6 +147,22 @@ EOF
 # die `.env` des HAUPTBAUMS neu geschrieben. Ein Worker, der aus seinem Worktree
 # in den Hauptbaum schreibt, hebt die Isolation auf, auf der die ganze parallele
 # Arbeit beruht.
+# Warum in jedem Review- und Merge-Kartentext `--force` steht.
+#
+# Gemessen am 19.08.2026 im Worktree der F-R1-2-Umsetzung, direkt nachdem der
+# Entwickler dort seine Tests hatte laufen lassen:
+#
+#     pnpm typecheck
+#     Cached: 6 cached, 6 total   Time: 170ms >>> FULL TURBO
+#
+# turbo hasht seine Eingaben und spielt bei gleichem Hash das alte Ergebnis ab.
+# Der Reviewer fuehrt den Befehl in gutem Glauben aus, turbo antwortet mit dem
+# Protokoll des Entwicklers, und der Reviewer meldet es als eigene Messung.
+# Genau die Anweisung "Fuehre die Tests SELBST aus. Nicht sein Protokoll lesen"
+# wird damit von einem Build-Werkzeug entwertet — lautlos, ohne Fehlermeldung.
+#
+# `playwright test` laeuft nicht ueber turbo und war nie betroffen. Dass eine
+# der Pruefungen immer echt war, ist der Grund, warum es nicht auffiel.
 env_hinweis() {
 cat <<EOF
 DIE .env IST NICHT IM GIT — und dein Worktree hat deshalb keine
@@ -644,7 +660,7 @@ WAS DU PRUEFST — in dieser Reihenfolge, weil die erste Frage die teuerste ist
 4. Fuehre die Tests SELBST aus, im Baum des Entwicklers. Nicht sein Protokoll
    lesen — laufen lassen:
      cd $REPO/.worktrees/<sein-verzeichnis>
-     pnpm typecheck && pnpm test
+     pnpm exec turbo typecheck test --force
      $E2E_VORBED
      $E2E_BEFEHL
    Der Unterschied zwischen Behauptung und geprüfter Tatsache ist dein ganzer
@@ -960,7 +976,7 @@ WAS DU PRUEFST
 5. Jedes Akzeptanzkriterium einzeln, mit der Angabe, WORAN du es geprueft hast.
 6. Fuehre die Tests SELBST aus, im Baum des Entwicklers:
      cd $REPO/.worktrees/<sein-verzeichnis>
-     pnpm typecheck && pnpm test
+     pnpm exec turbo typecheck test --force
      $E2E_VORBED
      $E2E_BEFEHL
 7. Hat er die Grenze zu F-R1-4 eingehalten? tests/e2e/support/journey.ts und

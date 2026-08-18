@@ -99,10 +99,36 @@ E2E_DIR="$(sed -n 's/^[[:space:]]*e2e_verzeichnis:[[:space:]]*//p' "$CADENCE" | 
 # Das kostet Minuten je Merge und ist es wert — der Riegel läuft einmal je
 # Feature, nicht einmal je Commit. Wer die Serialisierung nicht will, setzt
 # ESF_RIEGEL_SERIELL=0.
+#
+# UND SIE BEKOMMEN `--force`. Das ist der zweite, schwerere Grund.
+#
+# Gemessen am 19.08.2026 im Worktree der F-R1-2-Umsetzung, unmittelbar nachdem
+# der Entwickler dort seine Tests hatte laufen lassen:
+#
+#     pnpm typecheck
+#     Tasks:    6 successful, 6 total
+#     Cached:   6 cached, 6 total
+#     Time:     170ms >>> FULL TURBO
+#
+# turbo hasht seine Eingaben und spielt bei gleichem Hash das ALTE Ergebnis ab,
+# ohne irgendetwas auszuführen. Für einen Build-Cache ist das die gewünschte
+# Eigenschaft. Für einen Riegel ist es das Ende seines Zwecks: Er meldete
+# „Typecheck grün" und „374 Tests grün", ohne einen Typecheck oder einen Test
+# gefahren zu haben — er las das Protokoll dessen, den er prüfen soll.
+#
+# Der Riegel ist die Stelle, an der „Code entscheidet, kein Modell" hängt. Ein
+# Cache-Treffer ist kein Urteil. `--force` kostet Minuten; ein Riegel, der aus
+# dem Cache antwortet, kostet den ganzen Nachweis.
+#
+# Die E2E-Prüfung war davon nie betroffen: `playwright test` läuft nicht über
+# turbo. Genau deshalb fiel es lange nicht auf — eine der sechs Prüfungen war
+# immer echt.
 SERIELL="${ESF_RIEGEL_SERIELL:-1}"
 turbo_seriell() { # <pnpm-skript>
     if [ "$SERIELL" = "1" ] && grep -q "\"$1\": *\"turbo " "$REPO/package.json" 2>/dev/null; then
-        printf 'pnpm exec turbo %s --concurrency=1' "$1"
+        printf 'pnpm exec turbo %s --concurrency=1 --force' "$1"
+    elif grep -q "\"$1\": *\"turbo " "$REPO/package.json" 2>/dev/null; then
+        printf 'pnpm exec turbo %s --force' "$1"
     else
         printf 'pnpm %s' "$1"
     fi
