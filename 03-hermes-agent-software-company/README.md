@@ -27,6 +27,13 @@ Umgesetzt sind **Phase 0 (Gerüst)**, **Phase 1 (Onboarding)** und **Phase 2
 [`PHASE-0-1-PLAN.md`](PHASE-0-1-PLAN.md) und
 [`PHASE-2-PLAN.md`](PHASE-2-PLAN.md).
 
+Am 18.08.2026 wurden die **Phasen 0 und 1 ein zweites Mal von vorn gefahren**,
+auf einer frisch zurückgebauten Hermes-Instanz und mit dem Menschen in der
+Supervisor-Rolle (Akte: [`beispiel-lauf-3/`](beispiel-lauf-3/)). Der Lauf
+lieferte dieselben Artefakte — und vier neue Befunde, zwei davon in einem
+Prüfer, der grün meldete. Wer nur wiederholt, was beim ersten Mal
+funktionierte, findet sie nicht.
+
 **Phase 3 (Dauerbetrieb unter einem CEO-Profil)** ist nach den Befunden der
 Phase 2 neu geschnitten und seit dem 18.08.2026 **gebaut, aber nie gegen ein
 laufendes Board gefahren**: Das zwölfte Profil `esf-ceo` entscheidet die
@@ -136,6 +143,7 @@ Drei Dinge dazu:
 | `workspace/` | Die Wegwerfkopie — gitignored |
 | `beispiel-lauf-1/` | **Die Akte von Phase 0/1 (17.08.2026)**: Board mit voller Karten-Historie, Vault, Laufzeiten, beide Git-Historien. Erzeugt von `scripts/dump-lauf.sh` |
 | `beispiel-lauf-2/` | **Die Akte von Phase 2 (18.08.2026)**: 33 Karten, 1131 Minuten Kartenzeit, Release R1 freigegeben. Ohne diese Akte wäre der Lauf nach dem Rückbau spurlos weg |
+| `beispiel-lauf-3/` | **Die Akte des zweiten Rundlaufs (18.08.2026)**: Phasen 0 und 1 noch einmal von vorn, 6 Karten, 160 Minuten Kartenzeit, Roadmap-Gate mit `modify` beantwortet. Der Lauf, der vier neue Befunde brachte — zwei davon in einem Prüfer, der grün meldete |
 | `scripts/` | Betrieb und Riegel, siehe unten |
 
 ### Die Skripte in `scripts/`
