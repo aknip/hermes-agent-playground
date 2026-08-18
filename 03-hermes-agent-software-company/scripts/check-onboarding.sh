@@ -130,36 +130,84 @@ if [ -f "$VAULT/analysis/product.html" ] && [ -f "$VAULT/analysis/journeys.html"
         # Im Katalog ERWÄHNT zu sein heisst nur, dass die Journey bekannt ist —
         # ein guter Katalog listet auch das noch nicht Abgedeckte. Zählen tut
         # aber, ob eine Spec-Datei dazu existiert.
-        offen=""; mit_spec=0
+        # Die Zuordnung Journey -> Spec liest die TABELLENZEILE der Journey,
+        # nicht ein Zeilenfenster um ihren Namen.
+        #
+        # Der Vorgaenger nahm `grep -B4 -A8 "$j" journeys.html` und den ersten
+        # Dateinamen darin. In einer Tabelle steht dort die Spec der NACHBAR-
+        # zeile. Am 18.08.2026 meldete er deshalb „9 von 9 Kern-Journeys haben
+        # eine existierende Spec-Datei", waehrend der Katalog bei J-05..J-08
+        # ausdruecklich „offen" und „—" fuehrte und nur fuenf Spec-Dateien
+        # existierten. Sogar J-04 bekam die Spec von J-00 zugeschrieben — es
+        # war KEINE Zuordnung richtig, die Zahl war frei erfunden.
+        #
+        # Der Kommentar zwanzig Zeilen weiter oben nennt „ein Katalog, der auf
+        # nichts zeigt" die haeufigste Form von Scheinvollstaendigkeit. Der
+        # Pruefer dagegen erzeugte sie selbst — und niemand konnte es sehen,
+        # weil er nur eine Zahl ausgab. Deshalb steht die Zuordnung jetzt
+        # einzeln da: eine Zahl, die keiner nachrechnen kann, ist kein Beleg.
+        zeilen_von() {
+            # Je <tr> eine Ausgabezeile, am </tr> ABGESCHNITTEN, Tags entfernt,
+            # fuehrender Leerraum weg.
+            #
+            # Das Abschneiden ist nicht Kosmetik: Ohne es laeuft die LETZTE
+            # Tabellenzeile bis zum Dateiende weiter und verschluckt den
+            # gesamten Fliesstext danach. Genau daran zaehlte dieser Pruefer am
+            # 18.08.2026 sechs P1-Journeys statt fuenf — J-08 (P2) erbte das
+            # "P1" aus dem Satz "Die Reihenfolge P1-P3 bildet den Kundenwert
+            # ab", der hinter der Tabelle steht. Dieselbe Fehlerklasse wie das
+            # Zeilenfenster, das dieser Fix ersetzt hat, nur eine Ebene tiefer.
+            tr '\n' ' ' < "$1" | sed 's|<tr|\n<tr|g' | sed 's|</tr>.*||' \
+                | sed 's|<[^>]*>| |g' | sed 's|^[[:space:]]*||'
+        }
+        katalog="$(zeilen_von "$VAULT/analysis/journeys.html")"
+
+        offen=""; mit_spec=0; zuordnung=""
         for j in $soll; do
             printf '%s\n' "$ist" | grep -qx "$j" || offen="$offen $j"
-            # Die Zeile des Katalogs, die diese Journey nennt, muss eine
-            # existierende Spec-Datei benennen.
-            spec="$(grep -o "$j[^<]*" "$VAULT/analysis/journeys.html" 2>/dev/null \
-                    | head -1 >/dev/null; grep -B4 -A8 "$j" "$VAULT/analysis/journeys.html" 2>/dev/null \
-                    | grep -oE '[a-z0-9-]+\.spec\.ts' | head -1)"
+            # Nur die Zeile, die MIT dieser Journey beginnt. J-03 erwaehnt J-05
+            # in seinem Hinweistext — ein blosses grep traefe die falsche Zeile.
+            spec="$(printf '%s\n' "$katalog" | grep -E "^$j([^0-9]|$)" \
+                    | head -1 | grep -oE '[a-z0-9-]+\.spec\.ts' | head -1)"
             if [ -n "$spec" ] && [ -f "$REPO/$E2E_DIR/$spec" ]; then
                 mit_spec=$((mit_spec + 1))
+                zuordnung="$zuordnung
+      $j  ->  $spec"
+            else
+                zuordnung="$zuordnung
+      $j  ->  (keine Spec)"
             fi
         done
         printf '    %s von %s Kern-Journeys im Katalog erwähnt\n' "$n_ist" "$n_soll"
         printf '    %s davon haben eine existierende Spec-Datei\n' "$mit_spec"
+        printf '%s\n' "$zuordnung"
         [ -n "$offen" ] && printf '    nicht einmal erwähnt:%s\n' "$offen"
         if [ "$mit_spec" -eq 0 ]; then
             nein "keine einzige Kern-Journey hat eine Spec"
         fi
 
         # Harte Untergrenze: mindestens eine P1-Journey muss eine echte Spec
-        # haben. Ohne das ist die Suite ein Katalog ohne Deckung.
-        p1_ok=0
+        # haben. Ohne das ist die Suite ein Katalog ohne Deckung. Auch hier
+        # zeilenweise statt mit `grep -A3` — dasselbe Fenster-Problem.
+        produkt="$(zeilen_von "$VAULT/analysis/product.html")"
+        p1_ok=0; p1_gesamt=0; p1_mit_spec=0
         for j in $soll; do
-            zeile="$(grep -A3 "$j" "$VAULT/analysis/product.html" | tr -d '\n')"
-            case "$zeile" in *P1*) printf '%s\n' "$ist" | grep -qx "$j" && p1_ok=1 ;; esac
+            zeile="$(printf '%s\n' "$produkt" | grep -E "^$j([^0-9]|$)" | head -1)"
+            case "$zeile" in
+                *P1*)
+                    p1_gesamt=$((p1_gesamt + 1))
+                    spec="$(printf '%s\n' "$katalog" | grep -E "^$j([^0-9]|$)" \
+                            | head -1 | grep -oE '[a-z0-9-]+\.spec\.ts' | head -1)"
+                    if [ -n "$spec" ] && [ -f "$REPO/$E2E_DIR/$spec" ]; then
+                        p1_ok=1
+                        p1_mit_spec=$((p1_mit_spec + 1))
+                    fi ;;
+            esac
         done
         if [ "$p1_ok" -eq 1 ]; then
-            ok "mindestens eine P1-Journey ist abgedeckt"
+            ok "P1-Journeys mit Spec: $p1_mit_spec von $p1_gesamt"
         else
-            nein "keine einzige P1-Journey aus product.html hat eine Spec"
+            nein "keine einzige P1-Journey aus product.html hat eine Spec ($p1_gesamt P1 gefunden)"
         fi
     fi
 fi
@@ -200,9 +248,34 @@ else
                 info "Maßstab: man kann entscheiden, ohne eine Datei zu öffnen."
             fi ;;
         done)
-            antwort="$(k show "$gid" --json 2>/dev/null \
-                       | jq -r '[.events[] | select(.kind=="unblocked")] | last | .payload.reason // "?"')"
-            ok "Karte $gid ist beantwortet und ausgeführt: \"$antwort\"" ;;
+            # Die Antwort steht im KOMMENTAR, nicht in der Ereignis-Payload.
+            # Das `unblocked`-Ereignis traegt eine LEERE Payload; `gate.sh
+            # --reason` legt den Text als Kommentar mit dem Praefix "UNBLOCK: "
+            # an. monitor.sh, check-phase3.sh und check-release.sh wissen das
+            # laengst — dieser Pruefer war der letzte, der `.payload.reason`
+            # las, und meldete deshalb am 18.08.2026 ein gruenes
+            # "beantwortet und ausgefuehrt: \"?\"": Er bestand, ohne sagen zu
+            # koennen, WAS entschieden wurde. Ein Pruefer, der die Antwort
+            # nicht lesen kann, prueft die Antwort nicht.
+            voll="$(k show "$gid" --json 2>/dev/null || echo '{}')"
+            unblocks="$(printf '%s' "$voll" | jq '[.events[]? | select(.kind=="unblocked")] | length')"
+            antwort="$(printf '%s' "$voll" | jq -r '
+                [.comments[]? | (.text // .body // "")
+                 | select(test("^UNBLOCK: *(approve|modify|shelve|continue|cut|stop|manuell)\\b"))]
+                | last // ""
+                | sub("^UNBLOCK: *"; "")
+                | split("\n")[0]
+                | .[0:160]')"
+            if [ "${unblocks:-0}" -eq 0 ]; then
+                nein "Karte $gid ist done, aber es gibt kein unblocked-Ereignis"
+                info "Eine Gate-Karte, die ohne menschliche Antwort fertig wurde, ist"
+                info "ein Governance-Befund — kein Agent oeffnet je ein Gate (AGENTS.md 7)."
+            elif [ -z "$antwort" ]; then
+                nein "Karte $gid wurde entblockt, aber ohne gate.sh-Kommentar mit gueltigem Verb"
+                info "Ein unblock ohne Verb ist von einem Selbst-Freischalten nicht zu unterscheiden."
+            else
+                ok "Karte $gid ist beantwortet und ausgefuehrt: \"$antwort\""
+            fi ;;
         triage)
             nein "Karte $gid ist in der TRIAGE gelandet — sie fragt niemanden mehr" ;;
         *)
