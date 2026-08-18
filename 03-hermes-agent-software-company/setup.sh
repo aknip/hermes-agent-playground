@@ -179,13 +179,24 @@ for name in "${PROFILE_NAMES[@]}"; do
     #
     # Angehoben wird nur für die Rollen, die WERKZEUGE bedienen: Bauen heisst
     # lesen, schreiben, typecheck, testen, wieder lesen — das sind Dutzende
-    # Aufrufe je Datei. Die urteilenden und messenden Rollen bleiben bei 500;
+    # Aufrufe je Datei. Die urteilenden und messenden Rollen bekommen 500;
     # ihre Arbeit ist Denken, nicht Schleifen, und ein hoher Deckel wäre dort
     # nur ein höheres Kostenrisiko ohne Nutzen.
+    #
+    # BEIDE Werte werden explizit gesetzt, keiner geerbt. Am 18.08.2026 stand
+    # in `~/.hermes/config.yaml` `agent.max_turns: 90` — nicht der Hermes-
+    # Default 500, auf den der frühere Code sich verliess. Die urteilenden
+    # Rollen wären damit bei 90 Zügen gelaufen, und eine Codebasis-Analyse mit
+    # drei Dutzend Belegstellen ist bei 90 Zügen zu Ende, bevor sie fertig ist.
+    # Ein Deckel, der von der Root-Konfiguration der Maschine abhängt, ist kein
+    # Deckel, sondern ein Zufall.
     case "$name" in
         esf-dev-a|esf-dev-b|esf-reviewer|esf-qa-release)
             hermes -p "$name" config set agent.max_turns 1200 >/dev/null
             printf '      agent.max_turns = 1200 (werkzeugintensive Rolle)\n' ;;
+        *)
+            hermes -p "$name" config set agent.max_turns 500 >/dev/null
+            printf '      agent.max_turns = 500 (urteilende Rolle)\n' ;;
     esac
 
     # Skills PRO PROFIL. Wer alles weiss, ist keine Flotte, sondern elf Kopien

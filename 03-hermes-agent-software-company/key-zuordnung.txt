@@ -19,3 +19,4 @@
   esf-reviewer         esf-hermes-agent-9       8777bd84a708
   esf-qa-release       esf-hermes-agent-10      5b9e5e85abe6
   esf-controller       esf-hermes-agent-11      ed952526d0a1
+  esf-ceo              esf-hermes-agent-12      25853f4b92bf
