@@ -417,8 +417,13 @@ if [ "$AUFTRAEGE" -eq 1 ]; then
         schreibe_auftrag "$komp" "$dok" "$(cat "$job/titel.txt")" "$dauer" "$job/saetze.txt"
         python3 "$WERKZEUG" vtt "$job/saetze.txt" "$dauer" > "$vtt"
         rm -rf "$job"
-        # Die Referenz mitgeben: ein bekannt-guter Aufbau, den er übertreffen soll.
-        cp -f "$TEMPLATE/index.html" "$komp/referenz-generisch.html" 2>/dev/null || true
+        # Die Referenz wird NUR GENANNT, nicht kopiert. Eine zweite Root-HTML mit
+        # data-composition-id im Projektverzeichnis ist ein lint-FEHLER
+        # (multiple_root_compositions: "The runtime may discover both as entry
+        # points, causing duplicate audio playback") — gemessen am 18.08.2026,
+        # nachdem der erste echte Designer-Lauf die mitkopierte Datei selbst
+        # entfernen musste. Waere sie liegen geblieben, waere Tor 2 rot gewesen
+        # und das Video still auf Stufe 2 gefallen.
         cp -f "$TEMPLATE/hyperframes.json" "$komp/hyperframes.json" 2>/dev/null || true
         k create "$titel_karte" \
             --assignee esf-video-designer \
@@ -431,8 +436,11 @@ DEIN ARBEITSVERZEICHNIS ist dieses Kompositionsverzeichnis. Dort liegen:
 
     auftrag.json              die Bindung: Titel, Typ, GEMESSENE Dauer, Cues
     audio.m4a                 die fertige Vertonung — nicht neu kodieren
-    referenz-generisch.html   ein bekannt-guter Aufbau (die generische Vorlage)
     hyperframes.json          die Projektdatei
+
+EIN BEKANNT-GUTER AUFBAU zum Nachlesen (NICHT hierher kopieren — eine zweite
+Root-HTML mit data-composition-id ist ein lint-Fehler):
+    $TEMPLATE/index.html
 
 DEIN ERGEBNIS ist index.html in diesem Verzeichnis.
 

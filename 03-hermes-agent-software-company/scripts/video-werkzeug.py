@@ -245,6 +245,21 @@ def cmd_pruefe(komp_dir, auftrag_datei):
         if kid and not re.search(r"__timelines\s*\[\s*[\"']" + re.escape(kid) + r"[\"']\s*\]", code):
             befunde.append('Timeline nicht registriert: window.__timelines["%s"]' % kid)
 
+    # Genau EINE Root-Komposition. Zwei Root-HTML mit data-composition-id lassen
+    # den Renderer beide als Einstieg finden — doppelte Tonspur. `hyperframes
+    # lint` faengt es auch (multiple_root_compositions), aber pruefe laeuft
+    # zuerst und auch dann, wenn video-render.sh mit --ohne-lint faehrt.
+    wurzeln = []
+    for name in sorted(os.listdir(komp_dir)):
+        if not name.endswith((".html", ".htm")):
+            continue
+        inhalt = open(os.path.join(komp_dir, name), encoding="utf-8", errors="replace").read()
+        if re.search(r"data-composition-id", re.sub(r"<!--.*?-->", "", inhalt, flags=re.S)):
+            wurzeln.append(name)
+    if len(wurzeln) > 1:
+        befunde.append("mehr als eine Root-Komposition: " + ", ".join(wurzeln)
+                       + " — der Renderer wuerde beide als Einstieg finden (doppelter Ton)")
+
     audio = auftrag["audio"]
     a = re.search(r"<audio\b[^>]*>", code)
     if not a:
