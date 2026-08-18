@@ -1,5 +1,5 @@
 
-17.08.2026 
+# 17.08.2026 
 
 Ich habe eine existierende Software in einem Repo (B2B-Kontext)
 Ich möchte diese nun über eine autonom agierende Organisation von Agenten automatisch weiterentwickeln lassen: Markt- und Wettbewerbsanalyse, kontiniuerliche Entwicklung und Anpassung einer Feature-Roadmap, priorisierte Umsetzung der Feature-Roadmap, kontinuierliche Qualitätssicherung usw.
@@ -33,6 +33,15 @@ Speichere das Konzept im html-Format in "03-hermes-agent-software-company"
 
 ======================================================================================================
 
+Dieses Repo ist eine eigenständige Kopie/Fork von https://github.com/regisx001/Worklog/tree/master
+Doku: https://regisx001.github.io/Worklog/docs/installation
+Bitte installiere und starte die Anwendung in der Entwicklungsumgebung (nicht über die Binary)
+
+ Recherchiere auf Github: Ich suche eine einfache, webbasierte Projektplanungssoftware für Softwareprojekte (Kanban-Board, wie Jira, aber viel einfacher, nicht mit dieser Komplexität).
+
+
+======================================================================================================
+
 Beginne mit der Umsetzung des Konzepts, benutze dazu das Repo "/Users/aknipschild/github/hermes-agent-playground/04-hermes-agent-software-company-test-kaneo" als erstes Umsetzungsbeispiel.
 Speichere dazu alle Profile, Scripte, Vorlagen etc. in "03-hermes-agent-software-company", so dass die ESF mithilfe dieses Repos jederzeit neu installiert und deinstalliert werden kann (analog zu den Tutorials/Stories in "02-hermes-agent-kanban-tutorials").
 Setze dazu Phase 0 und 1 aus Kapitel 12 des Konzepts für das Repo um "/Users/aknipschild/github/hermes-agent-playground/04-hermes-agent-software-company-test-kaneo". 
@@ -46,21 +55,15 @@ Nutze als Modell "deepseek/deepseek-v4-flash-0731" über OpenRouter.
 Übernimm auch für diesen Teil der Umsetzung bitte die Rolle des CEO und "ent-blocke" alle Tickets im Kanban-Board nach eigener Einschätzung. Beantworte auch alle anderen Rückfragen werden der Entwicklung selbstständig.
 Bitte regelmässig nach git committen, so dass auch jederzeit zurückgerollt werden kann.
 
-
-
-
-
-
-
-
-
 ======================================================================================================
 
-Dieses Repo ist eine eigenständige Kopie/Fork von https://github.com/regisx001/Worklog/tree/master
-Doku: https://regisx001.github.io/Worklog/docs/installation
-Bitte installiere und starte die Anwendung in der Entwicklungsumgebung (nicht über die Binary)
+#18.08.2026
 
- Recherchiere auf Github: Ich suche eine einfache, webbasierte Projektplanungssoftware für Softwareprojekte (Kanban-Board, wie Jira, aber viel einfacher, nicht mit dieser Komplexität).
+Es läuft gerade Sprint 2 von ESF (03-hermes-agent-software-company) für die App "04-hermes-agent-software-company-test-kaneo".
+Bitte fasse den aktuellen Stand von Sprint 1 und 2 (was wurde geplant, was umgesetzt, wie lange dauerte es, wie teuer war es?) zusammen.
+
+
+
 
 
 

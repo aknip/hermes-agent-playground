@@ -187,6 +187,15 @@ DIE GRENZE
 Du rufst NIEMALS kanban_unblock auf — nicht auf dieser Karte, nicht auf einer
 anderen, aus keinem Grund (AGENTS.md 7). monitor.sh meldet jede Verletzung.
 
+Und du rufst NICHT kanban_request_review. Eine Karte im Status 'review' kann
+sich selbst nicht mehr abschliessen: kanban_complete antwortet dann
+'could not complete <id> (unknown id or already terminal)'. Real am 18.08.2026
+passiert — ein Worker drehte vier Laeufe in dieser Schleife, jeder 0 Minuten,
+bis der Circuit Breaker aufgab; die Arbeit war laengst committet. Wer eine
+Entscheidung braucht, blockiert sich EINMAL mit kanban_block(kind="needs_input")
+und stellt seine Frage im Blockgrund — das ist der Weg, den gate.sh bedient.
+Wer fertig ist, ruft kanban_complete.
+
 Blockiere dich höchstens EINMAL. Hermes zählt zwei Blockaden derselben Art auf
 derselben Karte als Schleife (BLOCK_RECURRENCE_LIMIT = 2, je kind) und schiebt
 die Karte still nach 'triage', wo sie niemanden mehr fragt. Real passiert, siehe

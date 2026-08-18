@@ -247,3 +247,48 @@ zurückrollbar ist.
 Phase 3 (Dauerbetrieb) aus Kapitel 12 — zwei Wochen ohne manuellen Eingriff
 sind in einer Sitzung nicht nachweisbar. Der Markt-Eingang bleibt in Phase 2
 laut Kapitel 12 ohnehin manuell befüllt (`seed/company/sources/2026-08-17/`).
+
+## Nachtrag: vier v0.20.0-Eigenheiten, die erst im zweiten Sprint auffielen
+
+Sie stehen hier und nicht nur im Protokoll, weil jede von ihnen einen Kartentext
+oder ein Skript geändert hat.
+
+**1. Eine Karte im Status `review` kann sich selbst nicht abschließen.**
+Ruft ein Worker `kanban_request_review`, antwortet `kanban_complete` danach mit
+`could not complete <id> (unknown id or already terminal)`. Am 18.08.2026drehte
+ein Worker vier Läufe in dieser Schleife (je 0 Minuten), bis der Circuit Breaker
+aufgab — die Arbeit war längst committet. Der Ausweg ist
+`hermes kanban complete <id> --metadata '<json>'` von außen; `complete` nimmt
+`--metadata`, der Lebenszyklus hat die Fremdschließung also vorgesehen.
+
+Die Kartentexte verbieten `request_review` seither ausdrücklich: Wer eine
+Entscheidung braucht, blockiert sich **einmal** mit `kind="needs_input"` — das
+ist der Weg, den `gate.sh` bedient.
+
+**2. Der Dispatcher gibt eine Karte auf einen neuen Worktree, wenn die alte
+archiviert wird — und detacht den alten Baum.** Nach dem Neuanlegen der
+2FA-Bau-Karte lag der Branch `feat/esf-r1-f2-zwei-faktor` im Worktree der
+**neuen** Karte, während der alte auf detached HEAD stand. Wer den Stand einer
+Karte prüft, sucht deshalb im Worktree **ihrer** ID — nicht im ältesten Baum
+desselben Branches. Ich habe hier einen fertigen Fix fälschlich für fehlend
+erklärt, weil ich im detachten Baum nachsah.
+
+Verlässlich ist nur `git branch -v` bzw. `git worktree list`: Der Branch-Kopf
+sagt, wo die Arbeit steht.
+
+**3. `--max-runtime` trifft auch ungeplante Nacharbeitskarten.** Drei von ihnen
+liefen in ihren Deckel (`timed_out`): 120 min bei der ersten 2FA-Nacharbeit,
+60 min bei der Nachprüfung. Der Estimator warnt nur, wo er gefragt wird — und
+ungeplante Karten fragt niemand. Wer eine Nacharbeitskarte anlegt, überlegt den
+Deckel so bewusst wie bei einer geplanten, oder er zahlt einen abgebrochenen
+Lauf.
+
+**4. Worker verlassen die vorgesehene Arbeitsfläche.** Drei Fälle an einem Tag:
+zwei Git-Worktrees in `/private/tmp/` (`baseline-j03`, `esf-baseline`), von
+eigenen Untersuchungen; ein Verzeichnis mit verstümmeltem Pfad im
+**Elternverzeichnis** des Repos
+(`03-hermes-agent-softire-company/workspace/company/revironments/it's.`, 0 Byte,
+ein falsch gequotetes `mkdir -p`); und eine neu geschriebene `.env` im
+Hauptbaum. Keiner der Fälle war schädlich, alle drei entziehen sich der
+Aufräum-Logik. `monitor.sh` meldet seit heute Worktrees außerhalb von
+`.worktrees/`; für den Rest bleibt es beim Kartentext.
