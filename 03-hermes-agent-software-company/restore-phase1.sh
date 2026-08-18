@@ -48,11 +48,23 @@ LEDGER="$VAULT/ledger/estimates.jsonl"
 
 MIT_LEDGER=0
 NUR_PRUEFEN=0
+NUR_LEDGER=0
 case "${1:-}" in
     --ledger)  MIT_LEDGER=1 ;;
     --pruefen) NUR_PRUEFEN=1 ;;
+    # Nur nachbuchen, NICHTS zurueckspielen — und aus einer beliebigen Akte.
+    #
+    # Ohne diesen Modus gibt es nur `--ledger`, und der spielt zuerst die
+    # Artefakte der Akte in den Vault. Wer nach einem EIGENEN Lauf dessen
+    # gemessene Zeiten nachbuchen will, wuerde damit seine eigenen Analysen
+    # durch die eines fremden Laufs ersetzen — lautlos, denn die Dateinamen
+    # sind dieselben. Am 18.08.2026 war genau das der Fall: Phase 2 sollte auf
+    # dem zweiten Rundlauf aufsetzen, nicht auf dem ersten.
+    --nur-ledger)
+        MIT_LEDGER=1; NUR_LEDGER=1
+        [ -n "${2:-}" ] && AKTE="$2" ;;
     "")        ;;
-    *) echo "Unbekannte Option '$1'. Erlaubt: --ledger | --pruefen"; exit 2 ;;
+    *) echo "Unbekannte Option '$1'. Erlaubt: --ledger | --pruefen | --nur-ledger [<akte>]"; exit 2 ;;
 esac
 
 command -v jq >/dev/null || { echo "FEHLER: 'jq' fehlt"; exit 1; }
@@ -113,6 +125,7 @@ echo "  $AKTE  (gesichert $gesichert)"
 echo "  Ziel:  $VAULT"
 
 # ---------------------------------------------------------------------------
+if [ "$NUR_LEDGER" -eq 0 ]; then
 say "1  Analyse-Artefakte, Roadmap-Stände, Spezifikation"
 # ---------------------------------------------------------------------------
 # Bewusst NICHT kopiert:
@@ -194,9 +207,11 @@ EOF
     ok "reports/herkunft-phase1.txt geschrieben"
 fi
 
+fi   # Ende der Abschnitte 1 und 2 (uebersprungen bei --nur-ledger)
+
 # ---------------------------------------------------------------------------
 if [ "$MIT_LEDGER" -eq 1 ] || [ "$NUR_PRUEFEN" -eq 1 ]; then
-say "3  Ledger-Backfill aus den gemessenen Phase-0/1-Zeiten"
+say "3  Ledger-Backfill aus den gemessenen Zeiten der Akte"
 # ---------------------------------------------------------------------------
 mkdir -p "$(dirname "$LEDGER")"; : >> "$LEDGER"
 
@@ -205,7 +220,7 @@ mkdir -p "$(dirname "$LEDGER")"; : >> "$LEDGER"
 # hat im ersten Lauf vier Skripte lautlos falsch rechnen lassen).
 karten="$(jq -c '.karten[]? // empty' "$AKTE/board.json" 2>/dev/null)"
 if [ -z "$karten" ]; then
-    warn "beispiel-lauf-1/board.json enthält keine Karten — kein Backfill möglich"
+    warn "$AKTE/board.json enthält keine Karten — kein Backfill möglich"
 else
     neu=0; schon=0; ohne_zeit=0
     while IFS= read -r karte; do
@@ -241,6 +256,7 @@ else
         zeile="$(jq -n -c \
             --arg id "$id" --arg klasse "$klasse" --arg profil "$profil" \
             --arg titel "$titel" --arg at "$gesichert" \
+            --arg quelle "$(basename "$AKTE")/board.json" \
             --argjson minuten "$minuten" --argjson laeufe "$n_laeufe" \
             --argjson standby "$standby" \
             '{task_id:$id, reference_class:$klasse, profile:$profil,
@@ -248,7 +264,7 @@ else
               actual:{wall_minutes:$minuten, runs:$laeufe, standby_overlap:$standby,
                       tokens_k:null, cost_usd:null},
               backfill:true, title:$titel,
-              comment:"Nachgebucht aus beispiel-lauf-1/board.json. Gemessene Wanduhr, keine Schaetzung: die Karte trug keine. Klasse per Titel-Muster zugeordnet (restore-phase1.sh).",
+              comment:("Nachgebucht aus " + $quelle + ". Gemessene Wanduhr, keine Schaetzung: die Karte trug keine. Klasse per Titel-Muster zugeordnet (restore-phase1.sh)."),
               at:$at}')"
 
         if [ "$NUR_PRUEFEN" -eq 1 ]; then
@@ -278,7 +294,7 @@ fi
 fi
 
 # ---------------------------------------------------------------------------
-if [ "$NUR_PRUEFEN" -eq 0 ]; then
+if [ "$NUR_PRUEFEN" -eq 0 ] && [ "$NUR_LEDGER" -eq 0 ]; then
 say "4  Vault-Linter über den wiederhergestellten Stand"
 # ---------------------------------------------------------------------------
 if python3 "$HERE/scripts/vault-lint.py" "$VAULT" > /tmp/esf-restore-lint.$$ 2>&1; then
