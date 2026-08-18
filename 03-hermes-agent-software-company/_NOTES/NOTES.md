@@ -63,6 +63,19 @@ Es läuft gerade Sprint 2 von ESF (03-hermes-agent-software-company) für die Ap
 Bitte fasse den aktuellen Stand von Sprint 1 und 2 (was wurde geplant, was umgesetzt, wie lange dauerte es, wie teuer war es?) zusammen.
 
 
+Ich möchte die Umsetzungs-Roadmap (Kapitel 12) aus dem Konzept "03-hermes-agent-software-company/KONZEPT.html" nocheinmal von vorne durchspielen, ab Phase 1 Onboarding. Es soll der aktuelle Entwicklungsstand der ESF-Profile aus "03-hermes-agent-software-company" hierzu verwendet werden:
+1. Stelle sicher, dass in "03-hermes-agent-software-company" der aktuelle Stand der ESF aus Hermes Agent vorhanden ist
+2. Entferne alle ESF-Profile, Kanban-Board etc. aus Hermes Agent
+3. Warte auf Bestätigung von mir, dass alles aus Hermes Agent entfernt wurde
+4. Installiere ESF aus "03-hermes-agent-software-company" neu
+5. Versetze "04-hermes-agent-software-company-test-kaneo" zurück in den initialen Zustand (enferne die von ESF hinzugefügten Features)
+6. Warte auf Bestätigung von mir für den nächsten Schritt
+
+
+
+Ergänze Konzept 03-hermes-agent-software-company => 
+1. Ergänze alle Analysen, Research-Ergebnisse, Berichte, Reports, Entscheidungsvorlagen für den CEO jeweils mit einem Video, das den jeweiligen Inhalt zusammenfasst (mit Sprecher-Audio und optional einblendbaren Untertiteln, per Hyperframes erstellt https://hyperframes.heygen.com). 
+2. Erstelle nach jeder Feature-Implementierung ein Video, das den Browser-E2E-Test des Features zeigt. Zusätzlich soll nach jeder Feature-Implementierung ein Video erstellt bzw. aktualisiert werden, das alle E2E-Tests der Anwendung zeigt.
 
 
 

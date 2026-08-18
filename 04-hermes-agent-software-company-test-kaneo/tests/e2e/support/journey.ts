@@ -52,7 +52,24 @@ export async function arbeitsbereichAnlegen(
   page: Page,
   name = `Arbeitsbereich ${Date.now()}`,
 ): Promise<string> {
-  await page.locator('input[name="name"]').fill(name);
+  // Befund 'Workspace name is required' (Karte t_288738fa): Der Name läuft
+  // durch ein React-kontrolliertes Feld (react-hook-form über Base-UI-Field).
+  // RHF liest den Wert beim input-Event aus seinem Feld-Register; ist dieses
+  // unter Last noch nicht bereit, wird ein LEERER Wert festgehalten und das
+  // kontrollierte Feld bleibt dauerhaft "" — fill ging verloren. Deshalb füllen
+  // wir nach, bis der Wert wirklich hält (und nicht nur im DOM steht). Das heilt
+  // die Befundklasse für ALLE Journeys, denn sie teilen sich diesen Helfer.
+  const nameFeld = page.locator('input[name="name"]');
+  for (let versuch = 0; versuch < 5; versuch += 1) {
+    await nameFeld.fill(name);
+    await page.waitForTimeout(75);
+    if ((await nameFeld.inputValue()) === name) {
+      break;
+    }
+    // fill wurde verworfen (Kontroll-Register war noch nicht bereit) → erneut.
+  }
+  await expect(nameFeld).toHaveValue(name);
+
   await page.getByRole("button", { name: "Create workspace" }).click();
 
   await expect(page).not.toHaveURL(/\/onboarding/, { timeout: 30_000 });

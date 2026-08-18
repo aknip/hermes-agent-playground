@@ -18,6 +18,13 @@ import {
 } from "vitest";
 import { Route } from "./verify-otp";
 
+// vi.hoisted: die Mocks müssen vor dem vi.mock-Factory-Hoist existieren, damit
+// `toast` im Test typisiert als vi.fn() zugreifbar ist (mockReset etc.).
+const { toastError, toastSuccess } = vi.hoisted(() => ({
+  toastError: vi.fn(),
+  toastSuccess: vi.fn(),
+}));
+
 // The OTP input measures itself on mount, which jsdom cannot do.
 vi.stubGlobal(
   "ResizeObserver",
@@ -28,7 +35,6 @@ vi.stubGlobal(
   },
 );
 
-const emailOtp = vi.fn();
 const push = vi.fn();
 
 let search: {
@@ -46,18 +52,12 @@ vi.mock("@tanstack/react-router", () => ({
 
 vi.mock("@/lib/auth-client", () => ({
   authClient: {
-    signIn: {
-      emailOtp: (
-        body: { email: string; otp: string },
-        fetchOptions?: { headers: Record<string, string> },
-      ) => emailOtp(body, fetchOptions),
-    },
     emailOtp: { sendVerificationOtp: vi.fn() },
   },
 }));
 
 vi.mock("@/lib/toast", () => ({
-  toast: { error: vi.fn(), success: vi.fn() },
+  toast: { error: toastError, success: toastSuccess },
 }));
 
 vi.mock("react-i18next", () => ({
@@ -74,27 +74,27 @@ function submitCode() {
 }
 
 beforeEach(() => {
-  emailOtp.mockResolvedValue({ data: {}, error: null });
+  vi.stubGlobal(
+    "fetch",
+    vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ token: "t", user: {} }),
+    }),
+  );
 });
 
 afterEach(async () => {
-  // input-otp schedules internal timers (0ms, 2s, 5s, 6s) for password
-  // manager detection when the input focuses. The 0ms timer can fire after
-  // vitest tears down the jsdom environment, which surfaces as an
-  // unhandled "window is not defined" error. Drain pending timers inside
-  // act() so React's pending updates flush and the timer calls complete
-  // before cleanup runs.
   await act(async () => {
     await new Promise((resolve) => setTimeout(resolve, 0));
   });
   cleanup();
-  emailOtp.mockReset();
   push.mockReset();
+  toastError.mockReset();
+  toastSuccess.mockReset();
   search = { email: "invitee@kaneo.test" };
 });
 
-// The ResizeObserver stub is installed at module scope, so restore it rather
-// than leaking it into other test files sharing this worker.
 afterAll(() => {
   vi.unstubAllGlobals();
 });
@@ -105,20 +105,69 @@ describe("VerifyOtp", () => {
 
     submitCode();
 
-    await waitFor(() => expect(emailOtp).toHaveBeenCalledTimes(1));
-    expect(emailOtp).toHaveBeenCalledWith(
-      { email: "invitee@kaneo.test", otp: "123456" },
-      { headers: { "x-invitation-id": "invitation-1" } },
-    );
+    await waitFor(() => expect(globalThis.fetch).toHaveBeenCalledTimes(1));
+    const [url, init] = (globalThis.fetch as ReturnType<typeof vi.fn>).mock
+      .calls[0] as [string, RequestInit];
+    expect(url).toMatch(/\/api\/auth\/sign-in\/email-otp$/);
+    expect(init.headers).toMatchObject({ "x-invitation-id": "invitation-1" });
+    expect(JSON.parse(String(init.body))).toEqual({
+      email: "invitee@kaneo.test",
+      otp: "123456",
+    });
   });
 
   it("sends no invitation header when the visitor arrived without one", async () => {
     submitCode();
 
-    await waitFor(() => expect(emailOtp).toHaveBeenCalledTimes(1));
-    expect(emailOtp).toHaveBeenCalledWith(
-      { email: "invitee@kaneo.test", otp: "123456" },
-      undefined,
+    await waitFor(() => expect(globalThis.fetch).toHaveBeenCalledTimes(1));
+    const init = (globalThis.fetch as ReturnType<typeof vi.fn>).mock
+      .calls[0][1] as RequestInit;
+    expect(init.headers).not.toHaveProperty("x-invitation-id");
+  });
+
+  it("shows an actionable two-factor notice instead of hanging when the server rejects a 2FA account", async () => {
+    (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      ok: false,
+      status: 401,
+      json: async () => ({
+        message:
+          "Dieses Konto nutzt Zwei-Faktor-Anmeldung; bitte mit Passwort anmelden",
+      }),
+    });
+
+    submitCode();
+
+    // The visible, handlungsleitende Meldung erscheint — kein Toast für einen
+    // „ungültigen Code“, kein hängender Spinner (der Button kehrt zurück).
+    await waitFor(() =>
+      expect(
+        screen.getByText("auth:verifyOtp.twoFactorRequired.title"),
+      ).toBeTruthy(),
     );
+    expect(
+      screen.getByText("auth:verifyOtp.twoFactorRequired.description"),
+    ).toBeTruthy();
+    expect(
+      screen.getByText("auth:verifyOtp.twoFactorRequired.signInWithPassword"),
+    ).toBeTruthy();
+    expect(toastError).not.toHaveBeenCalled();
+    // Nach der Abweisung ist der Spinner beendet: der Submit-Button zeigt wieder
+    // den Ruhezustand statt „Verifying…“.
+    expect(screen.getByText("auth:verifyOtp.verifyAndSignIn")).toBeTruthy();
+  });
+
+  it("shows a toast for an invalid code instead of the two-factor notice", async () => {
+    (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      ok: false,
+      status: 400,
+      json: async () => ({ message: "Invalid OTP", code: "INVALID_OTP" }),
+    });
+
+    submitCode();
+
+    await waitFor(() => expect(toastError).toHaveBeenCalledWith("Invalid OTP"));
+    expect(
+      screen.queryByText("auth:verifyOtp.twoFactorRequired.title"),
+    ).toBeNull();
   });
 });

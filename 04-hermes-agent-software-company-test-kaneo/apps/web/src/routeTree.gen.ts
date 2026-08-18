@@ -18,6 +18,7 @@ import { Route as LayoutAuthenticatedRouteImport } from './routes/_layout/_authe
 import { Route as AuthCheckEmailRouteImport } from './routes/auth/check-email'
 import { Route as AuthSignInRouteImport } from './routes/auth/sign-in'
 import { Route as AuthSignUpRouteImport } from './routes/auth/sign-up'
+import { Route as AuthTwoFactorRouteImport } from './routes/auth/two-factor'
 import { Route as AuthVerifyOtpRouteImport } from './routes/auth/verify-otp'
 import { Route as DeviceIndexRouteImport } from './routes/device/index'
 import { Route as DeviceApproveRouteImport } from './routes/device/approve'
@@ -40,6 +41,7 @@ import { Route as LayoutAuthenticatedDashboardSettingsAccountDeveloperRouteImpor
 import { Route as LayoutAuthenticatedDashboardSettingsAccountInformationRouteImport } from './routes/_layout/_authenticated/dashboard/settings/account/information'
 import { Route as LayoutAuthenticatedDashboardSettingsAccountNotificationsRouteImport } from './routes/_layout/_authenticated/dashboard/settings/account/notifications'
 import { Route as LayoutAuthenticatedDashboardSettingsAccountPreferencesRouteImport } from './routes/_layout/_authenticated/dashboard/settings/account/preferences'
+import { Route as LayoutAuthenticatedDashboardSettingsAccountSecurityRouteImport } from './routes/_layout/_authenticated/dashboard/settings/account/security'
 import { Route as LayoutAuthenticatedDashboardSettingsWorkspaceBillingRouteImport } from './routes/_layout/_authenticated/dashboard/settings/workspace/billing'
 import { Route as LayoutAuthenticatedDashboardSettingsWorkspaceGeneralRouteImport } from './routes/_layout/_authenticated/dashboard/settings/workspace/general'
 import { Route as LayoutAuthenticatedDashboardSettingsWorkspaceLabelsRouteImport } from './routes/_layout/_authenticated/dashboard/settings/workspace/labels'
@@ -98,6 +100,11 @@ const AuthSignInRoute = AuthSignInRouteImport.update({
 const AuthSignUpRoute = AuthSignUpRouteImport.update({
   id: '/sign-up',
   path: '/sign-up',
+  getParentRoute: () => AuthRoute,
+} as any)
+const AuthTwoFactorRoute = AuthTwoFactorRouteImport.update({
+  id: '/two-factor',
+  path: '/two-factor',
   getParentRoute: () => AuthRoute,
 } as any)
 const AuthVerifyOtpRoute = AuthVerifyOtpRouteImport.update({
@@ -225,6 +232,12 @@ const LayoutAuthenticatedDashboardSettingsAccountPreferencesRoute =
   LayoutAuthenticatedDashboardSettingsAccountPreferencesRouteImport.update({
     id: '/preferences',
     path: '/preferences',
+    getParentRoute: () => LayoutAuthenticatedDashboardSettingsAccountRoute,
+  } as any)
+const LayoutAuthenticatedDashboardSettingsAccountSecurityRoute =
+  LayoutAuthenticatedDashboardSettingsAccountSecurityRouteImport.update({
+    id: '/security',
+    path: '/security',
     getParentRoute: () => LayoutAuthenticatedDashboardSettingsAccountRoute,
   } as any)
 const LayoutAuthenticatedDashboardSettingsWorkspaceBillingRoute =
@@ -355,6 +368,7 @@ export interface FileRoutesByFullPath {
   '/auth/check-email': typeof AuthCheckEmailRoute
   '/auth/sign-in': typeof AuthSignInRoute
   '/auth/sign-up': typeof AuthSignUpRoute
+  '/auth/two-factor': typeof AuthTwoFactorRoute
   '/auth/verify-otp': typeof AuthVerifyOtpRoute
   '/device/approve': typeof DeviceApproveRoute
   '/mcp/authorize': typeof McpAuthorizeRoute
@@ -377,6 +391,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/settings/account/information': typeof LayoutAuthenticatedDashboardSettingsAccountInformationRoute
   '/dashboard/settings/account/notifications': typeof LayoutAuthenticatedDashboardSettingsAccountNotificationsRoute
   '/dashboard/settings/account/preferences': typeof LayoutAuthenticatedDashboardSettingsAccountPreferencesRoute
+  '/dashboard/settings/account/security': typeof LayoutAuthenticatedDashboardSettingsAccountSecurityRoute
   '/dashboard/settings/workspace/billing': typeof LayoutAuthenticatedDashboardSettingsWorkspaceBillingRoute
   '/dashboard/settings/workspace/general': typeof LayoutAuthenticatedDashboardSettingsWorkspaceGeneralRoute
   '/dashboard/settings/workspace/labels': typeof LayoutAuthenticatedDashboardSettingsWorkspaceLabelsRoute
@@ -401,6 +416,7 @@ export interface FileRoutesByTo {
   '/auth/check-email': typeof AuthCheckEmailRoute
   '/auth/sign-in': typeof AuthSignInRoute
   '/auth/sign-up': typeof AuthSignUpRoute
+  '/auth/two-factor': typeof AuthTwoFactorRoute
   '/auth/verify-otp': typeof AuthVerifyOtpRoute
   '/device/approve': typeof DeviceApproveRoute
   '/mcp/authorize': typeof McpAuthorizeRoute
@@ -421,6 +437,7 @@ export interface FileRoutesByTo {
   '/dashboard/settings/account/information': typeof LayoutAuthenticatedDashboardSettingsAccountInformationRoute
   '/dashboard/settings/account/notifications': typeof LayoutAuthenticatedDashboardSettingsAccountNotificationsRoute
   '/dashboard/settings/account/preferences': typeof LayoutAuthenticatedDashboardSettingsAccountPreferencesRoute
+  '/dashboard/settings/account/security': typeof LayoutAuthenticatedDashboardSettingsAccountSecurityRoute
   '/dashboard/settings/workspace/billing': typeof LayoutAuthenticatedDashboardSettingsWorkspaceBillingRoute
   '/dashboard/settings/workspace/general': typeof LayoutAuthenticatedDashboardSettingsWorkspaceGeneralRoute
   '/dashboard/settings/workspace/labels': typeof LayoutAuthenticatedDashboardSettingsWorkspaceLabelsRoute
@@ -449,6 +466,7 @@ export interface FileRoutesById {
   '/auth/check-email': typeof AuthCheckEmailRoute
   '/auth/sign-in': typeof AuthSignInRoute
   '/auth/sign-up': typeof AuthSignUpRoute
+  '/auth/two-factor': typeof AuthTwoFactorRoute
   '/auth/verify-otp': typeof AuthVerifyOtpRoute
   '/device/approve': typeof DeviceApproveRoute
   '/mcp/authorize': typeof McpAuthorizeRoute
@@ -471,6 +489,7 @@ export interface FileRoutesById {
   '/_layout/_authenticated/dashboard/settings/account/information': typeof LayoutAuthenticatedDashboardSettingsAccountInformationRoute
   '/_layout/_authenticated/dashboard/settings/account/notifications': typeof LayoutAuthenticatedDashboardSettingsAccountNotificationsRoute
   '/_layout/_authenticated/dashboard/settings/account/preferences': typeof LayoutAuthenticatedDashboardSettingsAccountPreferencesRoute
+  '/_layout/_authenticated/dashboard/settings/account/security': typeof LayoutAuthenticatedDashboardSettingsAccountSecurityRoute
   '/_layout/_authenticated/dashboard/settings/workspace/billing': typeof LayoutAuthenticatedDashboardSettingsWorkspaceBillingRoute
   '/_layout/_authenticated/dashboard/settings/workspace/general': typeof LayoutAuthenticatedDashboardSettingsWorkspaceGeneralRoute
   '/_layout/_authenticated/dashboard/settings/workspace/labels': typeof LayoutAuthenticatedDashboardSettingsWorkspaceLabelsRoute
@@ -498,6 +517,7 @@ export interface FileRouteTypes {
     | '/auth/check-email'
     | '/auth/sign-in'
     | '/auth/sign-up'
+    | '/auth/two-factor'
     | '/auth/verify-otp'
     | '/device/approve'
     | '/mcp/authorize'
@@ -520,6 +540,7 @@ export interface FileRouteTypes {
     | '/dashboard/settings/account/information'
     | '/dashboard/settings/account/notifications'
     | '/dashboard/settings/account/preferences'
+    | '/dashboard/settings/account/security'
     | '/dashboard/settings/workspace/billing'
     | '/dashboard/settings/workspace/general'
     | '/dashboard/settings/workspace/labels'
@@ -544,6 +565,7 @@ export interface FileRouteTypes {
     | '/auth/check-email'
     | '/auth/sign-in'
     | '/auth/sign-up'
+    | '/auth/two-factor'
     | '/auth/verify-otp'
     | '/device/approve'
     | '/mcp/authorize'
@@ -564,6 +586,7 @@ export interface FileRouteTypes {
     | '/dashboard/settings/account/information'
     | '/dashboard/settings/account/notifications'
     | '/dashboard/settings/account/preferences'
+    | '/dashboard/settings/account/security'
     | '/dashboard/settings/workspace/billing'
     | '/dashboard/settings/workspace/general'
     | '/dashboard/settings/workspace/labels'
@@ -591,6 +614,7 @@ export interface FileRouteTypes {
     | '/auth/check-email'
     | '/auth/sign-in'
     | '/auth/sign-up'
+    | '/auth/two-factor'
     | '/auth/verify-otp'
     | '/device/approve'
     | '/mcp/authorize'
@@ -613,6 +637,7 @@ export interface FileRouteTypes {
     | '/_layout/_authenticated/dashboard/settings/account/information'
     | '/_layout/_authenticated/dashboard/settings/account/notifications'
     | '/_layout/_authenticated/dashboard/settings/account/preferences'
+    | '/_layout/_authenticated/dashboard/settings/account/security'
     | '/_layout/_authenticated/dashboard/settings/workspace/billing'
     | '/_layout/_authenticated/dashboard/settings/workspace/general'
     | '/_layout/_authenticated/dashboard/settings/workspace/labels'
@@ -705,6 +730,13 @@ declare module '@tanstack/react-router' {
       path: '/sign-up'
       fullPath: '/auth/sign-up'
       preLoaderRoute: typeof AuthSignUpRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/auth/two-factor': {
+      id: '/auth/two-factor'
+      path: '/two-factor'
+      fullPath: '/auth/two-factor'
+      preLoaderRoute: typeof AuthTwoFactorRouteImport
       parentRoute: typeof AuthRoute
     }
     '/auth/verify-otp': {
@@ -861,6 +893,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LayoutAuthenticatedDashboardSettingsAccountPreferencesRouteImport
       parentRoute: typeof LayoutAuthenticatedDashboardSettingsAccountRoute
     }
+    '/_layout/_authenticated/dashboard/settings/account/security': {
+      id: '/_layout/_authenticated/dashboard/settings/account/security'
+      path: '/security'
+      fullPath: '/dashboard/settings/account/security'
+      preLoaderRoute: typeof LayoutAuthenticatedDashboardSettingsAccountSecurityRouteImport
+      parentRoute: typeof LayoutAuthenticatedDashboardSettingsAccountRoute
+    }
     '/_layout/_authenticated/dashboard/settings/workspace/billing': {
       id: '/_layout/_authenticated/dashboard/settings/workspace/billing'
       path: '/billing'
@@ -981,6 +1020,7 @@ interface LayoutAuthenticatedDashboardSettingsAccountRouteChildren {
   LayoutAuthenticatedDashboardSettingsAccountInformationRoute: typeof LayoutAuthenticatedDashboardSettingsAccountInformationRoute
   LayoutAuthenticatedDashboardSettingsAccountNotificationsRoute: typeof LayoutAuthenticatedDashboardSettingsAccountNotificationsRoute
   LayoutAuthenticatedDashboardSettingsAccountPreferencesRoute: typeof LayoutAuthenticatedDashboardSettingsAccountPreferencesRoute
+  LayoutAuthenticatedDashboardSettingsAccountSecurityRoute: typeof LayoutAuthenticatedDashboardSettingsAccountSecurityRoute
 }
 
 const LayoutAuthenticatedDashboardSettingsAccountRouteChildren: LayoutAuthenticatedDashboardSettingsAccountRouteChildren =
@@ -993,6 +1033,8 @@ const LayoutAuthenticatedDashboardSettingsAccountRouteChildren: LayoutAuthentica
       LayoutAuthenticatedDashboardSettingsAccountNotificationsRoute,
     LayoutAuthenticatedDashboardSettingsAccountPreferencesRoute:
       LayoutAuthenticatedDashboardSettingsAccountPreferencesRoute,
+    LayoutAuthenticatedDashboardSettingsAccountSecurityRoute:
+      LayoutAuthenticatedDashboardSettingsAccountSecurityRoute,
   }
 
 const LayoutAuthenticatedDashboardSettingsAccountRouteWithChildren =
@@ -1165,6 +1207,7 @@ interface AuthRouteChildren {
   AuthCheckEmailRoute: typeof AuthCheckEmailRoute
   AuthSignInRoute: typeof AuthSignInRoute
   AuthSignUpRoute: typeof AuthSignUpRoute
+  AuthTwoFactorRoute: typeof AuthTwoFactorRoute
   AuthVerifyOtpRoute: typeof AuthVerifyOtpRoute
 }
 
@@ -1172,6 +1215,7 @@ const AuthRouteChildren: AuthRouteChildren = {
   AuthCheckEmailRoute: AuthCheckEmailRoute,
   AuthSignInRoute: AuthSignInRoute,
   AuthSignUpRoute: AuthSignUpRoute,
+  AuthTwoFactorRoute: AuthTwoFactorRoute,
   AuthVerifyOtpRoute: AuthVerifyOtpRoute,
 }
 

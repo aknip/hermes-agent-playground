@@ -308,6 +308,19 @@
 				"nameRequired": "Naam is verplicht",
 				"nameShort": "Naam moet minimaal 2 tekens bevatten"
 			}
+		},
+		"twoFactor": {
+			"backupCodeHint": "Use a backup code instead",
+			"backupCodeLabel": "Backup code",
+			"codeLabel": "Authentication code",
+			"invalidCode": "That code is invalid. Please try again.",
+			"pageTitle": "Two-factor authentication",
+			"subtitle": "Enter the code from your authenticator app.",
+			"title": "Two-factor authentication",
+			"useAppCode": "Use an app code",
+			"verifyButton": "Verify and sign in",
+			"verifyFailed": "Could not verify the code.",
+			"verifying": "Verifying..."
 		}
 	},
 	"settings": {
@@ -1246,6 +1259,38 @@
 			"connect": "Verbind Telegram",
 			"saveChanges": "Wijzigingen opslaan",
 			"disconnect": "Ontkoppelen"
+		},
+		"security": "Security",
+		"securityPage": {
+			"backupCodesHint": "Store these somewhere safe. They can only be shown once.",
+			"backupCodesOneTime": "Shown once — stored encrypted, never shown again.",
+			"backupCodesTitle": "Backup codes",
+			"cancel": "Cancel",
+			"codeLabel": "Verification code",
+			"currentPasswordLabel": "Current password",
+			"currentPasswordPlaceholder": "Enter your password",
+			"disable": "Disable",
+			"disableDescription": "Your account no longer asks for a second factor on sign-in.",
+			"disableError": "Could not disable two-factor authentication.",
+			"disableSuccess": "Two-factor authentication disabled.",
+			"enable": "Enable",
+			"enableDescription": "When enabled, signing in also asks for a code from your authenticator app.",
+			"enableError": "Could not enable two-factor authentication.",
+			"enableSuccess": "Two-factor authentication enabled.",
+			"invalidCode": "That code is invalid.",
+			"pageTitle": "Security",
+			"secretLabel": "Secret (otpauth URI)",
+			"statusDisabled": "Disabled",
+			"statusEnabled": "Enabled",
+			"subtitle": "Protect your account with a second factor from an authenticator app.",
+			"title": "Two-factor authentication",
+			"totpSubtitle": "Scan the URI below or enter the secret in your authenticator app.",
+			"totpTitle": "Add your authenticator app",
+			"verifyButton": "Verify and enable",
+			"verifying": "Verifying...",
+			"verifySubtitle": "Enter the 6-digit code your app shows for this account.",
+			"verifyTitle": "Verify your setup",
+			"wrongPassword": "Incorrect password."
 		}
 	},
 	"navigation": {
@@ -1312,7 +1357,8 @@
 			"unnamedUser": "Gebruiker",
 			"settings": "Instellingen",
 			"signingOut": "Uitloggen...",
-			"logOut": "Uitloggen"
+			"logOut": "Uitloggen",
+			"openMenu": "Open user menu"
 		},
 		"workspaceSwitcher": {
 			"workspaces": "Werkruimtes",

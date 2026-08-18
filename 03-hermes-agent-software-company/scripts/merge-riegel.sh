@@ -244,6 +244,50 @@ titel "6/6  Volle E2E-Suite"
 zeile "  Vorbedingung: $E2E_VORBED"
 eval "$E2E_VORBED" >/dev/null 2>&1 || zeile "  ⚠ Vorbedingung meldete einen Fehler — der Lauf zeigt gleich, ob es trägt"
 
+# ---------------------------------------------------------------------------
+# WESSEN Anwendung testen wir eigentlich?
+# ---------------------------------------------------------------------------
+# playwright.config.ts hat `reuseExistingServer: !process.env.CI`. Die Suite
+# benutzt also, WAS AUF DEM PORT LAUSCHT — auch einen Dev-Server aus einem
+# fremden Git-Worktree, der anderen Code ausliefert. Ein gruener oder roter Lauf
+# sagt dann nichts ueber den Branch, den dieser Riegel prueft.
+#
+# Real am 18.08.2026: Die E2E-Baseline lag einem stalen Dev-Server aus dem
+# R1-F2-Worktree zugrunde; deshalb fiel J-07 rot, obwohl der Code in Ordnung war
+# (Befund der QA-Karte t_288738fa). Jede Feature-Karte startet ihren eigenen
+# Stack in ihrem eigenen Worktree — die Lage ist also der Normalfall, nicht die
+# Ausnahme.
+#
+# Ein Riegel, der nicht weiss, welchen Baum er gemessen hat, ist kein Riegel.
+# Deshalb: die lauschenden Prozesse ihrem Arbeitsverzeichnis zuordnen und
+# verweigern, wenn es nicht der Baum unter Pruefung ist.
+if command -v lsof >/dev/null 2>&1; then
+    fremd=""
+    for port in 5173 1337; do
+        for pid in $(lsof -nP -iTCP:"$port" -sTCP:LISTEN -t 2>/dev/null); do
+            cwd="$(lsof -a -p "$pid" -d cwd -Fn 2>/dev/null | sed -n 's/^n//p' | head -1)"
+            [ -n "$cwd" ] || continue
+            case "$cwd" in
+                "$REPO"/.worktrees/*) fremd="$fremd
+    Port $port: pid $pid aus einem WORKTREE — $cwd" ;;
+                "$REPO"/*)            zeile "  Port $port: pid $pid aus dem Hauptbaum (in Ordnung)" ;;
+                *)                    fremd="$fremd
+    Port $port: pid $pid aus einem FREMDEN Verzeichnis — $cwd" ;;
+            esac
+        done
+    done
+    if [ -n "$fremd" ]; then
+        zeile "$fremd"
+        zeile ""
+        zeile "  Diese Server liefern NICHT den Code aus, den dieser Riegel prueft."
+        zeile "  playwright.config.ts benutzt sie trotzdem (reuseExistingServer)."
+        zeile "  Beenden, dann erneut aufrufen:  kill <pid>"
+        verweigert_und_aufraeumen "Fremde Dev-Server belegen die E2E-Ports. Ein Lauf gegen den falschen Baum ist keine Messung."
+    fi
+else
+    zeile "  ⚠ 'lsof' fehlt — die Herkunft der E2E-Server ist nicht prüfbar"
+fi
+
 if eval "$E2E_BEFEHL" > /tmp/esf-riegel-e2e.$$ 2>&1; then
     grep -E '[0-9]+ (passed|failed|skipped)' /tmp/esf-riegel-e2e.$$ | tail -2 | sed 's/^/  /' | tee -a "${PROTOKOLL:-/dev/null}"
     zeile "  grün"

@@ -9,6 +9,7 @@ import {
   lastLoginMethodClient,
   magicLinkClient,
   organizationClient,
+  twoFactorClient,
 } from "better-auth/client/plugins";
 import type { AccessControl } from "better-auth/plugins/access";
 import { createAuthClient } from "better-auth/react";
@@ -51,6 +52,13 @@ export const authClient = createAuthClient({
     deviceAuthorizationClient(),
     apiKeyClient(),
     adminClient(),
+    twoFactorClient({
+      // Where a user lands right after a session-based sign-in that needs a
+      // second factor. The plugin redirects here before the session is fully
+      // established; the page verifies the TOTP/backup code and completes the
+      // login (see specs/r1-f2-zwei-faktor.html, Fluss B).
+      twoFactorPage: "/auth/two-factor",
+    }),
     inferAdditionalFields({
       user: {
         locale: {

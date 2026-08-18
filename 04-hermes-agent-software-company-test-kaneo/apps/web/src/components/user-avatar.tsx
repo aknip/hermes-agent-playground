@@ -61,6 +61,7 @@ export function UserAvatar() {
         <Button
           variant="ghost"
           size="icon"
+          aria-label={t("navigation:userMenu.openMenu")}
           className="h-8 w-8 rounded-full p-0 hover:bg-sidebar-accent/70"
         >
           <Avatar className="h-8 w-8">
