@@ -61,22 +61,44 @@ cad() { sed -n "s/^[[:space:]]*$1:[[:space:]]*//p" "$VAULT/cadence.yaml" 2>/dev/
 
 STIMME_DEFAULT="Anna"
 
+# Öffentliche npm-Registry für den Hyperframes-Aufruf (siehe render_hyperframes).
+NPM_REGISTRY="${ESF_NPM_REGISTRY:-https://registry.npmjs.org}"
+
 # ---------------------------------------------------------------------------
 # Die drei deterministischen Stufen, je Job-Verzeichnis
 # ---------------------------------------------------------------------------
 tts() { # skript.txt ziel.m4a stimme  -> Sekunden auf stdout
     local skript="$1" ziel="$2" stimme="$3" aiff="${2%.m4a}.aiff"
     /usr/bin/say -v "$stimme" -f "$skript" -o "$aiff"
-    ffmpeg -y -loglevel error -i "$aiff" -c:a aac -b:a 128k "$ziel"
+    # -nostdin ist PFLICHT, nicht Kosmetik: Die Job-Schleife unten liest ihre
+    # Zeilen von stdin, und ffmpeg liest stdin ebenfalls (Tastaturkommandos).
+    # Ohne -nostdin verschluckt es je Aufruf ein Byte der NAECHSTEN Jobzeile —
+    # gemessen am 18.08.2026: jede zweite Datei scheiterte an einem Pfad ohne
+    # fuehrenden Schraegstrich ("Users/..." statt "/Users/...").
+    ffmpeg -nostdin -y -loglevel error -i "$aiff" -c:a aac -b:a 128k "$ziel"
     rm -f "$aiff"
     ffprobe -v error -show_entries format=duration -of csv=p=0 "$ziel"
 }
 
 render_hyperframes() { # kompositions-dir ziel.mp4
-    # Annahme (VERIFIKATION.md): CLI-Konvention aus der Hyperframes-Doku,
-    # gegen v?.?.? nie gemessen. Scheitert der Aufruf, greift der Rückfall.
-    ( cd "$1" && npx --yes hyperframes render index.html --output "$2" ) \
-        >"$1/render.log" 2>&1
+    # Gemessen gegen Hyperframes 0.8.3 (18.08.2026), nicht mehr geraten:
+    #
+    #   · Das Positional von `render` ist ein PROJEKTVERZEICHNIS, keine Datei.
+    #     Die frühere Fassung rief `render index.html` — das hätte die Datei als
+    #     Verzeichnis gelesen. Eine einzelne Datei bräuchte -c/--composition.
+    #   · --registry am Aufruf, weil die globale ~/.npmrc alle npm-Aufrufe auf
+    #     die Firmen-Registry artifacts.mgm-tp.com umleitet, die von hier nicht
+    #     auflösbar ist. Genau daran scheiterte die Probe am 18.08.2026. Der
+    #     Schalter gilt NUR für diesen Aufruf — die globale Konfiguration des
+    #     Rechners bleibt unangetastet. Überschreibbar per ESF_NPM_REGISTRY.
+    #   · HYPERFRAMES_SKIP_SKILLS=1: `render` prüft sonst AI-Skills gegen GitHub.
+    #
+    # Scheitert der Aufruf, greift der ffmpeg-Rückfall — und rendere_job sagt in
+    # der Ausgabe, WELCHER Renderer die Datei erzeugt hat.
+    ( cd "$1" \
+      && HYPERFRAMES_SKIP_SKILLS=1 npx --yes --registry "$NPM_REGISTRY" \
+         hyperframes render . --output "$2" --quiet ) \
+        >"$1/render.log" 2>&1 </dev/null
 }
 
 render_ffmpeg() { # job-dir ziel.mp4 audio dauer
@@ -87,7 +109,7 @@ render_ffmpeg() { # job-dir ziel.mp4 audio dauer
     local dir="$1" ziel="$2" audio="$3" dauer="$4"
     local font="/System/Library/Fonts/Helvetica.ttc"
     [ -f "$font" ] || font="/System/Library/Fonts/Supplemental/Arial.ttf"
-    ffmpeg -y -loglevel error \
+    ffmpeg -nostdin -y -loglevel error \
         -f lavfi -i "color=c=0x101418:s=1280x720:d=$dauer" \
         -i "$audio" \
         -vf "drawtext=textfile='$dir/titel.txt':fontfile='$font':fontcolor=0xe8eaed:fontsize=40:x=(w-text_w)/2:y=(h-text_h)/2-40,drawtext=text='ESF · Video-Zusammenfassung':fontfile='$font':fontcolor=0x9aa0a6:fontsize=20:x=(w-text_w)/2:y=h-120" \
@@ -175,12 +197,26 @@ HTML
         nein "VTT fehlerhaft"; fehler=1
     fi
 
-    # (c) Komposition instanziieren
+    # (c) Komposition instanziieren — geprüft werden die Pflichten, die
+    #     `hyperframes lint` gegen 0.8.3 durchsetzt. Sie müssen STATISCH im
+    #     HTML stehen: der Linter liest das Dokument, bevor JS läuft.
     if python3 "$WERKZEUG" komposition "$TEMPLATE" "$tmp/comp" \
          "$tmp/job/titel.txt" "$tmp/job/saetze.txt" "$tmp/probe.vtt" 20 \
-       && grep -q 'window.ESF_DATEN' "$tmp/comp/daten.js" \
-       && python3 -c "import json,re;s=open('$tmp/comp/daten.js').read();json.loads(re.search(r'= (.*);',s,re.S).group(1))"; then
-        ok "Komposition: Template kopiert, daten.js ist gültiges JSON"
+       && grep -q 'data-composition-id="esf"' "$tmp/comp/index.html" \
+       && grep -q 'data-duration="20' "$tmp/comp/index.html" \
+       && grep -q 'data-width="1920"' "$tmp/comp/index.html" \
+       && grep -q '__timelines\["esf"\]' "$tmp/comp/index.html" \
+       && grep -qE '<audio[^>]+src="audio\.' "$tmp/comp/index.html" \
+       && [ "$(grep -c 'class="cue clip"' "$tmp/comp/index.html")" -eq 5 ] \
+       && python3 -c "import re,sys
+h=open(sys.argv[1],encoding='utf-8').read()
+# HTML-Kommentare RAUS, bevor auf Wanduhr-Aufrufe geprueft wird: der
+# Vorlagen-Kommentar NENNT performance.now und requestAnimationFrame, um zu
+# erklaeren, warum sie verboten sind. Ein naives grep schlaegt daran an.
+sys.exit(1 if re.search(r'performance\.now|requestAnimationFrame',
+                        re.sub(r'<!--.*?-->', '', h, flags=re.S)) else 0)" "$tmp/comp/index.html" \
+       && ! grep -qE '__[A-Z_]+__' "$tmp/comp/index.html"; then
+        ok "Komposition: Root-Attribute, Timeline-Registrierung, Audio-src, 5 Clips, keine Wanduhr, keine offenen Platzhalter"
     else
         nein "Komposition fehlgeschlagen"; fehler=1
     fi
@@ -190,7 +226,18 @@ HTML
         if rendere_job "$tmp/probe.html" "$tmp/probe.mp4" "$tmp/probe2.vtt" \
            && [ -s "$tmp/probe.mp4" ]; then
             d="$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$tmp/probe.mp4")"
-            ok "Rückfallpfad real gerendert: probe.mp4, ${d%%.*}s"
+            # WELCHER Renderer es war, entscheidet die Auflösung: der
+            # ffmpeg-Rückfall zeichnet eine 1280x720-Titelkarte, eine
+            # Hyperframes-Komposition ist 1920x1080. Die Zeile darf nicht
+            # "Rückfall" behaupten, wenn Hyperframes gerendert hat — vorher
+            # tat sie das und war damit falsch.
+            aufl="$(ffprobe -v error -select_streams v:0 \
+                    -show_entries stream=width,height -of csv=p=0:s=x "$tmp/probe.mp4")"
+            case "$aufl" in
+                1920x1080) ok "Render real gemessen: probe.mp4, ${d%%.*}s, $aufl (Hyperframes-Komposition)" ;;
+                1280x720)  ok "Render real gemessen: probe.mp4, ${d%%.*}s, $aufl (ffmpeg-Rückfall)" ;;
+                *)         warn "probe.mp4 gerendert (${d%%.*}s), aber unerwartete Auflösung $aufl" ;;
+            esac
         else
             nein "Rückfallpfad scheiterte"; fehler=1
         fi

@@ -83,8 +83,34 @@ ins Ledger nach — die Schätzgrundlage, ohne die der `esf-estimator` nach
 Vorbedingungen: `hermes` v0.20.0, `jq`, `git`, `python3`, `pnpm`, Docker für
 die Testdatenbank des Ziel-Repos. Modell und Provider kommen aus der
 Hermes-Root-Konfiguration. Für den Video-Kanal (AGENTS.md 8): `ffmpeg` und
-macOS-`say` (Pflicht, der gemessene Rückfallpfad) sowie Node 22+ für den
-Hyperframes-Primärpfad (optional, Annahme).
+macOS-`say` (Pflicht, der gemessene Rückfallpfad) sowie Node 22+ und Chrome
+für den Hyperframes-Primärpfad — beides am 18.08.2026 real gemessen, siehe
+unten.
+
+#### Hyperframes installieren — über die ÖFFENTLICHE npm-Registry
+
+`video-render.sh` holt Hyperframes selbst per `npx`. Eine Vorab-Installation
+braucht es nicht; wer sie will, nimmt
+
+    npm install -g hyperframes --registry https://registry.npmjs.org
+
+**Der Registry-Schalter ist nicht optional, sondern die Lehre aus einem
+Fehlschlag.** Auf einem Firmenrechner kann `~/.npmrc` alle npm-Aufrufe auf eine
+interne Registry umleiten (hier: `artifacts.mgm-tp.com`), die von außen nicht
+auflösbar ist — genau daran scheiterte die erste Hyperframes-Probe, nicht am
+Paket. `video-render.sh` übergibt deshalb `--registry` **am Aufruf**, damit die
+globale npm-Konfiguration des Rechners unangetastet bleibt. Eine andere
+Registry setzt man per Umgebungsvariable:
+
+    ESF_NPM_REGISTRY=https://eigene.registry/npm ./scripts/video-render.sh
+
+Ob die Umgebung trägt, sagt Hyperframes selbst:
+
+    npx --registry https://registry.npmjs.org hyperframes doctor
+
+Pflicht sind dort Node, FFmpeg, FFprobe und Chrome. Die optionalen Posten
+`whisper-cpp`, `TTS (Kokoro)` und `BGM (MusicGen)` bleiben bewusst rot: Die
+Stimme kommt aus macOS-`say`, Musik hat der Kanal nicht.
 
 ### Die Schlüsseldatei
 
@@ -138,7 +164,7 @@ Drei Dinge dazu:
 | `seed/company/` | Der Vault-Master: `AGENTS.md`, `cadence.yaml`, Struktur, Start-Korpus |
 | `seed/lint-selbsttest/` | Fixture mit genau neun bekannten Linter-Befunden |
 | `seed/ceo-selbsttest/` | Vier Fixtures des CEO-Dokument-Riegels: eine gültige, drei defekte mit zusammen genau fünf bekannten Befunden |
-| `templates/hyperframes-zusammenfassung/` | Die Hyperframes-Komposition der Video-Zusammenfassungen; `video-werkzeug.py` instanziiert sie je Dokument mit `daten.js` |
+| `templates/hyperframes-zusammenfassung/` | Die Hyperframes-Komposition der Video-Zusammenfassungen (gemessen gegen 0.8.3, `hyperframes lint` = 0 Fehler); `video-werkzeug.py` instanziiert sie je Dokument, indem es die Platzhalter **statisch** ersetzt — der Linter liest das HTML, bevor JavaScript läuft |
 | `seed/quellen.txt` | Die Markt-Quellen, die `fetch-sources.sh` täglich holt |
 | `workspace/` | Die Wegwerfkopie — gitignored |
 | `beispiel-lauf-1/` | **Die Akte von Phase 0/1 (17.08.2026)**: Board mit voller Karten-Historie, Vault, Laufzeiten, beide Git-Historien. Erzeugt von `scripts/dump-lauf.sh` |
@@ -159,7 +185,7 @@ Drei Dinge dazu:
 | `ceo-lint.py` | je Dokument | Der Riegel vor jeder CEO-Entscheidung: Verb passt zur Gate-Art, Messbeleg (`<pre>` mit selbst gefahrenem Check) vorhanden, Begründungspflicht. Fixtures in `seed/ceo-selbsttest/` |
 | `eskalation.sh` | stündlich :15 | **Die Notfall-Leiter.** Code entscheidet, was ein Notfall ist: bekannte Betriebsmuster werden (bei `betriebsrettung: auto`) einmal je Karte selbst repariert, alles andere geht laut und journaliert an den Supervisor |
 | `check-phase3.sh` | je Stufe | Die Nachweise der Stufen A/B/C: Verben an jedem Unblock, Schatten-Übereinstimmungsquote, `[von:esf-ceo]` an jedem CEO-Gate, Einspruchsfrist belegt |
-| `video-render.sh` | stündlich :45 | **Der Video-Kanal** (AGENTS.md 8): Sprechertext aus dem Dokument → `say`-Audio → gemessene Dauer → `.vtt`-Untertitel → Hyperframes-Komposition; gemessener ffmpeg-Rückfall. `--gates` vertont offene Gate-Vorlagen (der Blockgrund ist der Sprechertext) |
+| `video-render.sh` | stündlich :45 | **Der Video-Kanal** (AGENTS.md 8): Sprechertext aus dem Dokument → `say`-Audio → gemessene Dauer → `.vtt`-Untertitel → Hyperframes-Render (0.8.3, 1920×1080 mit Ton; ffmpeg-Titelkarte als Rückfall). Die Ausgabe nennt je Datei den benutzten Renderer. `--gates` vertont offene Gate-Vorlagen (der Blockgrund ist der Sprechertext), `--selbsttest` misst die Kette offline, `--dry-run` zeigt nur die Jobs |
 | `video-werkzeug.py` | je Job | Die deterministischen Stufen des Video-Kanals einzeln: Jobs finden, Sprechertext extrahieren, VTT aus gemessener Dauer, Komposition instanziieren |
 | `e2e-video.sh` | je Merge | Playwright-Videoaufzeichnung: die Journey des Features und die ganze Suite als Akte unter `reports/e2e-videos/<datum>/`, headless erzwungen. Trägt den **Headless-Wächter**, den auch Riegel und Tick ausführen |
 | `vault-lint.py` | je Schreibvorgang | Setzt `company/AGENTS.md` durch und zitiert bei jedem Befund den Abschnitt |

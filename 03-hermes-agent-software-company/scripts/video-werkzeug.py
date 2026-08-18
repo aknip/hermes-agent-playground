@@ -131,29 +131,66 @@ def cmd_vtt(saetze_datei, dauer):
 
 
 def cmd_komposition(template, ziel, titel_datei, saetze_datei, audio, dauer):
+    """Instanziiert die Hyperframes-Vorlage fuer EINEN Job.
+
+    Die Root-Attribute und die Clips muessen STATISCH im HTML stehen: `hyperframes
+    lint` liest das Dokument, bevor JavaScript laeuft, und der Renderer setzt die
+    Timeline je Frame auf die Zielzeit. Eine frueher hier erzeugte daten.js, die
+    das Bild zur Laufzeit aufbaute, war genau deshalb ungueltig (gemessen gegen
+    0.8.3: root_missing_dimensions, missing_timeline_registry, media_missing_src).
+    """
     if os.path.exists(ziel):
         shutil.rmtree(ziel)
     shutil.copytree(template, ziel)
-    shutil.copy(audio, os.path.join(ziel, "audio" + os.path.splitext(audio)[1]))
+    audio_name = "audio" + os.path.splitext(audio)[1]
+    shutil.copy(audio, os.path.join(ziel, audio_name))
+
     titel = open(titel_datei, encoding="utf-8").read().strip()
     zeilen = [z.strip() for z in open(saetze_datei, encoding="utf-8") if z.strip()]
     dauer = float(dauer)
+
+    # Dieselbe Gewichtung wie cmd_vtt: die gemessene Gesamtdauer proportional
+    # zur Wortzahl je Satz. Bild und Untertitel teilen damit EINE Zeitquelle.
     gewichte = [max(1, len(z.split())) for z in zeilen]
     gesamt = sum(gewichte)
-    cues, t = [], 0.0
-    for z, g in zip(zeilen, gewichte):
-        anteil = dauer * g / gesamt
-        cues.append({"text": z, "start": round(t, 3), "ende": round(min(t + anteil, dauer), 3)})
-        t += anteil
-    daten = {
-        "titel": titel,
-        "dauer": round(dauer, 3),
-        "audio": "audio" + os.path.splitext(audio)[1],
-        "cues": cues,
-    }
-    with open(os.path.join(ziel, "daten.js"), "w", encoding="utf-8") as f:
-        f.write("// erzeugt von scripts/video-werkzeug.py — nicht von Hand editieren\n")
-        f.write("window.ESF_DATEN = " + json.dumps(daten, ensure_ascii=False, indent=2) + ";\n")
+    # Grenzen aus GERUNDETEN Startwerten ableiten: rundet man Start und Dauer
+    # unabhaengig, ueberlappen benachbarte Clips um eine Millisekunde und
+    # `hyperframes lint` meldet overlapping_clips_same_track (gemessen 0.8.3).
+    starts, t = [], 0.0
+    for g in gewichte:
+        starts.append(round(t, 3))
+        t += dauer * g / gesamt
+    grenzen = starts + [round(dauer, 3)]
+    cues = [(z, starts[i], round(grenzen[i + 1] - starts[i], 3))
+            for i, z in enumerate(zeilen)]
+
+    clips = []
+    for i, (text, start, laenge) in enumerate(cues):
+        clips.append(
+            '  <div class="cue clip" id="cue{i}" data-start="{s}" '
+            'data-duration="{d}" data-track-index="1">{t}</div>'.format(
+                i=i, s=start, d=laenge, t=html.escape(text)))
+
+    # KEINE Opacity-Tweens auf Clips: Hyperframes verwaltet deren Sichtbarkeit
+    # selbst (gemessen: gsap_exit_missing_hard_kill, wenn man ihm hineinregiert).
+    tweens = []
+
+    index = os.path.join(ziel, "index.html")
+    text = open(index, encoding="utf-8").read()
+    for platzhalter, wert in (
+        ("__DAUER__", repr(round(dauer, 3))),
+        ("__AUDIO__", audio_name),
+        ("__TITEL__", html.escape(titel)),
+        ("__CUE_CLIPS__", "\n".join(clips)),
+        ("__CUE_TWEENS__", "\n".join(tweens)),
+    ):
+        text = text.replace(platzhalter, wert)
+    if "__" in re.sub(r"__timelines", "", text):
+        offen = set(re.findall(r"__[A-Z_]+__", text))
+        if offen:
+            print("Platzhalter nicht ersetzt: " + ", ".join(sorted(offen)), file=sys.stderr)
+            return 1
+    open(index, "w", encoding="utf-8").write(text)
     return 0
 
 
