@@ -1,0 +1,167 @@
+ESF — Installationsstand der Hermes-Instanz, gemessen vor dem Rückbau
+=====================================================================
+
+Gemessen am: 2026-08-18 13:03
+Hermes:      Hermes Agent v0.20.0 (2026.8.3)
+
+Wozu diese Datei: Der Rückbau löscht ~/.hermes/profiles/esf-* mitsamt der
+config.yaml, die setup.sh dort erzeugt. Die config.yaml liegt NICHT im Repo
+— sie entsteht erst durch `hermes -p <profil> config set`. Damit ein
+späteres setup.sh überprüfbar dasselbe herstellt, steht hier der Ist-Stand.
+
+Belegt ist damit auch die Aussage, dass am Repo nichts fehlt: ein
+`diff -rq profiles/<n> ~/.hermes/profiles/<n>` meldete für alle elf Profile
+keine einzige abweichende Datei (nur Laufzeit-Verzeichnisse der Instanz und
+description.txt, die nur setup.sh liest).
+
+---------------------------------------------------------------------
+
+esf-chief-of-staff
+  config.yaml:
+    model:
+      provider: openrouter
+      base_url: https://openrouter.ai/api/v1
+      api_mode: chat_completions
+      default: deepseek/deepseek-v4-flash-0731
+  skills:  brainstorming dispatching-parallel-agents HERMES-TOOLS.md writing-plans 
+  .esf-Marker: vorhanden
+
+esf-market-scout
+  config.yaml:
+    model:
+      provider: openrouter
+      base_url: https://openrouter.ai/api/v1
+      api_mode: chat_completions
+      default: deepseek/deepseek-v4-flash-0731
+  skills:  
+  .esf-Marker: vorhanden
+
+esf-market-analyst
+  config.yaml:
+    model:
+      provider: openrouter
+      base_url: https://openrouter.ai/api/v1
+      api_mode: chat_completions
+      default: deepseek/deepseek-v4-flash-0731
+  skills:  
+  .esf-Marker: vorhanden
+
+esf-product-manager
+  config.yaml:
+    model:
+      provider: openrouter
+      base_url: https://openrouter.ai/api/v1
+      api_mode: chat_completions
+      default: deepseek/deepseek-v4-flash-0731
+  skills:  brainstorming HERMES-TOOLS.md verification-before-completion 
+  .esf-Marker: vorhanden
+
+esf-architect
+  config.yaml:
+    model:
+      provider: openrouter
+      base_url: https://openrouter.ai/api/v1
+      api_mode: chat_completions
+      default: deepseek/deepseek-v4-flash-0731
+    onboarding:
+      seen:
+        tool_progress_prompt: true
+  skills:  brainstorming dispatching-parallel-agents HERMES-TOOLS.md writing-plans 
+  .esf-Marker: vorhanden
+
+esf-estimator
+  config.yaml:
+    model:
+      provider: openrouter
+      base_url: https://openrouter.ai/api/v1
+      api_mode: chat_completions
+      default: deepseek/deepseek-v4-flash-0731
+  skills:  
+  .esf-Marker: vorhanden
+
+esf-dev-a
+  config.yaml:
+    model:
+      provider: openrouter
+      base_url: https://openrouter.ai/api/v1
+      api_mode: chat_completions
+      default: deepseek/deepseek-v4-flash-0731
+    agent:
+      max_turns: 1200
+    onboarding:
+      seen:
+        tool_progress_prompt: true
+  skills:  executing-plans HERMES-TOOLS.md receiving-code-review systematic-debugging test-driven-development using-git-worktrees 
+  .esf-Marker: vorhanden
+
+esf-dev-b
+  config.yaml:
+    model:
+      provider: openrouter
+      base_url: https://openrouter.ai/api/v1
+      api_mode: chat_completions
+      default: deepseek/deepseek-v4-flash-0731
+    agent:
+      max_turns: 1200
+    onboarding:
+      seen:
+        tool_progress_prompt: true
+  skills:  executing-plans HERMES-TOOLS.md receiving-code-review systematic-debugging test-driven-development using-git-worktrees 
+  .esf-Marker: vorhanden
+
+esf-reviewer
+  config.yaml:
+    model:
+      provider: openrouter
+      base_url: https://openrouter.ai/api/v1
+      api_mode: chat_completions
+      default: deepseek/deepseek-v4-flash-0731
+    agent:
+      max_turns: 1200
+    onboarding:
+      seen:
+        tool_progress_prompt: true
+  skills:  HERMES-TOOLS.md requesting-code-review verification-before-completion 
+  .esf-Marker: vorhanden
+
+esf-qa-release
+  config.yaml:
+    model:
+      provider: openrouter
+      base_url: https://openrouter.ai/api/v1
+      api_mode: chat_completions
+      default: deepseek/deepseek-v4-flash-0731
+    agent:
+      max_turns: 1200
+    onboarding:
+      seen:
+        tool_progress_prompt: true
+  skills:  finishing-a-development-branch HERMES-TOOLS.md systematic-debugging verification-before-completion 
+  .esf-Marker: vorhanden
+
+esf-controller
+  config.yaml:
+    model:
+      provider: openrouter
+      base_url: https://openrouter.ai/api/v1
+      api_mode: chat_completions
+      default: deepseek/deepseek-v4-flash-0731
+    onboarding:
+      seen:
+        tool_progress_prompt: true
+  skills:  
+  .esf-Marker: vorhanden
+
+---------------------------------------------------------------------
+
+Board
+  sw-company, 33 Karten — vollständig in beispiel-lauf-2/board.json
+  (Kartengleichheit geprüft: 33 IDs im Dump, 33 auf dem Board, Differenz leer)
+
+Cron
+  keine ESF-Einträge (crontab und ~/.hermes/cron/jobs.json beide leer)
+
+onboarding.seen.tool_progress_prompt
+  Setzt Hermes selbst beim ersten Lauf eines Profils. Kein setup.sh-Schlüssel,
+  keine Wirkung auf den Dispatch — nur hier vermerkt, damit ein Vergleich
+  nach der Neuinstallation die Zeile nicht für eine Abweichung hält.
