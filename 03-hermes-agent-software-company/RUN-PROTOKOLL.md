@@ -912,9 +912,12 @@ Skript für bekannt hielt.
 | 5/6 Roadmap | `esf-chief-of-staff` | 11 min | 1 | `q1-entwurf.html`, 22 KB, 3 Releases |
 | 6/6 Gate | `esf-chief-of-staff` | 6 min | 2 | Vorlage in acht Punkten, dann Ausführung der Supervisor-Antwort |
 
-**160 Minuten Kartenzeit**, verteilt auf zweieinhalb Stunden Wanduhr. Der erste
-Lauf brauchte 142 Minuten über zehn Karten — vergleichbar, aber die Verteilung
-ist eine andere: Hier steckt fast zwei Drittel der Zeit in einer einzigen Karte.
+**160 Minuten Kartenzeit** in **145 Minuten Wanduhr** (erster Spawn 14:28, die
+Gate-Karte fertig 16:53). Die Kartenzeit ist grösser als die Wanduhrzeit, weil
+die drei Analysen parallel liefen — die Summe zählt jeden Worker einzeln. Der
+erste Lauf brauchte 142 Minuten über zehn Karten; vergleichbar, aber die
+Verteilung ist eine andere: Hier steckt fast zwei Drittel der Zeit in einer
+einzigen Karte.
 
 Drei Dinge, die über blosses Abarbeiten hinausgehen:
 
@@ -1048,10 +1051,37 @@ Verb (von einem Selbst-Freischalten nicht zu unterscheiden).
 Alle drei in Commit `608cc8f`. Der Nachweis danach: 5 von 9 Journeys mit Spec,
 5 von 5 P1 abgedeckt, Gate-Antwort im Klartext — alles von Hand gegengelesen.
 
+**Und dann noch einer, wieder in der Korrektur selbst.** Der neue rote Zweig
+„Unblock ohne gültiges Verb" hätte nie ausgelöst. Meine jq-Kette endete auf
+`split("\n")[0]`, und `"" | split("\n")[0]` ergibt in jq **`null`**, nicht `""`.
+Mit `jq -r` wird daraus der String `null` — vier Zeichen, also nicht leer, also
+`[ -z "$antwort" ]` falsch, also grün mit der Antwort „null".
+`check-release.sh`, von dem die Kette stammt, hat kein `split`; ich hatte es
+hinzugefügt, um mehrzeilige Antworten auf eine Zeile zu kürzen, und dabei den
+Leerfall gebrochen. Behoben mit `split("\n")[0] // ""`, beide Zweige einzeln
+belegt: leere Eingabe bleibt leer, die echte Antwort bleibt vollständig.
+
+Alle drei Zweige des Gate-Blocks sind danach an echten Daten belegt, nicht nur
+gelesen: grün an `t_95b30a23` mit der Antwort im Klartext; „kein
+`unblocked`-Ereignis" an einer Onboarding-Karte, die nie ein Gate war; „ohne
+gültiges Verb" an einer Wegwerfkarte, die absichtlich mit `hermes kanban
+unblock --reason "einfach so freigeschaltet"` an `gate.sh` vorbei geöffnet und
+danach archiviert wurde. Und der Journey→Spec-Fix lief gegen den Katalog des
+**ersten** Laufs — anderes Modell, andere Tabelle, zehn Journeys: 6 von 6, genau
+die Specs, die das Protokoll vom 17.08. nennt.
+
+Damit steckten in diesem Lauf **drei** Fehler derselben Klasse in einer
+Korrekturkette — Zeilenfenster, unbegrenzte letzte Tabellenzeile, `null` statt
+Leerstring —, und jeder wurde erst sichtbar, als der vorige behoben war. Der
+zweite und dritte fielen nur auf, weil sie **gesucht** wurden: der eine, weil
+der Fix seine Zahl nachrechenbar machte, der andere, weil der rote Pfad
+absichtlich provoziert wurde, statt ihm zu glauben. Einen Prüfer nur im grünen
+Fall zu sehen heisst, die Hälfte von ihm nicht gesehen zu haben.
+
 ## Bilanz
 
-Der Lauf lieferte dieselben Artefakte wie der erste und **vier neue Befunde**,
-von denen drei in ESF-Code sassen und einer in der Umgebung:
+Der Lauf lieferte dieselben Artefakte wie der erste und **fünf neue Befunde**,
+von denen vier in ESF-Code sassen und einer in der Umgebung:
 
 | Befund | Wo | Wann gefunden |
 |--------|-----|---------------|
@@ -1059,12 +1089,17 @@ von denen drei in ESF-Code sassen und einer in der Umgebung:
 | Journey→Spec über ein Zeilenfenster | `check-onboarding.sh` | im grünen Nachweis |
 | Letzte `<tr>` unbegrenzt | mein Fix davon | im Fix des vorigen |
 | Gate-Antwort aus leerer Payload gelesen | `check-onboarding.sh` | im grünen Nachweis |
+| `split("\n")[0]` liefert `null`, nicht `""` | mein Fix davon | beim Provozieren des roten Pfads |
 
-Zwei davon standen in einem Prüfer, der **grün** meldete. Das ist der
-unangenehme Teil: Ein Rundlauf, der nur bestätigt, was beim ersten Mal
-funktionierte, hätte sie nicht gefunden. Gefunden wurden sie, weil zwei Zahlen
-im grünen Bericht nicht zu dem passten, was zehn Minuten vorher von Hand
-nachgelesen worden war.
+Zwei davon standen in einem Prüfer, der **grün** meldete, und zwei weitere in
+dessen Korrektur. Das ist der unangenehme Teil: Ein Rundlauf, der nur
+bestätigt, was beim ersten Mal funktionierte, hätte keinen davon gefunden.
+Gefunden wurden sie, weil zwei Zahlen im grünen Bericht nicht zu dem passten,
+was zehn Minuten vorher von Hand nachgelesen worden war — und weil danach
+jeder Fix gegen fremde Daten und gegen seinen eigenen roten Pfad gefahren
+wurde. Der Fix gegen den Katalog des **ersten** Laufs (anderes Modell, andere
+Tabelle, zehn Journeys) liefert 6 von 6 und trifft genau die Specs, die das
+Protokoll vom 17.08. nennt.
 
 Der erste Lauf endete mit dem Satz, der erste, der nachsah, sei ein Agent
 gewesen. Diesmal war es umgekehrt — aber die Regel dahinter ist dieselbe: Wer

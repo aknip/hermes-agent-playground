@@ -264,7 +264,7 @@ else
                  | select(test("^UNBLOCK: *(approve|modify|shelve|continue|cut|stop|manuell)\\b"))]
                 | last // ""
                 | sub("^UNBLOCK: *"; "")
-                | split("\n")[0]
+                | split("\n")[0] // ""
                 | .[0:160]')"
             if [ "${unblocks:-0}" -eq 0 ]; then
                 nein "Karte $gid ist done, aber es gibt kein unblocked-Ereignis"
