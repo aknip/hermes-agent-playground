@@ -1,7 +1,6 @@
 {
 	"$schema": "https://turbo.build/schema.json",
 	"ui": "tui",
-	"globalPassThroughEnv": ["E2E_WEB_URL", "E2E_API_URL"],
 	"tasks": {
 		"build": {
 			"dependsOn": ["^build"],

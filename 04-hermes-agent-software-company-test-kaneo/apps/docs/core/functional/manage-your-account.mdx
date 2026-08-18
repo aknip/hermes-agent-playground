@@ -1,39 +1,9 @@
 ---
 title: Manage Your Account
-description: Change your profile picture, secure your account with two-factor authentication, and understand what deleting your account does
+description: Change your profile picture and understand what deleting your account does
 ---
 
-Your profile picture, your two-factor authentication, and your account itself are all managed from **Settings -> Account**.
-
-## Two-factor authentication
-
-You can protect a password sign-in with a time-based one-time password (TOTP) from an authenticator app.
-
-1. Go to **Settings**.
-2. Open **Account -> Security**.
-3. Select **Enable**, enter your current password, then scan the shown URI (or secret) into an authenticator app that supports TOTP.
-4. Enter the 6-digit code the app shows, then select **Verify and enable**.
-
-Each setup also shows 10 recovery codes **once**. Store them somewhere safe — if your device is lost, any one of them signs you in instead of the app code. They are stored encrypted and are never shown again.
-
-To disable two-factor authentication, open the same section and select **Disable** with your password.
-
-### Recovery for a lost authenticator and lost recovery codes
-
-If a user has neither the authenticator device nor any recovery code, only the instance operator can restore the account — the codes and the secret are stored encrypted, so there is no self-service path by design. Against the instance database, clear the user's second factor so a password sign-in works again:
-
-```sql
-DELETE FROM two_factor WHERE user_id = '<user-id>';
-UPDATE "user" SET two_factor_enabled = false WHERE id = '<user-id>';
-```
-
-Replace `<user-id>` with the account's id. The exact column names follow the `two_factor` table definition in `apps/api/src/database/schema.ts`.
-
-<Warning>
-**Back up your database before upgrading to this version.** The two-factor authentication change this version introduces is **not reversible in place**: the update runs a migration that adds the `two_factor` table and a `two_factor_enabled` column on the `user` table, and there is no downgrade path — the table and column remain after the update. The only way back is a database backup taken **before** the update, so take one before upgrading an existing installation.
-
-If the startup database migration fails, the API **does not start**, because migrations run before the HTTP server listens. This is an operational outage **without data loss**: a failed migration leaves the existing data intact. The failure message (look for `Database migrations failed`) is printed to the API's startup log/console when the process begins. To return to the previous version, stop the API, restore the pre-update database backup, and start the previous version again.
-</Warning>
+Your profile picture and your account itself are both managed from **Settings -> Account -> Information**.
 
 ## Change your profile picture
 

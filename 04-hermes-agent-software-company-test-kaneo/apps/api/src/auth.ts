@@ -29,7 +29,6 @@ import {
   magicLink,
   openAPI,
   organization,
-  twoFactor,
 } from "better-auth/plugins";
 import type { AccessControl } from "better-auth/plugins/access";
 import type { UserWithAnonymous } from "better-auth/plugins/anonymous";
@@ -54,10 +53,6 @@ import { getGithubSsoOAuthCredentials } from "./utils/github-sso-env";
 import { isCloud } from "./utils/is-cloud";
 import { isDisposableEmail } from "./utils/is-disposable-email";
 import { isLocalSignInPath } from "./utils/is-local-sign-in-path";
-import {
-  isOAuthCallbackPath,
-  isPasswordlessBypassPath,
-} from "./utils/two-factor-session-guard";
 import { verifyTurnstile } from "./utils/verify-turnstile";
 
 config();
@@ -76,6 +71,11 @@ function normalizeInvitationId(value: unknown): string | undefined {
   const normalized = value.trim();
   if (!/^[a-z0-9_-]{1,128}$/i.test(normalized)) return undefined;
   return normalized;
+}
+
+function isOAuthCallbackPath(path: unknown): boolean {
+  if (typeof path !== "string") return false;
+  return path.startsWith("/callback/") || path.startsWith("/oauth2/callback/");
 }
 
 const apiUrl = process.env.KANEO_API_URL || "http://localhost:1337";
@@ -204,7 +204,6 @@ export const auth = betterAuth({
       teamMember: schema.teamMemberTable,
       apikey: schema.apikeyTable,
       deviceCode: schema.deviceCodeTable,
-      twoFactor: schema.twoFactorTable,
     },
   }),
   user: {
@@ -519,7 +518,6 @@ export const auth = betterAuth({
       adminRoles: ["admin"],
     }),
     openAPI(),
-    twoFactor(),
   ],
   session: {
     cookieCache: {
@@ -628,51 +626,6 @@ export const auth = betterAuth({
                 .set({ role: "admin" })
                 .where(eq(schema.userTable.id, user.id));
             }
-          });
-        },
-      },
-    },
-    // The better-auth `two-factor` plugin only challenges the password
-    // sign-in paths (`/sign-in/email` etc.). Magic-link, email-OTP and social/
-    // custom OAuth build a session directly, so a user with 2FA enabled could
-    // bypass the second factor entirely. This hook closes those passwordless
-    // paths by refusing session creation for 2FA users; the password paths keep
-    // the plugin's own challenge flow (the challenge hook needs the created
-    // session, so it must not be blocked here).
-    session: {
-      create: {
-        before: async (newSession, ctx) => {
-          if (!isPasswordlessBypassPath(ctx?.path)) {
-            return true;
-          }
-          if (!newSession?.userId) {
-            return true;
-          }
-          const [user] = await db
-            .select({ twoFactorEnabled: schema.userTable.twoFactorEnabled })
-            .from(schema.userTable)
-            .where(eq(schema.userTable.id, newSession.userId))
-            .limit(1);
-          if (!user?.twoFactorEnabled) {
-            return true;
-          }
-          // BEKANNTE EINSCHRAENKUNG (2026-08-18, S2-F2 Nacharbeit Frage 4):
-          // Ein Magic-Link-Klick eines 2FA-Kontos endet hier in einer rohen
-          // 401-JSON auf der API-Origin. Das better-auth magic-link-Plugin
-          // uebersetzt einen vom session.create.before-Hook geworfenen
-          // APIError NICHT in einen errorCallbackURL-Redirect (nur ein
-          // null-Session-Rueckgabewert wuerde redirectWithError ausloesen),
-          // und der Browser navigiert direkt zur API-Origin, wodurch die SPA
-          // die Antwort nicht einfangen kann. Behebbar nur serverseitig
-          // (Redirect auf dem magic-link/verify-Fehlerpfad). Bewusst NICHT
-          // behoben, weil die App selbst keine Magic-Links versendet (kein
-          // signIn.magicLink-Aufruf in der Web-UI) — der nutzersichtbare
-          // passwortlose Weg ist der Email-OTP, dessen 2FA-Abweisung die
-          // verify-otp-Seite verstaendlich anzeigt. Siehe auch
-          // apps/web/src/lib/two-factor.ts.
-          throw new APIError("UNAUTHORIZED", {
-            message:
-              "Dieses Konto nutzt Zwei-Faktor-Anmeldung; bitte mit Passwort anmelden",
           });
         },
       },

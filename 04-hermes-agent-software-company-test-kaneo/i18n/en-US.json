@@ -218,11 +218,6 @@
 				"verifyFailed": "Failed to verify code",
 				"resendFailed": "Failed to resend code",
 				"resendSuccess": "New verification code sent!"
-			},
-			"twoFactorRequired": {
-				"title": "Two-factor authentication required",
-				"description": "This account uses two-factor authentication. Please sign in with your password.",
-				"signInWithPassword": "Sign in with password"
 			}
 		},
 		"otpSignIn": {
@@ -313,19 +308,6 @@
 				"nameRequired": "Name is required",
 				"nameShort": "Name must be at least 2 characters"
 			}
-		},
-		"twoFactor": {
-			"pageTitle": "Two-factor authentication",
-			"title": "Two-factor authentication",
-			"subtitle": "Enter the code from your authenticator app.",
-			"codeLabel": "Authentication code",
-			"verifyButton": "Verify and sign in",
-			"verifying": "Verifying...",
-			"backupCodeHint": "Use a backup code instead",
-			"backupCodeLabel": "Backup code",
-			"useAppCode": "Use an app code",
-			"invalidCode": "That code is invalid. Please try again.",
-			"verifyFailed": "Could not verify the code."
 		}
 	},
 	"settings": {
@@ -1264,38 +1246,6 @@
 			"merged": "Merged",
 			"draft": "Draft",
 			"open": "Open"
-		},
-		"security": "Security",
-		"securityPage": {
-			"pageTitle": "Security",
-			"title": "Two-factor authentication",
-			"subtitle": "Protect your account with a second factor from an authenticator app.",
-			"statusDisabled": "Disabled",
-			"statusEnabled": "Enabled",
-			"enableDescription": "When enabled, signing in also asks for a code from your authenticator app.",
-			"disableDescription": "Your account no longer asks for a second factor on sign-in.",
-			"enable": "Enable",
-			"disable": "Disable",
-			"currentPasswordLabel": "Current password",
-			"currentPasswordPlaceholder": "Enter your password",
-			"cancel": "Cancel",
-			"totpTitle": "Add your authenticator app",
-			"totpSubtitle": "Scan the URI below or enter the secret in your authenticator app.",
-			"secretLabel": "Secret (otpauth URI)",
-			"backupCodesTitle": "Backup codes",
-			"backupCodesHint": "Store these somewhere safe. They can only be shown once.",
-			"backupCodesOneTime": "Shown once - stored encrypted, never shown again.",
-			"verifyTitle": "Verify your setup",
-			"verifySubtitle": "Enter the 6-digit code your app shows for this account.",
-			"codeLabel": "Verification code",
-			"verifyButton": "Verify and enable",
-			"verifying": "Verifying...",
-			"enableSuccess": "Two-factor authentication enabled.",
-			"disableSuccess": "Two-factor authentication disabled.",
-			"wrongPassword": "Incorrect password.",
-			"invalidCode": "That code is invalid.",
-			"enableError": "Could not enable two-factor authentication.",
-			"disableError": "Could not disable two-factor authentication."
 		}
 	},
 	"navigation": {
@@ -1362,8 +1312,7 @@
 			"unnamedUser": "User",
 			"settings": "Settings",
 			"signingOut": "Signing out...",
-			"logOut": "Log out",
-			"openMenu": "Open user menu"
+			"logOut": "Log out"
 		},
 		"workspaceSwitcher": {
 			"workspaces": "Workspaces",

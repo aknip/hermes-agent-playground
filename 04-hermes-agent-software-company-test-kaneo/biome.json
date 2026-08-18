@@ -27,9 +27,7 @@
 			"!**/.claude",
 			"!**/.pi",
 			"!**/.pi-subagents",
-			"!**/openapi.json",
-			"!**/.worktrees",
-			"!**/.esf-hooks"
+			"!**/openapi.json"
 		]
 	},
 	"formatter": {
