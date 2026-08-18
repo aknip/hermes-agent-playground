@@ -118,7 +118,28 @@ else
     voll="$(k show "$gid" --json 2>/dev/null || echo '{}')"
     grund="$(printf '%s' "$voll" | jq -r '[.events[]? | select(.kind=="blocked")] | last | .payload.reason // ""')"
     zeilen="$(printf '%s' "$grund" | grep -c . || true)"
-    antwort="$(printf '%s' "$voll" | jq -r '[.events[]? | select(.kind=="unblocked")] | last | .payload.reason // ""')"
+    # Die Antwort steht im KOMMENTAR, nicht in der Ereignis-Payload.
+    #
+    # Das `unblocked`-Ereignis traegt eine LEERE Payload; `gate.sh --reason`
+    # legt den Text als Kommentar mit dem Praefix "UNBLOCK: " an. monitor.sh
+    # dokumentiert das seit Phase 1 ausdruecklich — und dieses Skript hat die
+    # Lehre nicht bekommen: Es las `.payload.reason`, fand nichts und meldete
+    # "es gibt kein unblocked-Ereignis", obwohl das Ereignis da war und die
+    # Freigabe erteilt.
+    #
+    # Dritte Wiederholung derselben Fehlerklasse in diesem Lauf (nach
+    # `metadata` auf Karten- statt Laufebene und der flachen gegen die
+    # verschachtelte Schaetzung). Die Lehre daraus ist nicht "besser lesen",
+    # sondern: Ein Pruefer, der eine Form annimmt, MUSS gegen echte Daten
+    # gelaufen sein, bevor man ihm glaubt. Dieser hier lief zum ersten Mal
+    # gegen ein beantwortetes Gate — und fiel sofort auf.
+    unblocks="$(printf '%s' "$voll" | jq '[.events[]? | select(.kind=="unblocked")] | length')"
+    antwort="$(printf '%s' "$voll" | jq -r '
+        [.comments[]? | (.text // .body // "")
+         | select(test("^UNBLOCK: *(approve|modify|shelve|continue|cut|stop|manuell)\\b"))]
+        | last // ""
+        | sub("^UNBLOCK: *"; "")
+        | .[0:160]')"
 
     case "$gst" in
         blocked)
@@ -131,10 +152,14 @@ else
                 info "Maßstab: man kann entscheiden, ohne eine Datei zu öffnen."
             fi ;;
         done)
-            if [ -z "$antwort" ]; then
+            if [ "${unblocks:-0}" -eq 0 ]; then
                 nein "Karte $gid ist done, aber es gibt kein unblocked-Ereignis"
                 info "Eine Gate-Karte, die ohne menschliche Antwort fertig wurde, ist"
                 info "ein Governance-Befund — kein Agent öffnet je ein Gate (AGENTS.md 7)."
+            elif [ -z "$antwort" ]; then
+                nein "Karte $gid wurde entblockt, aber ohne gate.sh-Kommentar mit gültigem Verb"
+                info "Nur gate.sh schreibt 'UNBLOCK: <verb>: …'. Fehlt das, ist die Herkunft"
+                info "der Antwort nicht belegt — monitor.sh meldet das als Verstoss."
             else
                 # Das Verb-Präfix ist das Erkennungsmerkmal einer legitimen
                 # menschlichen Antwort (gate.sh setzt es). Fehlt es, war es
