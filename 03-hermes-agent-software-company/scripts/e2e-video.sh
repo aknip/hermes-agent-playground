@@ -5,20 +5,27 @@
 #
 #   scripts/e2e-video.sh --feature <spec> [<spec> …]   die Journey(s) EINES Features
 #   scripts/e2e-video.sh --alle                        die volle Suite
+#   scripts/e2e-video.sh --anlass <slug>               benennt die Akte (s.u.)
 #   scripts/e2e-video.sh --selbsttest                  offline: Config-Erzeugung + Headless-Wächter
 #   scripts/e2e-video.sh --headless-waechter <repo> "<befehl>"   nur der Wächter
 #   scripts/e2e-video.sh --dry-run …                   nur zeigen
 #
-# Nach jeder Feature-Implementierung entstehen zwei Akten (merge-riegel.sh
-# ruft dieses Skript nach jedem bestandenen Merge):
+# AUFGEZEICHNET WIRD NACH JEDEM GRÜNEN E2E-LAUF — nicht erst nach einem Merge.
+# Jede Stelle, die die Suite laufen lässt, ruft dieses Skript unmittelbar nach
+# ihrem grünen Lauf: der Merge-Riegel (vor dem Merge, direkt nach Prüfung 6/6),
+# der tägliche Tick, der Onboarding- und der Release-Nachweis. Ein Merge ist
+# damit kein Tor mehr vor der Akte, sondern nur noch einer von vier Anlässen.
 #
-#   reports/e2e-videos/<datum>/feature-<spec>/   die Journey des Features,
-#                                                grün und im Browser gezeigt
-#   reports/e2e-videos/<datum>/alle/             die ganze Suite — je Test ein
-#                                                .webm (Playwright zeichnet je
-#                                                Test), dazu index.html; steht
-#                                                ffmpeg bereit, zusätzlich EIN
-#                                                zusammengefügtes alle-journeys.mp4
+#   reports/e2e-videos/<datum>/<anlass>/   je Test ein .webm (Playwright
+#                                          zeichnet je Test), dazu index.html
+#                                          und lauf.txt; steht ffmpeg bereit,
+#                                          bei --alle zusätzlich EIN
+#                                          zusammengefügtes alle-journeys.mp4
+#
+# Der <anlass> ist der Grund des Laufs — `tick`, `onboarding`, `release`,
+# `riegel-feat-…`, `feature-<spec>`. Er MUSS je Lauf verschieden sein: An einem
+# Tag laufen Tick, Riegel und Release-Nachweis grün, und ohne eigenen Ordner
+# überschriebe die letzte Akte die drei davor.
 #
 # Der Pfad reports/e2e-… ist im Vault-Linter und im Vault-.gitignore bereits
 # als Akte ausgenommen — Videos sind Ergebnisse, keine Quellen.
@@ -143,18 +150,19 @@ fi
 # ---------------------------------------------------------------------------
 # Aufzeichnen
 # ---------------------------------------------------------------------------
-MODUS=""; DRY=0; SPECS=()
+MODUS=""; DRY=0; ANLASS=""; SPECS=()
 while [ $# -gt 0 ]; do
     case "$1" in
         --feature) MODUS=feature ;;
         --alle)    MODUS=alle ;;
+        --anlass)  shift; ANLASS="${1:-}" ;;
         --dry-run) DRY=1 ;;
         -*)        echo "Unbekannte Option '$1'"; exit 2 ;;
         *)         SPECS+=("$1") ;;
     esac
     shift
 done
-[ -n "$MODUS" ] || { echo "Aufruf: e2e-video.sh --feature <spec>… | --alle | --selbsttest"; exit 2; }
+[ -n "$MODUS" ] || { echo "Aufruf: e2e-video.sh --feature <spec>… | --alle [--anlass <slug>] | --selbsttest"; exit 2; }
 [ -d "$VAULT" ] || { echo "FEHLER: kein Vault unter $VAULT — erst ./setup.sh"; exit 1; }
 
 schalter="$(cad e2e_aufzeichnung)"
@@ -176,10 +184,11 @@ ok "sauber"
 HEUTE="$(date +%F)"
 if [ "$MODUS" = "feature" ]; then
     [ "${#SPECS[@]}" -gt 0 ] || { echo "FEHLER: --feature braucht mindestens einen Spec."; exit 1; }
-    ZIEL="$VAULT/reports/e2e-videos/$HEUTE/feature-$(basename "${SPECS[0]%%.spec.ts}")"
+    [ -n "$ANLASS" ] || ANLASS="feature-$(basename "${SPECS[0]%%.spec.ts}")"
 else
-    ZIEL="$VAULT/reports/e2e-videos/$HEUTE/alle"
+    [ -n "$ANLASS" ] || ANLASS="alle"
 fi
+ZIEL="$VAULT/reports/e2e-videos/$HEUTE/$(slug "$ANLASS")"
 
 if [ "$DRY" -eq 1 ]; then
     ok "würde aufzeichnen nach ${ZIEL#$VAULT/} (Playwright video=on, headless erzwungen)"
