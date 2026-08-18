@@ -10,7 +10,11 @@ done  esf-video-designer   t_edbfe97b  Video-Komposition — analysis/codebase.h
 done  esf-video-designer   t_e9ef7395  Video-Komposition — roadmap/q1-freigegeben.html
 done  esf-video-designer   t_01e6bead  Video-Komposition — roadmap/q1-entwurf.html
 done  esf-video-designer   t_a9436877  Video-Komposition — analysis/market.html
-done  esf-product-manager  t_c6c2f9d7  Probelauf 1/4 — Spezifikation
-done  esf-dev-a            t_011969fc  Probelauf 2/4 — Bau
-done  esf-reviewer         t_19932b0d  Probelauf 3/4 — Review
-done  esf-chief-of-staff   t_0cb952ad  GATE Roadmap — Probelauf 4/4
+done  esf-dev-a            t_85674c46  S1 W 1/1 — Wartung: biome ci gruen
+done  esf-product-manager  t_e70f40ff  S1 F2 1/5 — Spezifikation F-R1-2 Create-Task-Dialog entschlacken
+done  esf-estimator        t_1b5d47a2  S1 F2 2/5 — Schätzung F-R1-2
+done  esf-dev-a            t_d0ebd919  S1 F2 3/5 — Umsetzung F-R1-2
+done  esf-reviewer         t_c8e3463c  S1 F2 4/5 — Review F-R1-2
+done  esf-qa-release       t_5db4aefa  S1 F2 5/5 — Merge F-R1-2 am Riegel
+done  esf-controller       t_25ea8331  Kalibrierung S1
+done  esf-chief-of-staff   t_46063013  Sprint-Abschluss S1

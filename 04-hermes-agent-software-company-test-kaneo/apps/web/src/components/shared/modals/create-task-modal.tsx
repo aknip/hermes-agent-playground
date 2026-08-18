@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import useAuth from "@/components/providers/auth-provider/hooks/use-auth";
 import TaskDescriptionEditor from "@/components/task/task-description-editor";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -113,6 +114,7 @@ function CreateTaskModal({
   projectId,
 }: CreateTaskModalProps) {
   const { t } = useTranslation();
+  const { user } = useAuth();
   const { project, setProject } = useProjectStore();
 
   const labelColors = useMemo(
@@ -247,7 +249,7 @@ function CreateTaskModal({
     setTitle("");
     setDescription("");
     setPriority("no-priority");
-    setAssigneeId("");
+    setAssigneeId(defaultAssigneeId);
     setStartDate(undefined);
     setDueDate(undefined);
     setCreateMore(false);
@@ -439,7 +441,7 @@ function CreateTaskModal({
         setTitle("");
         setDescription("");
         setPriority("no-priority");
-        setAssigneeId("");
+        setAssigneeId(defaultAssigneeId);
         setStartDate(undefined);
         setDueDate(undefined);
         setLabels([]);
@@ -474,8 +476,6 @@ function CreateTaskModal({
     [t],
   );
 
-  const selectedPriority = priorityOptions.find((p) => p.value === priority);
-
   const statusLabel = useMemo(() => {
     if (status) {
       return t(`tasks:status.${status}`);
@@ -486,11 +486,34 @@ function CreateTaskModal({
     (u) => u.userId === assigneeId,
   );
 
+  // Standard-Bearbeiter „der Anwender": das Mitglied, dessen userId der
+  // Sitzungs-ID entspricht; „" wenn der Anwender kein Mitglied ist.
+  const defaultAssigneeId =
+    workspaceUsers?.members?.find((member) => member.userId === user?.id)
+      ?.userId ?? "";
+
   useEffect(() => {
     if (labelsOpen && labelsStep === "select" && searchInputRef.current) {
       setTimeout(() => searchInputRef.current?.focus(), 100);
     }
   }, [labelsOpen, labelsStep]);
+
+  // Standard-Bearbeiter „der Anwender": Sobald das Modal offen ist und die
+  // Mitgliederdaten geladen sind, wird der Bearbeiter auf das Mitglied
+  // vorbelegt, dessen userId der Sitzungs-ID entspricht. Der Flag wird bei
+  // geschlossenem Modal zurückgesetzt, damit jedes Öffnen neu mit dem Standard
+  // startet; eine vom Anwender bereits getroffene Wahl wird nicht überschrieben.
+  const defaultAppliedOpenRef = useRef(false);
+  useEffect(() => {
+    if (open) {
+      if (defaultAssigneeId && !defaultAppliedOpenRef.current) {
+        setAssigneeId(defaultAssigneeId);
+        defaultAppliedOpenRef.current = true;
+      }
+    } else {
+      defaultAppliedOpenRef.current = false;
+    }
+  }, [open, defaultAssigneeId]);
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
@@ -764,44 +787,31 @@ function CreateTaskModal({
                 </PopoverContent>
               </Popover>
 
-              <Popover>
-                <PopoverTrigger asChild>
-                  <button
-                    type="button"
-                    className={cn(
-                      "flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-md transition-colors border border-border hover:bg-accent/50",
-                      priority !== "no-priority"
-                        ? "bg-accent/30 text-foreground"
-                        : "text-muted-foreground",
-                    )}
-                  >
-                    {getPriorityIcon(priority)}
-                    <span>
-                      {selectedPriority
-                        ? selectedPriority.label
-                        : t("common:modals.createTask.priority")}
-                    </span>
-                  </button>
-                </PopoverTrigger>
-                <PopoverContent className="w-48 p-1" align="start">
-                  <div className="space-y-1">
-                    {priorityOptions.map((option) => (
-                      <button
-                        key={option.value}
-                        type="button"
-                        className="w-full flex items-center gap-2 px-2 py-1.5 text-sm hover:bg-accent/50 text-left transition-colors h-8"
-                        onClick={() => setPriority(option.value as Priority)}
-                      >
-                        {getPriorityIcon(option.value)}
-                        <span className="text-sm">{option.label}</span>
-                        {priority === option.value && (
-                          <Check className="ml-auto h-4 w-4" />
-                        )}
-                      </button>
-                    ))}
-                  </div>
-                </PopoverContent>
-              </Popover>
+              <fieldset
+                aria-label={t("common:modals.createTask.priority")}
+                className="flex items-center gap-1 p-0 m-0 border-0 min-w-0"
+              >
+                {priorityOptions.map((option) => {
+                  const active = priority === option.value;
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      aria-pressed={active}
+                      onClick={() => setPriority(option.value as Priority)}
+                      className={cn(
+                        "flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-md transition-colors border",
+                        active
+                          ? "bg-accent/30 text-foreground border-border"
+                          : "text-muted-foreground border-transparent hover:bg-accent/50",
+                      )}
+                    >
+                      {getPriorityIcon(option.value)}
+                      <span>{option.label}</span>
+                    </button>
+                  );
+                })}
+              </fieldset>
 
               <Popover>
                 <PopoverTrigger asChild>

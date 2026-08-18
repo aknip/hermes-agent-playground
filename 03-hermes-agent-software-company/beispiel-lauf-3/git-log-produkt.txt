@@ -1,3 +1,14 @@
+16c9902 Merge feat/esf-r1-f2-create-task-subtraktion (Riegel bestanden)
+5677e0f feat(web): create-task-dialog auf einen schritt verdichtet
+ .../shared/modals/create-task-modal.test.tsx       | 116 ++++++++++++++++++++-
+ .../components/shared/modals/create-task-modal.tsx |  94 +++++++++--------
+ .../e2e/journeys/vorgang-anlegen-zuweisen.spec.ts  |  32 +++---
+ 3 files changed, 180 insertions(+), 62 deletions(-)
+9d81e11 chore(lint): biome-bestandsschuld abgeraeumt
+ apps/site/components/landing/hero.tsx |  1 -
+ biome.json                            |  2 +-
+ turbo.json                            | 29 +++++++++++++++++++++++++++++
+ 3 files changed, 30 insertions(+), 2 deletions(-)
 ecac536 Merge feat/esf-probelauf (Riegel bestanden)
 e38f6a0 docs: esf-probelauf-nachweis anlegen
  docs/ESF-PROBELAUF.md | 3 +++

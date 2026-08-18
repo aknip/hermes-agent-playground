@@ -1,3 +1,28 @@
+45f2406 report: sprint-abscluss S1 (karte t_46063013, alle pruefungen ausser klassifikation t_e70f40ff gruen)
+ reports/sprint-s1-report.html | 323 ++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 323 insertions(+)
+c3a4a54 ledger: Rollenkosten-Schnappschuss 2026-08-19 (kumulativ je Profil-Key)
+ ledger/kosten-je-rolle.jsonl | 13 +++++++++++++
+ 1 file changed, 13 insertions(+)
+924de18 controller: Report S1 Kalibrierung (karte t_25ea8331, zusammen mit Riegel-Rohbelegen)
+ reports/controller-s1.html                | 232 ++++++++++++++++++++++++++++++
+ reports/riegel-r1-f2-run1-crash-beleg.txt |  29 ++++
+ reports/riegel-r1-f2.txt                  |  36 +++++
+ 3 files changed, 297 insertions(+)
+d74e8a1 Ledger: 6 (Schätzung, Ist)-Paar(e) vom 2026-08-19
+ ledger/estimates.jsonl | 6 ++++++
+ 1 file changed, 6 insertions(+)
+41618fc report: schaetzung F-R1-2 (drei folgekarten, karte t_1b5d47a2)
+ reports/schaetzung-r1-f2.html | 138 ++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 138 insertions(+)
+1eb2f37 specs: F-R1-2 Create-Task-Dialog entschlacken (Karte t_e70f40ff)
+ specs/r1-f2-create-task-subtraktion.html | 262 +++++++++++++++++++++++++++++++
+ 1 file changed, 262 insertions(+)
+833778a ledger: probelauf-zeiten nachgebucht (supervisor)
+ ledger/estimates.jsonl       | 16 ++++++++++++++++
+ reports/riegel-merge.txt     | 35 +++++++++++++++++++++++++++++++++++
+ reports/riegel-probelauf.txt | 32 ++++++++++++++++++++++++++++++++
+ 3 files changed, 83 insertions(+)
 ab641e5 video: fuenf individuelle kompositionen mit der neuen sprecherstimme
  analysis/codebase.komposition/audio.tts-weg        |   1 +
  analysis/codebase.komposition/auftrag.json         |  49 +++

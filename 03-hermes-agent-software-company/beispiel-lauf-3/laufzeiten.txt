@@ -11,9 +11,13 @@ t_edbfe97b   esf-video-designer            4      1  Video-Komposition — analy
 t_e9ef7395   esf-video-designer            4      1  Video-Komposition — roadmap/q1-freigegeben.html
 t_01e6bead   esf-video-designer            5      1  Video-Komposition — roadmap/q1-entwurf.html
 t_a9436877   esf-video-designer            6      1  Video-Komposition — analysis/market.html
-t_c6c2f9d7   esf-product-manager           2      1  Probelauf 1/4 — Spezifikation
-t_011969fc   esf-dev-a                    36      2  Probelauf 2/4 — Bau
-t_19932b0d   esf-reviewer                  3      1  Probelauf 3/4 — Review
-t_0cb952ad   esf-chief-of-staff           10      2  GATE Roadmap — Probelauf 4/4
+t_85674c46   esf-dev-a                    17      1  S1 W 1/1 — Wartung: biome ci gruen
+t_e70f40ff   esf-product-manager           7      1  S1 F2 1/5 — Spezifikation F-R1-2 Create-Task-Dialog entschlacken
+t_1b5d47a2   esf-estimator                33      2  S1 F2 2/5 — Schätzung F-R1-2
+t_d0ebd919   esf-dev-a                    16      1  S1 F2 3/5 — Umsetzung F-R1-2
+t_c8e3463c   esf-reviewer                  3      1  S1 F2 4/5 — Review F-R1-2
+t_5db4aefa   esf-qa-release               13      1  S1 F2 5/5 — Merge F-R1-2 am Riegel
+t_25ea8331   esf-controller                8      1  Kalibrierung S1
+t_46063013   esf-chief-of-staff            4      1  Sprint-Abschluss S1
 
-Summe Kartenzeit: 252 Minuten
+Summe Kartenzeit: 304 Minuten
