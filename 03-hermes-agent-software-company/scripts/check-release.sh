@@ -298,6 +298,13 @@ else
     ( cd "$REPO" && eval "$E2E_VORBED" ) >/dev/null 2>&1 || true
     if ( cd "$REPO" && eval "$E2E_BEFEHL" ) > /tmp/esf-cr-e2e.$$ 2>&1; then
         printf '\r'; ok "E2E grün — $(grep -oE '[0-9]+ passed' /tmp/esf-cr-e2e.$$ | tail -1)"
+        # Der Regressionslauf vor dem Release ist der wichtigste grüne Lauf,
+        # den die Organisation hat — er bekommt seine Video-Akte sofort
+        # (AGENTS.md 8), nicht blockierend und ohne Einfluss auf das Urteil.
+        if [ -x "$HERE/e2e-video.sh" ]; then
+            "$HERE/e2e-video.sh" --alle --anlass "release-$R" 2>&1 | sed 's/^/      /' \
+                || echo "      (Video-Akte fehlgeschlagen — Betriebsbefund, kein ✗)"
+        fi
     else
         printf '\r'; nein "E2E rot"; tail -12 /tmp/esf-cr-e2e.$$ | sed 's/^/      /'
     fi

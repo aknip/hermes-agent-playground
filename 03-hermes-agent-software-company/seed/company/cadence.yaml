@@ -86,11 +86,22 @@ videos:
   # an|aus — scripts/video-render.sh rendert Zusammenfassungen der Dokumente
   # unter analysis/, roadmap/ und reports/ (Sprechertext aus dem Dokument).
   zusammenfassungen: an
-  # Die macOS-`say`-Stimme des Sprecher-Audios. Der Hyperframes-Weg kann sie
-  # später durch eine bessere TTS ersetzen; die Struktur bleibt.
+  # --- Sprecher-Audio ---
+  # openrouter|say. `openrouter` ist der Normalweg: dasselbe Provider-Konto wie
+  # die ganze ESF, abgerechnet über den Key des Video-Profils. Der lokale Weg
+  # wäre `hyperframes tts` (Kokoro-82M) — er fällt aus, weil Kokoro KEIN Deutsch
+  # kennt (gemessen an 0.8.3: en-us, en-gb, es, fr-fr, hi, it, pt-br, ja, zh).
+  tts_weg: openrouter
+  tts_modell: openai/gpt-audio
+  tts_stimme: alloy
+  # Die macOS-`say`-Stimme des RÜCKFALLS: ohne Netz, ohne Kosten, hörbar
+  # künstlich — aber immer wörtlich. Sie greift auch, wenn das Sprachmodell nicht
+  # wörtlich gelesen hat (tts-openrouter.py prüft das gegen sein Transkript).
   stimme: Anna
-  # an|aus — Playwright-Videoaufzeichnung nach jedem bestandenen Merge
-  # (scripts/e2e-video.sh, gerufen vom Merge-Riegel).
+  # an|aus — Playwright-Videoaufzeichnung nach JEDEM grünen E2E-Lauf, sofort
+  # und unabhängig vom Merge (scripts/e2e-video.sh; gerufen vom Merge-Riegel
+  # direkt nach Prüfung 6/6, vom Tick, vom Onboarding- und Release-Nachweis).
+  # Je Anlass eine eigene Akte unter reports/e2e-videos/<datum>/<anlass>/.
   e2e_aufzeichnung: an
 
 # --- Das Ziel-Repo ----------------------------------------------------------

@@ -131,6 +131,13 @@ VIER PFLICHTEN AUS KAPITEL 5 — in dieser Reihenfolge
    ein Rohbeleg, den jemand für die Darstellung angefasst hat, ist keiner mehr.
    Dazu Typecheck und Unit-Tests auf main, mit Zahlen.
 
+   Ist der Lauf grün, zeichne ihn sofort auf (AGENTS.md 8.2):
+     $HERE/scripts/e2e-video.sh --alle --anlass release-$R-regressionslauf
+   Das ist die Video-Akte, auf die sich die Release Notes berufen: der Stand,
+   den das Release ausliefert, im Browser durchgespielt. Sie entsteht am
+   grünen Lauf, nicht am Merge — und der eigene --anlass hält sie von der
+   Akte des Ticks und des Riegels desselben Tages getrennt.
+
 3. RELEASE NOTES — reports/release-$KLEIN.html
    Geschrieben für jemanden, der das Produkt benutzt, nicht für jemanden, der es
    gebaut hat. Je Feature: was kann der Anwender jetzt, was er vorher nicht

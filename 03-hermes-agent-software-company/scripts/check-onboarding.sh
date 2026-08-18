@@ -217,6 +217,13 @@ if [ -d "$REPO" ] && [ "$specs" -gt 0 ]; then
     ( cd "$REPO" && eval "$E2E_VORBED" ) >/dev/null 2>&1 || true
     if ( cd "$REPO" && eval "$E2E_BEFEHL" ) > /tmp/esf-check-e2e.$$ 2>&1; then
         ok "grün — $(grep -oE '[0-9]+ passed' /tmp/esf-check-e2e.$$ | tail -1)"
+        # Jeder grüne Lauf hinterlässt seine Video-Akte, auch der aus einem
+        # Nachweis (AGENTS.md 8). Nicht blockierend und ohne Einfluss auf das
+        # Urteil: Der Nachweis misst die Suite, nicht den Video-Kanal.
+        if [ -x "$HERE/e2e-video.sh" ]; then
+            "$HERE/e2e-video.sh" --alle --anlass onboarding 2>&1 | sed 's/^/      /' \
+                || echo "      (Video-Akte fehlgeschlagen — Betriebsbefund, kein ✗)"
+        fi
     else
         nein "rot"
         tail -12 /tmp/esf-check-e2e.$$ | sed 's/^/      /'

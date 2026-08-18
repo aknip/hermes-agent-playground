@@ -55,6 +55,28 @@ nein() { printf '  \033[31m✗\033[0m %s\n' "$*"; }
 cad() { sed -n "s/^[[:space:]]*$1:[[:space:]]*//p" "$VAULT/cadence.yaml" 2>/dev/null \
         | head -1 | sed 's/[[:space:]]*#.*$//' | sed 's/[[:space:]]*$//'; }
 
+# Der Anlass wird ein Verzeichnisname, und Anlässe tragen Zeichen, die keiner
+# sein dürfen: Branch-Namen enthalten '/' (cadence branch_praefix: feat/), und
+# ein '/' im Anlass legte die Akte eine Ebene tiefer als der Index sie sucht.
+# Dieselbe Ersetzung benutzt video-render.sh für seine Idempotenz-Schlüssel.
+slug() {
+    local s
+    s="$(printf '%s' "$1" | tr -c 'a-zA-Z0-9' '-' | sed -e 's/--*/-/g' -e 's/^-//' -e 's/-$//')"
+    printf '%s' "${s:-lauf}"
+}
+
+# Jeder grüne Lauf bekommt SEINE Akte — auch der zweite mit demselben Anlass.
+# Zwei Fälle gäbe es sonst: ein Nachweis, der nach einem Befund erneut läuft,
+# und zwei Anlässe, die nach dem Slug zufällig gleich heissen (Branch
+# 'feat/x-feature' gegen das Feature-Video von 'feat/x'). Beide überschrieben
+# stillschweigend die ältere Aufzeichnung; still ist hier das Problem.
+eindeutig() { # basispfad -> freier Pfad auf stdout
+    local basis="$1" n=2
+    [ -e "$basis" ] || { printf '%s' "$basis"; return; }
+    while [ -e "$basis-$n" ]; do n=$((n + 1)); done
+    printf '%s' "$basis-$n"
+}
+
 # ---------------------------------------------------------------------------
 # Der Headless-Wächter. Exit 0 = sauber, 1 = Verstoss (Befund auf stdout).
 # ---------------------------------------------------------------------------
@@ -138,6 +160,22 @@ if [ "${1:-}" = "--selbsttest" ]; then
         ok "abgeleitete Config: video an, headless erzwungen, vom Wächter ignoriert"
     else nein "abgeleitete Config fehlerhaft"; fehler=1; fi
 
+    # (f) zwei Läufe mit demselben Anlass überschreiben einander nicht
+    mkdir -p "$tmp/2026-08-18/tick"
+    e1="$(eindeutig "$tmp/2026-08-18/tick")"
+    mkdir -p "$e1"
+    e2="$(eindeutig "$tmp/2026-08-18/tick")"
+    if [ "$e1" = "$tmp/2026-08-18/tick-2" ] && [ "$e2" = "$tmp/2026-08-18/tick-3" ]; then
+        ok "zweiter Lauf gleichen Anlasses bekommt eine eigene Akte (tick-2, tick-3)"
+    else nein "Akten überschreiben einander: '$e1' / '$e2'"; fehler=1; fi
+
+    # (e) der Anlass wird ein tragfähiger Verzeichnisname — hier zählt der
+    #     Branch-Fall, denn 'feat/xy' legte die Akte sonst eine Ebene tiefer.
+    if [ "$(slug 'riegel-feat/kanban-spalten')" = "riegel-feat-kanban-spalten" ] \
+       && [ "$(slug '///')" = "lauf" ] && [ "$(slug 'tick')" = "tick" ]; then
+        ok "Anlass-Slug: '/' ersetzt, Leerfall aufgefangen"
+    else nein "Anlass-Slug unbrauchbar: $(slug 'riegel-feat/kanban-spalten')"; fehler=1; fi
+
     rm -rf "$tmp"
     exit "$fehler"
 fi
@@ -188,7 +226,7 @@ if [ "$MODUS" = "feature" ]; then
 else
     [ -n "$ANLASS" ] || ANLASS="alle"
 fi
-ZIEL="$VAULT/reports/e2e-videos/$HEUTE/$(slug "$ANLASS")"
+ZIEL="$(eindeutig "$VAULT/reports/e2e-videos/$HEUTE/$(slug "$ANLASS")")"
 
 if [ "$DRY" -eq 1 ]; then
     ok "würde aufzeichnen nach ${ZIEL#$VAULT/} (Playwright video=on, headless erzwungen)"

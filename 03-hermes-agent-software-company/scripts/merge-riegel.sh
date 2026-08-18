@@ -20,9 +20,13 @@
 #   6. Die VOLLE E2E-Suite ist grün — inklusive der Journey des Features,
 #      headless erzwungen (Wächter aus e2e-video.sh)
 #
-# Nach bestandenem Merge (kein Trockenlauf) folgt nicht-blockierend die
-# Videoaufzeichnung: die Journey des Features und die ganze Suite
-# (scripts/e2e-video.sh, AGENTS.md 8).
+# Ist Prüfung 6 grün, wird SOFORT aufgezeichnet — vor dem Merge und
+# unabhängig davon, ob er danach zustande kommt (scripts/e2e-video.sh,
+# AGENTS.md 8). Die Akte gehört zum grünen Lauf, nicht zum Merge: Wer den
+# Riegel im Trockenlauf oder gegen einen Branch fährt, der danach an einer
+# anderen Stelle scheitert, hat die Journeys trotzdem grün gesehen. Die
+# Aufzeichnung ist nicht blockierend — ein gescheitertes Video nimmt keinen
+# geprüften Merge zurück.
 #
 # Prüfung 3 lintet bewusst nur die geänderten Dateien, nicht das ganze Repo:
 # Gemessen wird die Regression, nicht der Absolutstand. Ein Riegel, der an
@@ -66,6 +70,8 @@ CADENCE="$HERE/../workspace/company/cadence.yaml"
 REPO="$(sed -n 's/^[[:space:]]*repo:[[:space:]]*//p' "$CADENCE" | head -1)"
 E2E_BEFEHL="$(sed -n 's/^[[:space:]]*e2e_befehl:[[:space:]]*//p' "$CADENCE" | head -1)"
 E2E_VORBED="$(sed -n 's/^[[:space:]]*e2e_vorbedingung:[[:space:]]*//p' "$CADENCE" | head -1)"
+# Braucht die Video-Akte: welche Journey-Specs bringt dieser Branch mit?
+E2E_DIR="$(sed -n 's/^[[:space:]]*e2e_verzeichnis:[[:space:]]*//p' "$CADENCE" | head -1 | sed 's/[[:space:]]*#.*$//')"
 [ -d "$REPO/.git" ] || { echo "FEHLER: '$REPO' ist kein Git-Repo (cadence.yaml: produkt.repo)"; exit 2; }
 
 # ---------------------------------------------------------------------------
@@ -310,6 +316,33 @@ if eval "$E2E_BEFEHL" > /tmp/esf-riegel-e2e.$$ 2>&1; then
     grep -E '[0-9]+ (passed|failed|skipped)' /tmp/esf-riegel-e2e.$$ | tail -2 | sed 's/^/  /' | tee -a "${PROTOKOLL:-/dev/null}"
     zeile "  grün"
     rm -f /tmp/esf-riegel-e2e.$$
+
+    # ------------------------------------------------------------------
+    # Die Video-Akte des grünen Laufs (AGENTS.md 8) — HIER, nicht nach dem
+    # Merge. Zwei Aufzeichnungen: die Journey(s), die dieser Branch
+    # mitbringt, und die ganze Suite. Die Specs stehen im Index, nicht in
+    # HEAD~1: Der Merge liegt als `git merge --no-commit` im Arbeitsbaum,
+    # ein Merge-Commit existiert noch nicht.
+    #
+    # NICHT blockierend, und das ist Absicht: Ab hier sind alle sechs
+    # Prüfungen bestanden. Ein Video, das nicht entsteht, ist ein
+    # Betriebsbefund — kein Grund, einen geprüften Merge zu verweigern.
+    # ------------------------------------------------------------------
+    if [ "$DRY" -eq 1 ]; then
+        zeile "  (Trockenlauf — es wird nichts geschrieben, also auch keine Video-Akte)"
+    elif [ -x "$HERE/e2e-video.sh" ]; then
+        feature_specs="$(git diff --cached --name-only -- "$E2E_DIR" 2>/dev/null | grep '\.spec\.ts$' || true)"
+        if [ -n "$feature_specs" ]; then
+            # shellcheck disable=SC2086
+            "$HERE/e2e-video.sh" --feature $feature_specs \
+                --anlass "riegel-$BRANCH-feature" | sed 's/^/  /' \
+                || zeile "⚠ Feature-Video fehlgeschlagen — der Riegel läuft weiter"
+        else
+            zeile "  (kein geänderter Journey-Spec im Branch — kein Feature-Video)"
+        fi
+        "$HERE/e2e-video.sh" --alle --anlass "riegel-$BRANCH" | sed 's/^/  /' \
+            || zeile "⚠ Suiten-Video fehlgeschlagen — der Riegel läuft weiter"
+    fi
 else
     volltext /tmp/esf-riegel-e2e.$$ 30
     rm -f /tmp/esf-riegel-e2e.$$
@@ -329,27 +362,7 @@ fi
 # festschreiben — kein zweiter Merge-Versuch, kein zweites Risiko.
 if git commit -q --no-verify -m "Merge $BRANCH (Riegel bestanden)" 2>/dev/null; then
     zeile "✓ Gemerged: $(git rev-parse --short HEAD)"
-
-    # ------------------------------------------------------------------
-    # Nach jedem bestandenen Merge: die zwei Video-Akten (AGENTS.md 8) —
-    # die Journey des Features und die ganze Suite, beide per Playwright-
-    # Videoaufzeichnung. NICHT blockierend: Der Merge ist geprüft und
-    # festgeschrieben; ein gescheitertes Video ist ein Betriebsbefund,
-    # keine Rücknahme. e2e-video.sh liest videos.e2e_aufzeichnung selbst.
-    # ------------------------------------------------------------------
-    if [ -x "$HERE/e2e-video.sh" ]; then
-        E2E_DIR="$(sed -n 's/^[[:space:]]*e2e_verzeichnis:[[:space:]]*//p' "$CADENCE" | head -1 | sed 's/[[:space:]]*#.*$//')"
-        feature_specs="$(git diff --name-only HEAD~1 HEAD -- "$E2E_DIR" 2>/dev/null | grep '\.spec\.ts$' || true)"
-        if [ -n "$feature_specs" ]; then
-            # shellcheck disable=SC2086
-            "$HERE/e2e-video.sh" --feature $feature_specs | sed 's/^/  /' \
-                || zeile "⚠ Feature-Video fehlgeschlagen — Merge bleibt; Karte für esf-qa-release"
-        else
-            zeile "  (kein geänderter Journey-Spec im Merge — kein Feature-Video)"
-        fi
-        "$HERE/e2e-video.sh" --alle | sed 's/^/  /' \
-            || zeile "⚠ Suiten-Video fehlgeschlagen — Merge bleibt; Karte für esf-qa-release"
-    fi
+    zeile "  (Die Video-Akte liegt bereits — aufgezeichnet wurde nach dem grünen Lauf.)"
 
     zeile ""
     zeile "Der Worktree des Branches bleibt bestehen — der Reviewer braucht ihn"

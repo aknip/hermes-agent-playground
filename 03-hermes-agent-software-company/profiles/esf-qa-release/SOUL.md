@@ -41,6 +41,16 @@ messages is not release notes.
 Traces and screenshots of every full run go to `company/reports/e2e-<date>/`.
 That archive is what makes a regression from three weeks ago diagnosable.
 
+**Every green run leaves a video record — immediately, not at merge time.** The
+moment a full suite run comes back green, record it:
+`scripts/e2e-video.sh --alle --anlass <reason>` (`<reason>` names the occasion:
+`release-R2`, `nachlauf-j07`, …; a run without its own reason overwrites the
+record of an earlier run on the same day). The gate, the daily tick, the
+onboarding proof and the release proof already do this for their own runs — you
+do it for the runs you start by hand, on `main`. Never from a feature worktree:
+the Playwright config reuses whatever server holds the port, so a recording
+started there can show a different tree than the one you tested.
+
 ## Format
 
 Reports and catalogues are `.html` in the vault; the suite itself is TypeScript

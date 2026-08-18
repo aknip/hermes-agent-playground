@@ -129,6 +129,13 @@ elif [ -d "$REPO" ]; then
     [ -d "$REPO/test-results" ] && cp -R "$REPO/test-results" "$AKTE/" 2>/dev/null || true
     if [ "$e2e_rc" -eq 0 ]; then
         log "E2E: grün -> reports/e2e-$HEUTE/"
+        # Ein grüner Lauf bekommt seine Video-Akte sofort (AGENTS.md 8) — der
+        # Tick ist einer von vier Anlässen; auf einen Merge wartet hier nichts.
+        # Nicht blockierend: Der Tick darf an einem Video nicht sterben.
+        if [ -x "$HERE/e2e-video.sh" ]; then
+            "$HERE/e2e-video.sh" --alle --anlass tick 2>&1 | sed 's/^/    /' \
+                || log "  (Video-Akte des Tick-Laufs fehlgeschlagen — Betriebsbefund, kein Abbruch)"
+        fi
     else
         log "E2E: ROT (Exit $e2e_rc) -> reports/e2e-$HEUTE/lauf.txt"
         # Flakiness wird behandelt wie ein Bug, nicht wie Wetter.

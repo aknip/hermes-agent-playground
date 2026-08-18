@@ -16,7 +16,8 @@ Spezifikation — das ist der Punkt.
     ├── sources/<datum>/       der Markt-Korpus des Tages (Rohformate)
     ├── specs/                 Feature-Spezifikationen mit Akzeptanzkriterien
     ├── reports/               Sprint-, Release-, Gate-, Controller-Reports
-    │   └── e2e-<datum>/       Traces und Screenshots eines Regressionslaufs
+    │   ├── e2e-<datum>/       Traces und Screenshots eines Regressionslaufs
+    │   └── e2e-videos/<datum>/<anlass>/   die Videoaufzeichnung eines grünen Laufs
     └── ledger/estimates.jsonl jedes (Schätzung, Ist)-Paar, eine Zeile je Objekt
 
 ### 1.1 Nichts entsteht außerhalb dieser Ordner
@@ -267,3 +268,45 @@ ffmpeg-Titelkarte. Ein abgewiesener Entwurf kostet Gestaltung, nie das Video —
 und `video-render.sh` nennt in seiner Ausgabe je Datei, welche Stufe gegriffen
 hat. Eine still auf Stufe 2 gerutschte Organisation wäre schlimmer als eine
 laute.
+
+## 8.2 Die E2E-Video-Akte: jeder grüne Lauf, sofort
+
+Der dritte Ast des Video-Kanals zeigt nicht ein Dokument, sondern die Software
+selbst: `scripts/e2e-video.sh` fährt die Suite ein zweites Mal mit einer
+abgeleiteten Playwright-Config (`video: on`, `headless: true`) und legt je Test
+ein `.webm` ab, dazu `index.html`, `lauf.txt` und — wenn ffmpeg da ist — ein
+zusammengefügtes `alle-journeys.mp4`.
+
+**Aufgezeichnet wird nach JEDEM grünen E2E-Lauf, unmittelbar danach.** Ein
+Merge ist kein Tor mehr davor, sondern einer von vier Anlässen:
+
+| Anlass | Wer zeichnet auf | Ablage |
+|--------|------------------|--------|
+| Merge-Riegel, Prüfung 6/6 grün | `merge-riegel.sh` — **vor** dem Merge | `riegel-<branch>/` (+ `riegel-<branch>-feature/`) |
+| täglicher Regressionslauf | `tick.sh` | `tick/` |
+| Onboarding-Nachweis | `check-onboarding.sh` | `onboarding/` |
+| Release-Nachweis | `check-release.sh` | `release-<R>/` |
+
+Ein Lauf, den eine Rolle von Hand startet, wird von ihr selbst aufgezeichnet:
+`scripts/e2e-video.sh --alle --anlass <slug>`. Der `<anlass>` ist Pflicht bei
+Doppeldeutigkeit — er wird der Verzeichnisname, und ohne ihn liefen der Tick,
+der Riegel und der Release-Nachweis desselben Tages in dieselbe Akte. Trifft
+ein Anlass doch zweimal zu (ein Nachweis, der nach einem Befund erneut läuft),
+entsteht `<anlass>-2`: **Jeder grüne Lauf behält seine eigene Aufzeichnung**,
+keine wird stillschweigend überschrieben.
+
+**Nur vom Hauptbaum, nie aus einem Worktree.** `playwright.config.ts` hat
+`reuseExistingServer`; die Suite misst also, *was auf dem Port lauscht* — im
+Zweifel ein Dev-Server aus einem fremden Worktree. Eine von dort gestartete
+Aufzeichnung zeigte fremden Code unter dem Namen des eigenen Features. Das ist
+schlimmer als kein Video (real gemessen am 18.08.2026: J-07 fiel rot wegen
+eines stalen Dev-Servers aus dem R1-F2-Worktree).
+
+**Nie blockierend.** Die Aufzeichnung läuft nach dem Urteil, nicht davor: Sie
+kippt keinen bestandenen Riegel, kein grünes Nachweis-Häkchen und keinen Tick.
+Ein fehlgeschlagenes Video ist ein Betriebsbefund. Und wie die Traces sind die
+Aufzeichnungen **Akten, keine Quellen** — `reports/e2e-*/` ist aus dem
+Vault-Git ausgenommen.
+
+**Der Schalter** ist `videos.e2e_aufzeichnung` in `cadence.yaml`; `an` ist die
+Voreinstellung. `e2e-video.sh` liest ihn selbst, die Aufrufer prüfen ihn nicht.

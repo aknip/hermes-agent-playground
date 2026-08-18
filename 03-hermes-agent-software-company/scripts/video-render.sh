@@ -16,7 +16,7 @@
 # als <section id="video-skript"> und bettet das Video-Element mit fester
 # Namenskonvention ein. DIESES Skript macht daraus Ton, Untertitel und Bild:
 #
-#   1. Sprechertext -> Audio          macOS `say` (Stimme aus cadence.yaml),
+#   1. Sprechertext -> Audio          OpenRouter (openai/gpt-audio), Rueckfall `say`;
 #                                     dann ffmpeg nach .m4a
 #   2. gemessene Audiodauer -> .vtt   Cues proportional zur Wortzahl je Satz —
 #                                     dieselbe Zeitquelle wie die Komposition
@@ -65,22 +65,65 @@ cad() { sed -n "s/^[[:space:]]*$1:[[:space:]]*//p" "$VAULT/cadence.yaml" 2>/dev/
 
 STIMME_DEFAULT="Anna"
 
+# Sprecher-Audio: Weg, Modell und Stimme. Aus cadence.yaml, per Umgebung
+# ueberschreibbar (ESF_TTS_WEG=say erzwingt den kostenlosen Rueckfall).
+TTS_SKRIPT="$HERE/tts-openrouter.py"
+TTS_WEG="${ESF_TTS_WEG:-$(cad tts_weg)}";          TTS_WEG="${TTS_WEG:-openrouter}"
+TTS_MODELL="${ESF_TTS_MODELL:-$(cad tts_modell)}"; TTS_MODELL="${TTS_MODELL:-openai/gpt-audio}"
+TTS_STIMME="${ESF_TTS_STIMME:-$(cad tts_stimme)}"; TTS_STIMME="${TTS_STIMME:-alloy}"
+
 # Öffentliche npm-Registry für den Hyperframes-Aufruf (siehe render_hyperframes).
 NPM_REGISTRY="${ESF_NPM_REGISTRY:-https://registry.npmjs.org}"
 
 # ---------------------------------------------------------------------------
 # Die drei deterministischen Stufen, je Job-Verzeichnis
 # ---------------------------------------------------------------------------
-tts() { # skript.txt ziel.m4a stimme  -> Sekunden auf stdout
-    local skript="$1" ziel="$2" stimme="$3" aiff="${2%.m4a}.aiff"
-    /usr/bin/say -v "$stimme" -f "$skript" -o "$aiff"
-    # -nostdin ist PFLICHT, nicht Kosmetik: Die Job-Schleife unten liest ihre
-    # Zeilen von stdin, und ffmpeg liest stdin ebenfalls (Tastaturkommandos).
-    # Ohne -nostdin verschluckt es je Aufruf ein Byte der NAECHSTEN Jobzeile —
-    # gemessen am 18.08.2026: jede zweite Datei scheiterte an einem Pfad ohne
-    # fuehrenden Schraegstrich ("Users/..." statt "/Users/...").
-    ffmpeg -nostdin -y -loglevel error -i "$aiff" -c:a aac -b:a 128k "$ziel"
-    rm -f "$aiff"
+tts() { # skript.txt ziel.m4a say-stimme  -> Sekunden auf stdout
+    #
+    # Zwei Wege, in dieser Reihenfolge:
+    #
+    #   1. OpenRouter (Default openai/gpt-audio, Stimme aus cadence.yaml).
+    #      KEIN neuer Cloud-Service — derselbe Provider wie die ganze ESF,
+    #      abgerechnet ueber den Key des Video-Profils. Der lokale Weg waere
+    #      `hyperframes tts` (Kokoro-82M), faellt aber aus: Kokoro kennt kein
+    #      Deutsch (gemessen an 0.8.3). macOS hat fuer de_DE nur die alte
+    #      Kompaktstimme plus Spassstimmen; Premium braucht einen GUI-Download.
+    #   2. macOS `say` als Rueckfall — ohne Netz, ohne Kosten, hoerbar
+    #      kuenstlich, aber immer woertlich.
+    #
+    # Der Rueckfall greift auch, wenn das Sprachmodell NICHT WOERTLICH gelesen
+    # hat: tts-openrouter.py vergleicht sein Transkript mit dem Sprechertext und
+    # verweigert die Datei bei zu grosser Abweichung (Exit 6). Ein Modell, das
+    # umformuliert, verschoebe die .vtt-Cues gegen das Gesprochene.
+    #
+    # stdout traegt AUSSCHLIESSLICH die Dauer — alle Berichte gehen nach stderr,
+    # sonst liest der Aufrufer sie als Zahl.
+    local skript="$1" ziel="$2" stimme="$3"
+    local aiff="${2%.m4a}.aiff" wav="${2%.m4a}.wav"
+    local weg="say"
+
+    if [ "$TTS_WEG" != "say" ] && [ -f "$TTS_SKRIPT" ]; then
+        if python3 "$TTS_SKRIPT" "$skript" "$wav" \
+             --modell "$TTS_MODELL" --stimme "$TTS_STIMME" >&2; then
+            weg="openrouter"
+        else
+            printf '  \033[33m⚠\033[0m TTS ueber OpenRouter fehlgeschlagen — Rueckfall auf macOS say\n' >&2
+        fi
+    fi
+
+    if [ "$weg" = "openrouter" ]; then
+        ffmpeg -nostdin -y -loglevel error -i "$wav" -c:a aac -b:a 160k "$ziel"
+        rm -f "$wav"
+    else
+        /usr/bin/say -v "$stimme" -f "$skript" -o "$aiff"
+        # -nostdin ist PFLICHT, nicht Kosmetik: Die Job-Schleife liest ihre
+        # Zeilen von stdin, und ffmpeg liest stdin ebenfalls. Ohne -nostdin
+        # verschluckt es je Aufruf ein Byte der NAECHSTEN Jobzeile — gemessen:
+        # jede zweite Datei scheiterte an "Users/..." statt "/Users/...".
+        ffmpeg -nostdin -y -loglevel error -i "$aiff" -c:a aac -b:a 128k "$ziel"
+        rm -f "$aiff"
+    fi
+    printf '%s' "$weg" > "${ziel%.m4a}.tts-weg"
     ffprobe -v error -show_entries format=duration -of csv=p=0 "$ziel"
 }
 

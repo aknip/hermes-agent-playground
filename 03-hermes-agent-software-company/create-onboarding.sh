@@ -219,6 +219,12 @@ AUFTRAG
    Ein Spec, den du nicht grün bekommst, wird NICHT abgeliefert. Nimm ihn
    heraus und schreib in den Katalog, woran es lag — das ist ein ehrliches
    Ergebnis und ein Auftrag für später.
+
+   Sobald sie grün ist, zeichne sie auf (AGENTS.md 8.2 — jeder grüne Lauf
+   bekommt seine Video-Akte, sofort und unabhängig von einem Merge):
+     $HERE/scripts/e2e-video.sh --alle --anlass onboarding-aufbau
+   Das ist der erste sichtbare Durchlauf des Produkts, den die Organisation
+   besitzt. Er läuft headless und dauert so lange wie die Suite selbst.
 5. Schreibe den Journey-Katalog nach $VAULT/analysis/journeys.html:
    je Journey Name, Nutzeraufgabe, Spec-Dateiname, Schrittzahl, Priorität.
    Die Schrittzahl ist die UX-Metrik der Organisation — zähle die sichtbaren
