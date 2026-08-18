@@ -868,3 +868,204 @@ ein zerrissenes Paar auf `t_4f601104`, der ersten, verweigerten Merge-Karte. Sie
 hat ihre Schätzung wirklich nicht mitgenommen. Die Ursache ist bekannt und
 strukturell behoben — aber dem Prüfer das Verzeihen zu lehren wäre der teuerste
 Fehler, den man an einem Riegel machen kann.
+
+---
+
+# Zweiter Rundlauf — Phase 0 und Phase 1, 18.08.2026
+
+Nach dem Rückbau vom selben Tag noch einmal von vorn: `setup.sh` auf eine leere
+Hermes-Instanz, dann der Phase-1-Analysegraph gegen dasselbe Ziel-Repo
+(Kaneo v2.19.1, Ausgangs-Commit `ccd72ee`). Modell für alle drei Tiers:
+`deepseek/deepseek-v4-flash-0731` über OpenRouter, ein eigener Key je Profil.
+Der Mensch fuhr als **Supervisor** — Phase-3-Rollenbild, obwohl Phase 3 selbst
+nicht lief.
+
+Der Zweck war nicht, dieselben Artefakte noch einmal zu bekommen. Er war die
+Frage, ob dieselben Skripte auf einer Maschine mit **anderer**
+Root-Konfiguration dasselbe tun. Sie taten es nicht — und das ist der Ertrag
+dieses Laufs.
+
+## Der Befund vor dem ersten Token: ein Deckel, der von der Maschine abhing
+
+`setup.sh` hob `agent.max_turns` für die vier werkzeugintensiven Rollen auf 1200
+und liess die acht urteilenden Rollen bewusst „bei 500" — dem Hermes-Default.
+In `~/.hermes/config.yaml` dieser Maschine stand aber `agent.max_turns: 90`.
+
+Ein geerbter Deckel ist kein Deckel, sondern ein Zufall. Eine Codebasis-Analyse
+mit drei Dutzend Belegstellen ist bei 90 Zügen zu Ende, bevor sie fertig ist —
+und der Ausgang wäre `gave_up` gewesen: voller Preis, kein Ergebnis, genau der
+teuerste denkbare Fall aus Phase 2. Beide Werte werden jetzt explizit gesetzt
+(Commit `ce01cfe`). Nachgemessen: `esf-architect` 500, `esf-dev-a` 1200.
+
+Der Befund kostete nichts, weil er vor dem Lauf kam. Gefunden wurde er nicht
+durch Nachdenken, sondern durch ein `hermes config get` auf einen Wert, den das
+Skript für bekannt hielt.
+
+## Was die Organisation geliefert hat
+
+| Karte | Profil | Zeit | Läufe | Ergebnis |
+|-------|--------|------|-------|----------|
+| 1/6 Codebasis | `esf-architect` | 20 min | 1 | `codebase.html`, 23 KB, 23 `datei:zeile`-Belege |
+| 2/6 Produkt | `esf-product-manager` | 14 min | 1 | `product.html`, 17 KB, 7 Kern-Aufgaben, 9 Journeys mit Priorität und Schrittzahl |
+| 3/6 Markt | `esf-market-analyst` | 4 min | 1 | `market.html`, 24 KB, 43 Zitate über 10 Quellen, 7 Hypothesen |
+| 4/6 E2E | `esf-qa-release` | 103 min | 2 | 3 neue Specs, alle fünf P1-Journeys grün, 7/7 Tests |
+| 5/6 Roadmap | `esf-chief-of-staff` | 11 min | 1 | `q1-entwurf.html`, 22 KB, 3 Releases |
+| 6/6 Gate | `esf-chief-of-staff` | 6 min | 2 | Vorlage in acht Punkten, dann Ausführung der Supervisor-Antwort |
+
+**160 Minuten Kartenzeit**, verteilt auf zweieinhalb Stunden Wanduhr. Der erste
+Lauf brauchte 142 Minuten über zehn Karten — vergleichbar, aber die Verteilung
+ist eine andere: Hier steckt fast zwei Drittel der Zeit in einer einzigen Karte.
+
+Drei Dinge, die über blosses Abarbeiten hinausgehen:
+
+- Der **Architekt hat `biome ci` selbst gefahren**, statt die Behauptung des
+  Kartentexts zu übernehmen: 1.190 Dateien in 414 ms, 1 error / 80 warnings,
+  nach Regel aufgeschlüsselt (64× `noUndeclaredEnvVars` = Tooling, 12
+  inhaltliche Stil-Findings). Und er belegte per `git show --name-only ccd72ee`,
+  dass keine der beanstandeten Dateien vom Ausgangs-Commit berührt wurde — also
+  Bestandsschuld, kein Regressionsproblem. Dieselbe Prüfung wie im ersten Lauf,
+  unabhängig noch einmal erbracht.
+- Der **Produktmanager hat die Journeys priorisiert**, ohne dass der Kartentext
+  danach fragte: J-00…J-04 als P1, J-05/J-06/J-08 als P2, J-07 als P3. Das
+  strukturierte die E2E-Karte und, eine Stufe später, meine Gate-Entscheidung.
+- Der **Chief of Staff schrieb wieder keine Zahlen hin, die er nicht hatte.**
+  Punkt 5 seiner Gate-Vorlage: „Schätzintervall gesamt NICHT bezifferbar,
+  Ledger leer, je Feature nur Referenzklasse mit Konfidenz < 0.3, bewusst keine
+  erfundenen Zahlen". Zwei Läufe, zwei Modelle, dieselbe unbequeme Antwort.
+
+## Die E2E-Karte riss ihr Zeitbudget um sechs Sekunden
+
+Lauf 4 endete `timed_out` nach **5406 s** gegen `limit_seconds: 5400`. Lauf 5
+fand die Vorarbeit vor und schloss ab.
+
+Das ist nicht dasselbe wie der Hänger aus Phase 1 (Lauf 17/18) und nicht
+dasselbe wie `max_turns` aus Phase 2. Hier war die Arbeit echt, der Fortschritt
+echt, und der Deckel griff im Moment des Fertigwerdens. Ein Deckel, der bei
+99,9 % zuschlägt, kostet einen ganzen zweiten Lauf — die 103 Minuten dieser
+Karte sind zu gut der Hälfte Wiederholung.
+
+Erträglich ist das nur, weil die Karte ihren eigenen Absturz überlebt: Lauf 5
+fand geschriebene Specs vor, verifizierte sie gegen die laufende Anwendung und
+committete. Dieselbe Eigenschaft, die schon im ersten Lauf trug.
+
+## Der QA-Agent hat eine Wiederholschleife eingebaut
+
+`arbeitsbereichAnlegen` in `tests/e2e/support/journey.ts` ist jetzt eine
+Schleife über fünf Versuche, begründet mit einem Rennen zwischen Submit und
+React Hook Form: das Input zeigt den Namen, RHF ist noch leer, der Submit fällt
+auf `required`. Die Begründung ist sauber und das Argument stimmt — eine
+clientseitig abgewiesene Eingabe legt nichts an, ein zweiter Versuch ist sicher.
+
+Trotzdem gehört es hierher: Das ist Toleranz gegen Flakiness, und sie kann eine
+echte Regression im Onboarding-Formular verdecken. Der Agent hat den Test
+robuster gemacht und dabei seine Empfindlichkeit gesenkt, ohne dass jemand
+danach gefragt hat. Kein Verstoss — aber die Art Änderung, die man in einem
+Regressionsnetz sehen will, statt sie zu finden.
+
+## Das Roadmap-Gate: `modify`, mit einer anderen Begründung als beim ersten Mal
+
+Die Roadmap war belastbar: drei Releases, jede Behauptung auf eine Quelldatei
+zurückgeführt, ein begründeter „Was wir NICHT machen"-Abschnitt, eine
+Subtraktions-Sichtung, die die längste Journey (J-01, 7 Schritte) ausdrücklich
+**nicht** zur Vereinfachung vorschlug, weil sie einmalig durchlaufen wird.
+Empfohlen war `approve`.
+
+Die Antwort war `modify`: **R1 schrumpft von fünf auf drei Features, der Import
+wandert an den Anfang von R2.** Vier Gründe, und nur der erste ist derselbe wie
+im ersten Lauf:
+
+1. Das Ledger ist leer, damit ist `budget_eskalation_bei: 1.5` wirkungslos —
+   150 % einer P90, die es nicht gibt, löst nie aus. Ein bis ans Kadenz-Limit
+   gefülltes erstes Release liefert die ersten (Schätzung, Ist)-Paare zu spät.
+2. `F-R1-1` (Import CSV+WeKan) ist das grösste und riskanteste Stück von R1 —
+   backend-M, Import-Infrastruktur, keine E2E-Deckung. Genau dieses Stück
+   braucht ein kalibriertes Intervall; es soll darauf **warten**, statt es zu
+   verbrauchen.
+3. Die drei verbleibenden R1-Features liegen unter einem grünen Regressionsnetz:
+   J-02/J-03/J-04 sind seit Phase 1 P1 und grün.
+4. Die Begründung des Entwurfs, 2FA erst „nach dem grünen Login-Netz aus R1" zu
+   legen, war **bereits erfüllt** — J-00 und J-01 sind P1 und grün. Der Beleg
+   verschob sich, die Reihenfolge blieb.
+
+Dazu eine Zählkorrektur: Der Entwurf behauptete fünfzehn Features, listete aber
+vierzehn (R3 führte nur vier). Nach Abzug von `F-R1-5` (Biome-Hygiene ist eine
+Wartungskarte, kein Feature) sind es dreizehn — 3 + 5 + 5. Kein Feature fällt
+aus dem Quartal; R3 ist auf dem Papier voll ausgelastet und wird am nächsten
+Roadmap-Gate gegen **gemessene** Intervalle geschnitten, nicht heute gegen
+geschätzte.
+
+Auflagen: Karte „Kalibrierung S1" nach dem ersten fertigen Feature, Sprint 2
+erst danach; `F-R2-2` und `F-R2-3` erst nach dem Splitting auf ≤ 8 Karten.
+Horizont bleibt `release`.
+
+Der Chief of Staff arbeitete alles ein, schrieb `q1-freigegeben.html` mit einer
+Tabelle „Vom Entwurf übernommen / widerlegt", zitierte die Antwort im Wortlaut
+statt zu paraphrasieren und liess den Entwurf daneben stehen. Das Muster aus
+Kapitel 7 hielt zum zweiten Mal.
+
+Eine Ungenauigkeit blieb stehen: Das Dokument nennt die Antwort durchgehend
+„CEO-Entscheidung". Seit Phase 3 ist der Mensch **Supervisor**, `esf-ceo` ist
+ein Profil. Nicht nachgebessert — ein zweiter Block auf derselben `kind`
+verbraucht einen von zwei und schickt die Karte danach in die Triage. Der Preis
+einer Korrektur wäre höher gewesen als der Fehler.
+
+## Der teuerste Befund des Laufs: der Phase-1-Prüfer bestand grün und log dabei
+
+`check-onboarding.sh` meldete `✓ Phase 1 abgeschlossen` — und zwei seiner
+Zeilen waren falsch.
+
+**„9 von 9 Kern-Journeys haben eine existierende Spec-Datei."** Es gab fünf
+Specs. Der Katalog führte J-05…J-08 ausdrücklich als „offen" mit „—". Die
+Zuordnung lief über `grep -B4 -A8 <journey> journeys.html` und nahm den ersten
+Dateinamen im Fenster — in einer Tabelle die Spec der **Nachbarzeile**. Es war
+keine einzige Zuordnung richtig; auch J-04 bekam die Spec von J-00
+zugeschrieben. Zwanzig Zeilen über dem Fehler steht der Kommentar, der ihn
+benennt: „Ein Katalog, der auf nichts zeigt, ist die häufigste Form von
+Scheinvollständigkeit."
+
+**„P1-Journeys mit Spec: 5 von 6."** Es gibt fünf P1. Die letzte `<tr>` der
+Tabelle lief bis zum Dateiende weiter und verschluckte den Fliesstext danach;
+J-08 (P2) erbte das „P1" aus dem Satz „Die Reihenfolge P1–P3 bildet den
+Kundenwert ab". Diese zweite Fehlerklasse steckte in **meinem eigenen Fix** der
+ersten — dasselbe Muster eine Ebene tiefer, und sie fiel nur auf, weil der Fix
+die Zuordnung Zeile für Zeile ausgibt und die Zahl damit nachrechenbar wurde.
+
+Das ist die Lehre, nicht „besser greppen": Eine Zahl, die niemand nachrechnen
+kann, ist kein Beleg. Der Bericht nennt jetzt je Journey ihre Spec-Datei oder
+`(keine Spec)`. Die Zahl 5 von 9 kann man nun bestreiten; die Zahl 9 von 9
+konnte man nur glauben.
+
+**Dazu ein dritter, kleinerer:** Das Roadmap-Gate meldete `beantwortet und
+ausgeführt: "?"`. Der Grund eines `unblock` steht im **Kommentar**, nicht in der
+Payload des `unblocked`-Ereignisses — die ist leer. `monitor.sh`,
+`check-phase3.sh` und `check-release.sh` wissen das seit Phase 1 bzw. 2 und
+dokumentieren es ausdrücklich; dieser Prüfer war der letzte Nachzügler. Er
+bestand, ohne sagen zu können, **was** entschieden wurde. Jetzt liest er den
+Kommentar und meldet zusätzlich zwei harte Fehler: kein `unblocked`-Ereignis
+(eine Gate-Karte, die ohne Antwort fertig wurde) und ein Unblock ohne gültiges
+Verb (von einem Selbst-Freischalten nicht zu unterscheiden).
+
+Alle drei in Commit `608cc8f`. Der Nachweis danach: 5 von 9 Journeys mit Spec,
+5 von 5 P1 abgedeckt, Gate-Antwort im Klartext — alles von Hand gegengelesen.
+
+## Bilanz
+
+Der Lauf lieferte dieselben Artefakte wie der erste und **vier neue Befunde**,
+von denen drei in ESF-Code sassen und einer in der Umgebung:
+
+| Befund | Wo | Wann gefunden |
+|--------|-----|---------------|
+| `agent.max_turns` geerbt statt gesetzt | `setup.sh` | vor dem ersten Token |
+| Journey→Spec über ein Zeilenfenster | `check-onboarding.sh` | im grünen Nachweis |
+| Letzte `<tr>` unbegrenzt | mein Fix davon | im Fix des vorigen |
+| Gate-Antwort aus leerer Payload gelesen | `check-onboarding.sh` | im grünen Nachweis |
+
+Zwei davon standen in einem Prüfer, der **grün** meldete. Das ist der
+unangenehme Teil: Ein Rundlauf, der nur bestätigt, was beim ersten Mal
+funktionierte, hätte sie nicht gefunden. Gefunden wurden sie, weil zwei Zahlen
+im grünen Bericht nicht zu dem passten, was zehn Minuten vorher von Hand
+nachgelesen worden war.
+
+Der erste Lauf endete mit dem Satz, der erste, der nachsah, sei ein Agent
+gewesen. Diesmal war es umgekehrt — aber die Regel dahinter ist dieselbe: Wer
+einer Zahl glaubt, ohne sie nachrechnen zu können, hat nichts verifiziert.

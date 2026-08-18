@@ -1,0 +1,6 @@
+done  esf-architect        t_d44eafe8  Onboarding 1/6 — Codebasis-Analyse
+done  esf-product-manager  t_253f631c  Onboarding 2/6 — Produkt- und Nutzeranalyse
+done  esf-market-analyst   t_6142d9c1  Onboarding 3/6 — Marktbild
+done  esf-qa-release       t_74d35a8f  Onboarding 4/6 — E2E-Suite über die Kern-Journeys
+done  esf-chief-of-staff   t_583218e7  Onboarding 5/6 — Erste Roadmap mit Schätzintervallen
+done  esf-chief-of-staff   t_95b30a23  GATE Roadmap — Q1-Freigabe
