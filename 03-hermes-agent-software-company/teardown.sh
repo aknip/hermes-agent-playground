@@ -151,7 +151,13 @@ if [ -d "$HERE/workspace" ]; then
 else
     echo "  gibt es nicht — übersprungen"
 fi
-rm -f "$HERE/task-ids.env"
+# Die Karten-ID-Dateien, ALLE. Bis zum 18.08.2026 stand hier nur
+# `task-ids.env` im Singular — nach dem Rückbau blieben fünf Dateien liegen
+# (task-ids-probe/-onboarding/-s1/-s2/-r1.env), gefüllt mit IDs von Karten, die
+# es nicht mehr gibt. Kein Skript liest sie, aber ein Mensch tut es: die
+# Abschlusshinweise laden zum `source task-ids-s1.env` ein. Eine Datei, die auf
+# Karten eines gelöschten Boards zeigt, ist schlimmer als keine.
+rm -f "$HERE"/task-ids*.env
 
 # ---------------------------------------------------------------------------
 say "Produkt-Repo: ESF-Hooks zurückbauen"
