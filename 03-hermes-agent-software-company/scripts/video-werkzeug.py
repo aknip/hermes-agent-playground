@@ -14,6 +14,7 @@ Unterbefehle, jeder deterministisch und einzeln testbar:
                                   ohne dass eine Sprach-API Zeitmarken liefern
                                   muss
     komposition <template> <ziel> <titel.txt> <saetze.txt> <audio> <sekunden>
+    pruefe      <kompositions-dir> <auftrag.json>
                                   die Hyperframes-Vorlage instanziieren:
                                   kopiert das Template und schreibt daten.js
 
@@ -55,6 +56,11 @@ def saetze(text):
     # dass ein falsch geteilter Satz nur eine Cue-Grenze verschiebt.
     teile = re.split(r"(?<=[.!?])\s+", text)
     return [t.strip() for t in teile if t.strip()]
+
+
+# Die EINZIGE erlaubte Fremd-URL in einer Komposition: das gepinnte GSAP-Tag aus
+# dem Hyperframes-Geruest. Alles andere macht den Render vom Netz abhaengig.
+ERLAUBTE_URLS = {"https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"}
 
 
 def cmd_jobs(vault):
@@ -194,6 +200,80 @@ def cmd_komposition(template, ziel, titel_datei, saetze_datei, audio, dauer):
     return 0
 
 
+def cmd_pruefe(komp_dir, auftrag_datei):
+    """Das maschinelle Tor vor einer MODELL-geschriebenen Komposition (AGENTS.md 8.1).
+
+    `hyperframes lint` prueft den Framework-Vertrag. Diese Funktion prueft, was
+    lint NICHT wissen kann: dass die Komposition zu GENAU diesem Auftrag gehoert
+    — dieselbe gemessene Dauer, dieselbe Audiodatei — und dass sie ohne Netz
+    reproduzierbar bleibt. Zusammen entscheiden beide, ob gerendert wird.
+
+    Was hier ausdruecklich NICHT geprueft wird: ob eine gezeigte Zahl stimmt.
+    Das ist Inhalt, kein Struktur-Merkmal; dafuer haftet die Rolle.
+    """
+    befunde = []
+    index = os.path.join(komp_dir, "index.html")
+    if not os.path.isfile(index):
+        print("FEHLER: kein index.html in " + komp_dir, file=sys.stderr)
+        return 1
+    auftrag = json.load(open(auftrag_datei, encoding="utf-8"))
+    h = open(index, encoding="utf-8").read()
+    # Kommentare raus: die Vorlage NENNT die verbotenen Aufrufe, um sie zu erklaeren.
+    code = re.sub(r"<!--.*?-->", "", h, flags=re.S)
+
+    offen = sorted(set(re.findall(r"__[A-Z][A-Z_]*__", code)) - {"__timelines"})
+    if offen:
+        befunde.append("unersetzte Platzhalter: " + ", ".join(offen))
+
+    root = re.search(r"<[a-zA-Z]+[^>]*\bdata-composition-id\s*=\s*[\"']([^\"']+)[\"'][^>]*>", code)
+    if not root:
+        befunde.append("kein Element mit data-composition-id (Root fehlt)")
+        kid = None
+    else:
+        kid = root.group(1)
+        tag = root.group(0)
+        for attr in ("data-width", "data-height", "data-duration"):
+            if attr not in tag:
+                befunde.append("Root ohne " + attr)
+        m = re.search(r"data-duration\s*=\s*[\"']([0-9.]+)[\"']", tag)
+        if m:
+            ist, soll = float(m.group(1)), float(auftrag["dauer"])
+            if abs(ist - soll) > 0.05:
+                befunde.append(
+                    "data-duration {0} weicht von der GEMESSENEN Dauer {1} ab "
+                    "(Toleranz 0.05 s) — Bild und Ton laufen auseinander".format(ist, soll))
+        if kid and not re.search(r"__timelines\s*\[\s*[\"']" + re.escape(kid) + r"[\"']\s*\]", code):
+            befunde.append('Timeline nicht registriert: window.__timelines["%s"]' % kid)
+
+    audio = auftrag["audio"]
+    a = re.search(r"<audio\b[^>]*>", code)
+    if not a:
+        befunde.append("kein <audio>-Element")
+    elif "src" not in a.group(0):
+        befunde.append("<audio> ohne src-Attribut (per JavaScript gesetzt zaehlt nicht)")
+    elif audio not in a.group(0):
+        befunde.append("<audio src> zeigt nicht auf die Auftrags-Audiodatei " + audio)
+    if not os.path.isfile(os.path.join(komp_dir, audio)):
+        befunde.append("Audiodatei fehlt im Kompositionsverzeichnis: " + audio)
+
+    for muster, was in ((r"performance\.now", "performance.now()"),
+                        (r"requestAnimationFrame", "requestAnimationFrame")):
+        if re.search(muster, code):
+            befunde.append(was + " laeuft auf der Wanduhr — der Renderer springt zu Frames")
+
+    for url in set(re.findall(r"""(?:src|href)\s*=\s*["']?(https?://[^"'\s>]+)""", code)):
+        if url not in ERLAUBTE_URLS:
+            befunde.append("Fremd-URL nicht erlaubt (Lieferkette): " + url)
+
+    if befunde:
+        for b in befunde:
+            print("FEHLER  " + b, file=sys.stderr)
+        return 1
+    print("ok  {0}: Root, Dauer {1}s, Timeline, Audio, keine Wanduhr, keine Fremd-URLs".format(
+        os.path.basename(komp_dir.rstrip("/")), auftrag["dauer"]))
+    return 0
+
+
 def main():
     if len(sys.argv) < 2:
         print(__doc__, file=sys.stderr)
@@ -206,6 +286,8 @@ def main():
             return cmd_extrahiere(*args)
         if cmd == "vtt" and len(args) == 2:
             return cmd_vtt(*args)
+        if cmd == "pruefe" and len(args) == 2:
+            return cmd_pruefe(*args)
         if cmd == "komposition" and len(args) == 6:
             return cmd_komposition(*args)
     except OSError as e:

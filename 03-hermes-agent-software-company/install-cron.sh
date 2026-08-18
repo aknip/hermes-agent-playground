@@ -11,7 +11,12 @@
 #   monitor.sh       stündlich :00   stille Ausfälle + Abschluss-Erkennung
 #   eskalation.sh    stündlich :15   die Notfall-Leiter (Phase 3)
 #   ceo-tick.sh      stündlich :30   Entscheidungskarten + Executor (Phase 3)
+#   video-render.sh  stündlich :35   --auftraege: Ton messen, Designer beauftragen (8.1)
 #   video-render.sh  stündlich :45   Video-Zusammenfassungen + Gate-Videos (AGENTS.md 8)
+#
+# Die zehn Minuten zwischen :35 und :45 sind kein Zufall: Der Auftrag muss VOR
+# dem Renderlauf stehen, sonst rendert die ESF die generische Vorlage, bevor der
+# Designer die Karte auch nur gesehen hat.
 #   report-gates.sh  18:00 täglich   der Report, über den der Supervisor erfährt
 #   ledger-sync.sh   23:30 täglich   Wanduhrzeiten und Kosten ins Ledger
 #
@@ -98,6 +103,8 @@ ${MARKE}eskalation — die Notfall-Leiter: Code entscheidet, was ein Notfall ist
 15 * * * *  cd "$HERE" && ./scripts/eskalation.sh >> "$LOG" 2>&1
 ${MARKE}ceo-tick — Entscheidungskarten für esf-ceo, Validierung, Ausführung
 30 * * * *  cd "$HERE" && ./scripts/ceo-tick.sh >> "$LOG" 2>&1
+${MARKE}video-auftraege — Ton messen und den esf-video-designer beauftragen
+35 * * * *  cd "$HERE" && ./scripts/video-render.sh --auftraege >> "$LOG" 2>&1
 ${MARKE}video-render — Sprecher-Videos der Dokumente und offenen Gate-Vorlagen
 45 * * * *  cd "$HERE" && ./scripts/video-render.sh --gates >> "$LOG" 2>&1
 ${MARKE}report-gates — der Weg zum Supervisor

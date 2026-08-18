@@ -4,7 +4,9 @@
 # ===================================================
 #
 #   scripts/video-render.sh                Dokumente rendern, deren Video fehlt
+#   scripts/video-render.sh --auftraege   Ton messen + Designer-Karten anlegen
 #   scripts/video-render.sh --gates       dazu: Videos der offenen Gate-Vorlagen
+#   scripts/video-render.sh --ohne-lint   Stufe 1 ohne hyperframes lint (Notbetrieb)
 #   scripts/video-render.sh --dry-run     nur zeigen
 #   scripts/video-render.sh --selbsttest  offline: Extraktion, VTT, Komposition,
 #                                         und — wenn say+ffmpeg da sind — ein
@@ -41,12 +43,14 @@ VAULT="$ESF/workspace/company"
 TEMPLATE="$ESF/templates/hyperframes-zusammenfassung"
 WERKZEUG="$HERE/video-werkzeug.py"
 
-DRY=0; SELBSTTEST=0; GATES=0
+DRY=0; SELBSTTEST=0; GATES=0; LINT=1; AUFTRAEGE=0
 for arg in "$@"; do
     case "$arg" in
         --dry-run)    DRY=1 ;;
         --selbsttest) SELBSTTEST=1 ;;
         --gates)      GATES=1 ;;
+        --auftraege)  AUFTRAEGE=1 ;;
+        --ohne-lint)  LINT=0 ;;
         *) echo "Unbekannte Option '$arg'"; exit 2 ;;
     esac
 done
@@ -116,6 +120,59 @@ render_ffmpeg() { # job-dir ziel.mp4 audio dauer
         -c:v libx264 -pix_fmt yuv420p -c:a aac -shortest "$ziel"
 }
 
+komp_dir_von() { printf '%s.komposition' "${1%.html}"; }
+
+# Der Auftrag ist der Vertrag zwischen Code und Designer (AGENTS.md 8.1): Code
+# misst Ton und Dauer, der Designer gestaltet dagegen. Deshalb wird das Audio
+# EINMAL erzeugt und danach wiederverwendet — würde der Renderlauf neu vertonen,
+# wanderte die Dauer minimal und die Komposition des Designers wäre plötzlich
+# "falsch", ohne dass er etwas getan hat.
+schreibe_auftrag() { # komp-dir dokument titel dauer saetze.txt
+    python3 - "$1" "$2" "$3" "$4" "$5" "$VAULT" <<'PYJOB'
+import json, os, re, sys
+komp, dok, titel, dauer, saetze_datei, vault = sys.argv[1:7]
+dauer = float(dauer)
+zeilen = [z.strip() for z in open(saetze_datei, encoding="utf-8") if z.strip()]
+gew = [max(1, len(z.split())) for z in zeilen]
+ges = sum(gew) or 1
+starts, t = [], 0.0
+for g in gew:
+    starts.append(round(t, 3))
+    t += dauer * g / ges
+grenzen = starts + [round(dauer, 3)]
+cues = [{"text": z, "start": starts[i], "dauer": round(grenzen[i + 1] - starts[i], 3)}
+        for i, z in enumerate(zeilen)]
+typ = ""
+if dok:
+    try:
+        h = open(dok, encoding="utf-8").read()
+        m = re.search(r'<meta\s+name="esf-typ"\s+content="([^"]*)"', h)
+        typ = m.group(1) if m else ""
+    except OSError:
+        pass
+json.dump({"dokument": os.path.relpath(dok, vault) if dok else "",
+           "titel": titel, "typ": typ, "dauer": round(dauer, 3),
+           "audio": "audio.m4a", "cues": cues},
+          open(os.path.join(komp, "auftrag.json"), "w", encoding="utf-8"),
+          ensure_ascii=False, indent=2)
+PYJOB
+}
+
+# Stufe 1 der Leiter: die individuelle Komposition des esf-video-designer.
+# Gerendert wird sie nur, wenn BEIDE Tore grün sind — das Struktur- und
+# Auftragstor (video-werkzeug.py pruefe) und der Framework-Linter. Ein Modell
+# entscheidet hier über die Form, nie darüber, ob das Ergebnis brauchbar ist.
+komposition_taugt() { # komp-dir
+    python3 "$WERKZEUG" pruefe "$1" "$1/auftrag.json" || return 1
+    [ "$LINT" -eq 0 ] && return 0
+    if ( cd "$1" && HYPERFRAMES_SKIP_SKILLS=1 npx --yes --registry "$NPM_REGISTRY" \
+         hyperframes lint . ) >"$1/lint.log" 2>&1 </dev/null; then
+        return 0
+    fi
+    warn "hyperframes lint rot — siehe $(basename "$1")/lint.log"
+    return 1
+}
+
 rendere_job() { # dokument mp4 vtt titel-oder-leer skript-oder-leer
     local dok="$1" mp4="$2" vtt="$3" stimme
     stimme="$(cad stimme)"; stimme="${stimme:-$STIMME_DEFAULT}"
@@ -124,29 +181,50 @@ rendere_job() { # dokument mp4 vtt titel-oder-leer skript-oder-leer
     if [ -n "${4:-}" ]; then
         printf '%s\n' "$4" > "$job/titel.txt"
         printf '%s\n' "$5" > "$job/skript.txt"
-        python3 - "$job" <<'PY'
+        python3 - "$job" <<'PYJOB'
 import re, sys
 job = sys.argv[1]
 text = open(f"{job}/skript.txt", encoding="utf-8").read().strip()
 saetze = [t.strip() for t in re.split(r"(?<=[.!?])\s+", text) if t.strip()]
 open(f"{job}/saetze.txt", "w", encoding="utf-8").write("\n".join(saetze) + "\n")
-PY
+PYJOB
     else
         python3 "$WERKZEUG" extrahiere "$dok" "$job" || { rm -rf "$job"; return 1; }
     fi
 
-    local dauer
-    dauer="$(tts "$job/skript.txt" "$job/audio.m4a" "$stimme")" || { rm -rf "$job"; return 1; }
+    # Vorhandenen Auftrag WIEDERVERWENDEN statt neu zu vertonen (siehe oben).
+    local komp="" dauer=""
+    [ -n "$dok" ] && komp="$(komp_dir_von "$dok")"
+    if [ -n "$komp" ] && [ -f "$komp/auftrag.json" ] && [ -s "$komp/audio.m4a" ]; then
+        dauer="$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1]))["dauer"])' \
+                 "$komp/auftrag.json")"
+        cp "$komp/audio.m4a" "$job/audio.m4a"
+    else
+        dauer="$(tts "$job/skript.txt" "$job/audio.m4a" "$stimme")" || { rm -rf "$job"; return 1; }
+    fi
     python3 "$WERKZEUG" vtt "$job/saetze.txt" "$dauer" > "$vtt"
 
     local renderer="ffmpeg-rueckfall"
-    if command -v npx >/dev/null && [ -d "$TEMPLATE" ]; then
+    # Stufe 1 — individuell
+    if [ -n "$komp" ] && [ -f "$komp/index.html" ] && command -v npx >/dev/null; then
+        cp -f "$job/audio.m4a" "$komp/audio.m4a"
+        [ -f "$komp/auftrag.json" ] || schreibe_auftrag "$komp" "$dok" \
+            "$(cat "$job/titel.txt")" "$dauer" "$job/saetze.txt"
+        if komposition_taugt "$komp" && render_hyperframes "$komp" "$mp4" && [ -s "$mp4" ]; then
+            renderer="komposition(esf-video-designer)"
+        else
+            warn "Komposition abgewiesen — es gilt die generische Vorlage"
+        fi
+    fi
+    # Stufe 2 — generisch
+    if [ "$renderer" = "ffmpeg-rueckfall" ] && command -v npx >/dev/null && [ -d "$TEMPLATE" ]; then
         python3 "$WERKZEUG" komposition "$TEMPLATE" "$job/comp" \
             "$job/titel.txt" "$job/saetze.txt" "$job/audio.m4a" "$dauer"
         if render_hyperframes "$job/comp" "$mp4" && [ -s "$mp4" ]; then
-            renderer="hyperframes"
+            renderer="vorlage(generisch)"
         fi
     fi
+    # Stufe 3 — trägt ohne Chrome und ohne Netz
     if [ "$renderer" = "ffmpeg-rueckfall" ]; then
         render_ffmpeg "$job" "$mp4" "$job/audio.m4a" "$dauer" || { rm -rf "$job"; return 1; }
     fi
@@ -221,6 +299,37 @@ sys.exit(1 if re.search(r'performance\.now|requestAnimationFrame',
         nein "Komposition fehlgeschlagen"; fehler=1
     fi
 
+    # (c2) Das Tor vor der MODELL-geschriebenen Komposition (AGENTS.md 8.1).
+    #      Ein Tor, das nur den guten Fall kennt, ist keins — deshalb wird hier
+    #      der gute Fall UND ein verfälschter geprüft. Die Dauer ist der Fall,
+    #      der wirklich weh tut: eine Komposition mit falschem data-duration
+    #      rendert anstandslos, nur läuft dann das Bild aus dem Ton.
+    python3 - "$tmp/comp" 20 <<'PYST'
+import json, sys
+json.dump({"dokument": "", "titel": "Probe", "typ": "report",
+           "dauer": float(sys.argv[2]), "audio": "audio.vtt", "cues": []},
+          open(sys.argv[1] + "/auftrag.json", "w", encoding="utf-8"))
+PYST
+    if python3 "$WERKZEUG" pruefe "$tmp/comp" "$tmp/comp/auftrag.json" >/dev/null 2>&1; then
+        gut=1
+    else
+        gut=0
+    fi
+    sed 's/data-duration="20\.0"/data-duration="41.0"/' "$tmp/comp/index.html" > "$tmp/comp/falsch.html"
+    mv "$tmp/comp/index.html" "$tmp/comp/echt.html"
+    mv "$tmp/comp/falsch.html" "$tmp/comp/index.html"
+    if python3 "$WERKZEUG" pruefe "$tmp/comp" "$tmp/comp/auftrag.json" >/dev/null 2>&1; then
+        schlecht=1
+    else
+        schlecht=0
+    fi
+    mv -f "$tmp/comp/echt.html" "$tmp/comp/index.html"
+    if [ "$gut" -eq 1 ] && [ "$schlecht" -eq 0 ]; then
+        ok "Kompositions-Tor: gültige Komposition passiert, verfälschte Dauer wird abgewiesen"
+    else
+        nein "Kompositions-Tor unzuverlässig (gut=$gut, verfälscht-durchgelassen=$schlecht)"; fehler=1
+    fi
+
     # (d) Der Rückfallpfad, ECHT — nur wenn die Werkzeuge da sind
     if command -v ffmpeg >/dev/null && command -v ffprobe >/dev/null && [ -x /usr/bin/say ]; then
         if rendere_job "$tmp/probe.html" "$tmp/probe.mp4" "$tmp/probe2.vtt" \
@@ -261,6 +370,99 @@ for w in ffmpeg ffprobe python3; do
     command -v "$w" >/dev/null || { echo "FEHLER: '$w' fehlt — der Video-Kanal braucht ffmpeg."; exit 1; }
 done
 [ -x /usr/bin/say ] || { echo "FEHLER: /usr/bin/say fehlt — das Sprecher-Audio kommt (bis eine bessere Stimme gemessen ist) von macOS `say`."; exit 1; }
+
+# ---------------------------------------------------------------------------
+# Aufträge: Ton und Auftrag vorbereiten, dann je Dokument eine Designer-Karte
+# ---------------------------------------------------------------------------
+# Die Reihenfolge ist der ganze Trick. Erst messen, dann gestalten lassen:
+# Das Audio entsteht HIER, seine Dauer wird hier gemessen und in auftrag.json
+# festgeschrieben. Der esf-video-designer gestaltet danach gegen eine feste
+# Zeitachse — er kann sie nicht mehr verschieben, nur bespielen.
+if [ "$AUFTRAEGE" -eq 1 ]; then
+    command -v hermes >/dev/null || { echo "FEHLER: 'hermes' fehlt"; exit 1; }
+    command -v jq >/dev/null || { echo "FEHLER: 'jq' fehlt"; exit 1; }
+    say_ "Video-Aufträge$( [ "$DRY" -eq 1 ] && printf ' (dry-run)')"
+    k() { hermes kanban --board "$BOARD" "$@"; }
+    stimme="$(cad stimme)"; stimme="${stimme:-$STIMME_DEFAULT}"
+    offen="$(k list --json 2>/dev/null | jq -r \
+        '.[] | select(.assignee=="esf-video-designer")
+             | select(.status!="done" and .status!="cancelled") | .title' || true)"
+    anzahl=0
+    while IFS=$'\t' read -r dok mp4 vtt; do
+        [ -n "$dok" ] || continue
+        komp="$(komp_dir_von "$dok")"
+        rel="${dok#$VAULT/}"
+        titel_karte="Video-Komposition — $rel"
+        # Schon gestaltet und tragfähig? Dann kein neuer Auftrag.
+        if [ -f "$komp/index.html" ] && python3 "$WERKZEUG" pruefe "$komp" "$komp/auftrag.json" >/dev/null 2>&1; then
+            echo "  $rel — Komposition liegt und trägt"
+            continue
+        fi
+        if printf '%s\n' "$offen" | grep -qxF "$titel_karte"; then
+            echo "  $rel — Karte ist offen"
+            continue
+        fi
+        if [ "$DRY" -eq 1 ]; then
+            ok "würde beauftragen: ${komp#$VAULT/}"
+            anzahl=$((anzahl + 1)); continue
+        fi
+        mkdir -p "$komp"
+        job="$(mktemp -d "${TMPDIR:-/tmp}/esf-auftrag.XXXXXX")"
+        if ! python3 "$WERKZEUG" extrahiere "$dok" "$job"; then
+            nein "$rel — kein Sprechertext, kein Auftrag"; rm -rf "$job"; continue
+        fi
+        if ! dauer="$(tts "$job/skript.txt" "$komp/audio.m4a" "$stimme")"; then
+            nein "$rel — Vertonung fehlgeschlagen"; rm -rf "$job"; continue
+        fi
+        schreibe_auftrag "$komp" "$dok" "$(cat "$job/titel.txt")" "$dauer" "$job/saetze.txt"
+        python3 "$WERKZEUG" vtt "$job/saetze.txt" "$dauer" > "$vtt"
+        rm -rf "$job"
+        # Die Referenz mitgeben: ein bekannt-guter Aufbau, den er übertreffen soll.
+        cp -f "$TEMPLATE/index.html" "$komp/referenz-generisch.html" 2>/dev/null || true
+        cp -f "$TEMPLATE/hyperframes.json" "$komp/hyperframes.json" 2>/dev/null || true
+        k create "$titel_karte" \
+            --assignee esf-video-designer \
+            --workspace "dir:$komp" \
+            --idempotency-key "video-komposition-$(printf '%s' "$rel" | tr -c 'a-zA-Z0-9' '-')" \
+            --max-retries 2 --max-runtime 30m \
+            --body "Gestalte die Video-Zusammenfassung von $rel.
+
+DEIN ARBEITSVERZEICHNIS ist dieses Kompositionsverzeichnis. Dort liegen:
+
+    auftrag.json              die Bindung: Titel, Typ, GEMESSENE Dauer, Cues
+    audio.m4a                 die fertige Vertonung — nicht neu kodieren
+    referenz-generisch.html   ein bekannt-guter Aufbau (die generische Vorlage)
+    hyperframes.json          die Projektdatei
+
+DEIN ERGEBNIS ist index.html in diesem Verzeichnis.
+
+DAS DOKUMENT, das du vertonst, liegt unter
+    $dok
+Lies es. Die Form folgt seinem Inhalt: Scores als Rangbalken, eine Modulkarte
+als Struktur, ein Schätzintervall als Intervall. Jede Zahl, die du zeigst, steht
+schon im Dokument — du visualisierst, du rechnest nicht.
+
+GEBUNDEN bist du an auftrag.json: 'dauer' IST dein root data-duration, auf die
+Millisekunde. Die Cues sind die Zeitachse der Sprache; gestalte auf ihren Takt.
+
+FERTIG bist du, wenn beide Tore grün sind — führe sie selbst aus:
+    npx --registry https://registry.npmjs.org hyperframes lint .
+    python3 $WERKZEUG pruefe . auftrag.json
+
+Der Skill esf-video-komposition nennt die sieben Prüfungen und zwei gemessene
+Fallen (keine Opacity-Tweens auf Clips; Clip-Grenzen aus EINER Rundungsreihe).
+Rufe deine hyperframes-Skills auf, BEVOR du schreibst.
+
+Wird die Komposition abgewiesen, rendert die ESF die generische Vorlage — dein
+Auftrag ist dann nicht erfüllt, aber der Kanal bleibt heil.
+
+metadata: das lint-Ergebnis, deine Gestaltungsentscheidung und was du aus dem
+Dokument abgeleitet hast." >/dev/null && ok "beauftragt: $rel"
+        anzahl=$((anzahl + 1))
+    done < <(python3 "$WERKZEUG" jobs "$VAULT")
+    [ "$anzahl" -eq 0 ] && echo "  keine offenen Kompositionen"
+    exit 0
+fi
 
 say_ "Video-Zusammenfassungen$( [ "$DRY" -eq 1 ] && printf ' (dry-run)')"
 anzahl=0

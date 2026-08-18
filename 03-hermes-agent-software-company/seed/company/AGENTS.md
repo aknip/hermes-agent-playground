@@ -220,3 +220,50 @@ Wortzahl je Satz — Bild, Ton und Untertitel teilen eine Zeitquelle.
 Gate-Vorlagen brauchen keinen eigenen Sprechertext: Der Blockgrund **ist** die
 Vorlage, `video-render.sh --gates` liest ihn vom Board und legt das Video
 unter `reports/gate-videos/` ab.
+
+## 8.1 Die individuelle Komposition
+
+Wie ein Video **aussieht**, entscheidet nicht diese Datei und nicht eine feste
+Vorlage, sondern `esf-video-designer` — je Dokument neu, aus dessen Inhalt. Ein
+Marktbericht mit Scores gehört als Rangbalken ins Bild, eine Modulkarte als
+Struktur, ein Schätzintervall als Intervall. Was ein Video zeigt, muss im
+Dokument stehen: die Rolle **visualisiert, sie rechnet nicht**.
+
+Die Arbeitsteilung bleibt dieselbe wie überall in der ESF — nur eine Ebene
+höher. Nicht mehr „das Modell textet, Code rendert", sondern:
+
+> **Das Modell textet, ein Modell gestaltet, Code misst und entscheidet.**
+
+Neben dem Dokument liegt dafür ein Verzeichnis `<basisname>.komposition/`:
+
+    auftrag.json    von Code geschrieben: Titel, Typ, GEMESSENE Dauer, Cues
+    audio.m4a       die Vertonung, EINMAL erzeugt
+    index.html      das Ergebnis des Designers
+    lint.log        das Urteil des Framework-Linters
+
+**Die Reihenfolge ist der Determinismus.** `video-render.sh --auftraege`
+vertont zuerst und misst die Dauer, dann erst wird gestaltet. Der Designer
+bekommt eine feste Zeitachse, die er bespielt, aber nicht verschieben kann:
+`auftrag.json`s `dauer` **ist** sein `data-duration`, auf 50 ms genau. Beim
+Rendern wird dasselbe Audio wiederverwendet, nicht neu erzeugt — sonst wanderte
+die Dauer und seine Komposition wäre plötzlich falsch, ohne dass er etwas getan
+hat.
+
+**Zwei Tore, beide maschinell**, und beide müssen grün sein, bevor gerendert
+wird:
+
+1. `scripts/video-werkzeug.py pruefe` — gehört die Komposition zu *diesem*
+   Auftrag? Root-Attribute, Dauer-Gleichheit, Timeline-Registrierung,
+   `<audio src>` auf die Auftragsdatei, keine Wanduhr-Aufrufe, keine Fremd-URLs
+   außer dem gepinnten GSAP-Tag.
+2. `hyperframes lint` — hält sie den Framework-Vertrag? Null Fehler.
+
+**Was die Tore nicht können:** prüfen, ob eine gezeigte Zahl stimmt. Das ist
+Inhalt, nicht Struktur; dafür haftet die Rolle, und der Beleg ist das Dokument.
+
+**Die Leiter fällt nach unten, nie aus.** Wird die Komposition abgewiesen,
+rendert die ESF die generische Vorlage; fehlt Chrome oder Netz, die
+ffmpeg-Titelkarte. Ein abgewiesener Entwurf kostet Gestaltung, nie das Video —
+und `video-render.sh` nennt in seiner Ausgabe je Datei, welche Stufe gegriffen
+hat. Eine still auf Stufe 2 gerutschte Organisation wäre schlimmer als eine
+laute.

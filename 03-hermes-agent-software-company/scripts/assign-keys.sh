@@ -99,13 +99,20 @@ done
 # fehlt er, läuft die Führungsrolle auf dem Root-Key, und genau das wird
 # gelb gesagt — die Kosten der Führung wären dann nicht zurechenbar, was
 # Phase 2 als blinden Fleck benannt hat.
+# esf-video-designer steht dahinter ANGEHÄNGT, nicht eingefügt: Würde er vor
+# esf-ceo stehen, verschöbe sich dessen Key — und mit ihm die Vergleichbarkeit
+# aller Verbrauchszahlen ab Phase 2. Anhängen lässt die zwölf bestehenden
+# Zuordnungen unberührt; nachprüfbar an den Fingerabdrücken in
+# key-zuordnung.txt, die sich dadurch nicht ändern dürfen.
 PROFILE_NAMES=(
     esf-chief-of-staff esf-market-scout esf-market-analyst esf-product-manager
     esf-architect esf-estimator esf-dev-a esf-dev-b esf-reviewer
-    esf-qa-release esf-controller esf-ceo
+    esf-qa-release esf-controller esf-ceo esf-video-designer
 )
-# Profile, die ohne eigenen Key laufen DÜRFEN (gelb statt rot):
-OPTIONAL_OHNE_KEY="esf-ceo"
+# Profile, die ohne eigenen Key laufen DÜRFEN (gelb statt rot). Beide stehen am
+# ENDE der Reihenfolge — deshalb darf die Datei auch ein oder zwei Keys weniger
+# tragen, ohne dass sich eine Zuordnung verschiebt.
+OPTIONAL_OHNE_KEY="esf-ceo esf-video-designer"
 
 DATEI="${ESF_OPENROUTER_KEYFILE:-$STANDARD_DATEI}"
 AKTION="zuordnen"
@@ -245,14 +252,15 @@ while IFS= read -r zeile || [ -n "$zeile" ]; do
     esac
 done < "$DATEI"
 
-# Erlaubt sind GENAU so viele Keys wie Profile — oder einer weniger: dann
-# bleibt das letzte Profil (esf-ceo) ohne eigenen Key. Jede andere Zahl ist
-# ein Fehler, denn die Zuordnung geht nach Reihenfolge und ein Versatz würde
-# still alle Rollen verschieben.
-if [ "${#keys[@]}" -ne "${#PROFILE_NAMES[@]}" ] \
-   && [ "${#keys[@]}" -ne "$(( ${#PROFILE_NAMES[@]} - 1 ))" ]; then
-    printf '\n\033[31mFEHLER:\033[0m %s Key(s) in der Datei, aber %s Profile (%s ohne CEO).\n' \
-        "${#keys[@]}" "${#PROFILE_NAMES[@]}" "$(( ${#PROFILE_NAMES[@]} - 1 ))" >&2
+# Erlaubt sind GENAU so viele Keys wie Profile — oder bis zu so viele weniger,
+# wie am Ende der Reihenfolge optionale Profile stehen (esf-ceo,
+# esf-video-designer). Jede andere Zahl ist ein Fehler, denn die Zuordnung geht
+# nach Reihenfolge und ein Versatz würde still alle Rollen verschieben.
+optional_anzahl=$(printf '%s\n' $OPTIONAL_OHNE_KEY | grep -c .)
+mindest=$(( ${#PROFILE_NAMES[@]} - optional_anzahl ))
+if [ "${#keys[@]}" -gt "${#PROFILE_NAMES[@]}" ] || [ "${#keys[@]}" -lt "$mindest" ]; then
+    printf '\n\033[31mFEHLER:\033[0m %s Key(s) in der Datei, aber %s Profile (mindestens %s, die %s letzten sind optional).\n' \
+        "${#keys[@]}" "${#PROFILE_NAMES[@]}" "$mindest" "$optional_anzahl" >&2
     printf 'Die Zuordnung geht nach Reihenfolge und muss deshalb aufgehen.\n' >&2
     exit 1
 fi

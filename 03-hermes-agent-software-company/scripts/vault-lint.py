@@ -238,6 +238,15 @@ def pruefe_vault(wurzel, b):
             if re.match(r"^reports[/\\]e2e-", rel):
                 continue
 
+            # <basisname>.komposition/ ist das ARBEITSVERZEICHNIS des Video-Kanals
+            # (AGENTS.md 8.1): index.html ist eine Hyperframes-Szene, kein
+            # Vault-Dokument — sie traegt keinen Dokumentkopf und soll keinen
+            # tragen. Geprueft wird sie von `video-werkzeug.py pruefe` und
+            # `hyperframes lint`, nicht von hier. Ohne diese Ausnahme melden die
+            # drei Pflicht-Metas als ERROR und blockieren den Vault.
+            if re.search(r"(^|[/\\])[^/\\]+\.komposition([/\\]|$)", rel):
+                continue
+
             # AGENTS.md 2.1 — Maschinenprotokolle unter reports/ (Riegel-Läufe,
             # Testausgaben) bleiben Rohtext. Ein Rohbeleg, den jemand fürs
             # Format angefasst hat, ist keiner mehr.

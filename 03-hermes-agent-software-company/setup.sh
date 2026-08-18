@@ -29,7 +29,7 @@ MARKER=".esf"
 PROFILE_NAMES=(
     esf-chief-of-staff esf-market-scout esf-market-analyst esf-product-manager
     esf-architect esf-estimator esf-dev-a esf-dev-b esf-reviewer
-    esf-qa-release esf-controller esf-ceo
+    esf-qa-release esf-controller esf-ceo esf-video-designer
 )
 
 # --- Modell-Tiers ----------------------------------------------------------
@@ -46,10 +46,16 @@ MODELL_GUENSTIG="${ESF_MODELL_GUENSTIG:-deepseek/deepseek-v4-flash-0731}"
 # Kostenrechnung. Ab Phase 3 sitzt er drin — und wer ihm ein stärkeres Modell
 # geben will, setzt ESF_MODELL_CEO, ohne die drei Arbeits-Tiers anzufassen.
 MODELL_CEO="${ESF_MODELL_CEO:-$MODELL_HOCH}"
+# Der Video-Designer bekommt ebenfalls ein eigenes Tier (Default: hoch). Er ist
+# die einzige Rolle, die FREMDEN Framework-Code schreibt, den ein Linter
+# unmittelbar annimmt oder abweist — teurer als Prosa, aber auch das einzige
+# Gewerk, bei dem ein schwaches Modell sofort auffällt (lint rot, kein Render).
+MODELL_VIDEO="${ESF_MODELL_VIDEO:-$MODELL_HOCH}"
 
 tier_von() {
     case "$1" in
         esf-ceo)                                         echo "$MODELL_CEO" ;;
+        esf-video-designer)                              echo "$MODELL_VIDEO" ;;
         esf-market-scout)                                echo "$MODELL_GUENSTIG" ;;
         esf-estimator|esf-qa-release|esf-controller)     echo "$MODELL_MITTEL" ;;
         *)                                               echo "$MODELL_HOCH" ;;
@@ -141,6 +147,7 @@ done
 }
 printf '  %-18s = %s / %s / %s\n' "Tiers (h/m/g)" "$MODELL_HOCH" "$MODELL_MITTEL" "$MODELL_GUENSTIG"
 printf '  %-18s = %s\n' "Tier CEO" "$MODELL_CEO"
+printf '  %-18s = %s\n' "Tier Video" "$MODELL_VIDEO"
 
 # ---------------------------------------------------------------------------
 say "4/7  Profile"

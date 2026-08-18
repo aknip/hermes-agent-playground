@@ -26,7 +26,7 @@ MARKER=".esf"
 PROFILE_NAMES=(
     esf-chief-of-staff esf-market-scout esf-market-analyst esf-product-manager
     esf-architect esf-estimator esf-dev-a esf-dev-b esf-reviewer
-    esf-qa-release esf-controller esf-ceo
+    esf-qa-release esf-controller esf-ceo esf-video-designer
 )
 
 KEEP_PROFILES=0; KEEP_BOARD=0; JA=0

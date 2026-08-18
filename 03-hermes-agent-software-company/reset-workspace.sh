@@ -58,6 +58,14 @@ reports/e2e-*/
 *.mp4
 *.webm
 *.m4a
+# Arbeitsverzeichnis des Video-Kanals (AGENTS.md 8.1): index.html IST Quelle —
+# die Gestaltungsentscheidung des esf-video-designer — und wird committet.
+# Maschinenprotokolle und die mitgegebene Referenzkopie nicht.
+# ** ist Pflicht: Ein Muster MIT Schraegstrich ist an die Wurzel gebunden,
+# "*.komposition/lint.log" wuerde analysis/… nicht erfassen (gemessen).
+**/*.komposition/lint.log
+**/*.komposition/render.log
+**/*.komposition/referenz-generisch.html
 EOF
 
 echo "  workspace/company/     — der Firmen-Vault"

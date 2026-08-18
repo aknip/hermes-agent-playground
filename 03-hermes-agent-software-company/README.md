@@ -45,7 +45,7 @@ entscheidet Code (`scripts/eskalation.sh`). Plan und Mechanik stehen in
 ## In fünf Minuten
 
 ```bash
-./setup.sh                      # Board, zwölf Profile, Skills, Vault  (idempotent)
+./setup.sh                      # Board, dreizehn Profile, Skills, Vault (idempotent)
 ./probelauf.sh                  # Phase-0-Nachweis: die Dummy-Kette anlegen
 ./pump.sh                       # takten und zusehen
 ./gate.sh                       # wenn ein Gate steht: Vorlage lesen, antworten
@@ -185,8 +185,8 @@ Drei Dinge dazu:
 | `ceo-lint.py` | je Dokument | Der Riegel vor jeder CEO-Entscheidung: Verb passt zur Gate-Art, Messbeleg (`<pre>` mit selbst gefahrenem Check) vorhanden, Begründungspflicht. Fixtures in `seed/ceo-selbsttest/` |
 | `eskalation.sh` | stündlich :15 | **Die Notfall-Leiter.** Code entscheidet, was ein Notfall ist: bekannte Betriebsmuster werden (bei `betriebsrettung: auto`) einmal je Karte selbst repariert, alles andere geht laut und journaliert an den Supervisor |
 | `check-phase3.sh` | je Stufe | Die Nachweise der Stufen A/B/C: Verben an jedem Unblock, Schatten-Übereinstimmungsquote, `[von:esf-ceo]` an jedem CEO-Gate, Einspruchsfrist belegt |
-| `video-render.sh` | stündlich :45 | **Der Video-Kanal** (AGENTS.md 8): Sprechertext aus dem Dokument → `say`-Audio → gemessene Dauer → `.vtt`-Untertitel → Hyperframes-Render (0.8.3, 1920×1080 mit Ton; ffmpeg-Titelkarte als Rückfall). Die Ausgabe nennt je Datei den benutzten Renderer. `--gates` vertont offene Gate-Vorlagen (der Blockgrund ist der Sprechertext), `--selbsttest` misst die Kette offline, `--dry-run` zeigt nur die Jobs |
-| `video-werkzeug.py` | je Job | Die deterministischen Stufen des Video-Kanals einzeln: Jobs finden, Sprechertext extrahieren, VTT aus gemessener Dauer, Komposition instanziieren |
+| `video-render.sh` | stündlich :35 (`--auftraege`)<br>stündlich :45 (Render) | **Der Video-Kanal** (AGENTS.md 8). `--auftraege` vertont, **misst** die Dauer, schreibt `auftrag.json` und beauftragt `esf-video-designer`. Der Renderlauf fährt danach eine **dreistufige Leiter**: individuelle Komposition (nur wenn `pruefe` **und** `hyperframes lint` grün sind) → generische Vorlage → ffmpeg-Titelkarte. Die Ausgabe nennt je Datei die Stufe, die gegriffen hat. `--gates` vertont offene Gate-Vorlagen, `--selbsttest` misst die Kette offline, `--dry-run` zeigt nur die Jobs, `--ohne-lint` ist der Notbetrieb |
+| `video-werkzeug.py` | je Job | Die deterministischen Stufen des Video-Kanals einzeln: Jobs finden, Sprechertext extrahieren, VTT aus gemessener Dauer, Komposition instanziieren — und **`pruefe`**, das Tor vor jeder modellgeschriebenen Komposition (AGENTS.md 8.1) |
 | `e2e-video.sh` | je Merge | Playwright-Videoaufzeichnung: die Journey des Features und die ganze Suite als Akte unter `reports/e2e-videos/<datum>/`, headless erzwungen. Trägt den **Headless-Wächter**, den auch Riegel und Tick ausführen |
 | `vault-lint.py` | je Schreibvorgang | Setzt `company/AGENTS.md` durch und zitiert bei jedem Befund den Abschnitt |
 | `fetch-sources.sh` | vom Tick | Holt die Quellen und **normalisiert deterministisch**, bevor sie im Korpus landen |
@@ -198,7 +198,7 @@ Drei Dinge dazu:
 | `check-keys.sh` | nach der Zuordnung | Der Nachweis, dass die Trennung wirkt: misst den Verbrauch aller elf Keys, lässt Probekarten laufen, misst erneut. `config get` beweist hier **nichts** |
 | `provision-keys.sh` | nur für den Deckel | Erzeugt Keys mit USD-Limit über die Provisioning-API. Für die Zurechnung **nicht** nötig — siehe `VERIFIKATION.md` |
 
-## Die zwölf Profile
+## Die dreizehn Profile
 
 Alle tragen das Präfix `esf-`; Profile liegen global in `~/.hermes/profiles/`,
 und das Präfix plus die `.esf`-Markerdatei hält den Namensraum sauber und
@@ -217,6 +217,7 @@ schützt fremde Profile vor dem Teardown.
 | `esf-reviewer` | Fan-in-Review, führt fremde Tests selbst aus | hoch | requesting-code-review · verification-before-completion |
 | `esf-qa-release` | Eigner der E2E-Suite, Merge-Gate, Release-Paket | mittel | verification-before-completion · systematic-debugging · finishing-a-development-branch · esf-video-zusammenfassung |
 | `esf-controller` | Schätzgüte, Kosten, Velocity, CEO-Report | mittel | esf-video-zusammenfassung |
+| `esf-video-designer` | Gestaltet je Dokument eine **individuelle** Hyperframes-Komposition aus dessen Inhalt; gebunden an die gemessene Dauer, abgenommen von zwei maschinellen Toren | hoch (eigenes Tier `ESF_MODELL_VIDEO`) | esf-video-komposition · hyperframes · hyperframes-core · hyperframes-cli · hyperframes-keyframes · hyperframes-animation · hyperframes-creative |
 
 Die zwei ohne Skills (`esf-market-scout`, `esf-estimator`) sind Absicht: Ihre
 Arbeit ist Erkennen und Messen, nicht Bauen — und sie schreiben keine
