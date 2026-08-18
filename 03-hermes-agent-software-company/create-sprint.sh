@@ -3,8 +3,16 @@
 # ESF — Phase 2: Die Sprint-Graphen von Release 1
 # ==============================================
 #
-#   ./create-sprint.sh 1     S1 — R1-F5 (technische Härtung)
-#   ./create-sprint.sh 2     S2 — R1-F1 ∥ R1-F2 (Suche · 2FA)
+#   ./create-sprint.sh 1     S1 — Wartung F-R1-5 + Feature F-R1-2
+#   ./create-sprint.sh 2     S2 — F-R1-3 ∥ F-R1-4 (Tastatur · E2E-Netz)
+#
+# Der Zuschnitt folgt der Roadmap, die AM GATE FREIGEGEBEN wurde
+# (roadmap/q1-freigegeben.html), nicht der eines frueheren Laufs. Wer diese
+# Datei fuer ein anderes Release wiederverwendet, muss die Feature-Kennungen
+# und die Kartentexte gegen die dann gueltige Freigabe pruefen: Ein Kartentext,
+# der auf einen Roadmap-Abschnitt verweist, den es nicht gibt, schickt einen
+# Worker ins Leere — und genau diese Drift hat in Phase 0 eine Gate-Karte in
+# die Triage gefahren.
 #
 # Zwei Aufrufe, nicht einer — und das ist keine Bequemlichkeit, sondern eine
 # Auflage. `roadmap/q1-freigegeben.html` § "Auflage für den Sprint-Zuschnitt":
@@ -142,8 +150,16 @@ Was du dabei NICHT tust, und das ist die eigentliche Regel:
 EOF
 }
 
-# Das neue AK8 aus dem Spec-Nachtrag vom 17.08.2026 — verbindlich fuer jede
-# Karte, die nach R1-F5 an app.ts vorbeikommt.
+# Das neue AK8 aus dem Spec-Nachtrag vom 17.08.2026.
+#
+# ⚠ IN DIESEM RELEASE NICHT AUFGERUFEN — bewusst stehengelassen.
+#   Das AK8 setzt eine gemeinsame Montagestelle voraus (apps/api/src/app.ts
+#   nach der Haertung R1-F5). Die Roadmap, die am 18.08.2026 freigegeben wurde,
+#   enthaelt diese Haertung nicht: F-R1-2, F-R1-3 und F-R1-4 arbeiten an der
+#   Weboberflaeche und an tests/, keines montiert Routen. Ein Kriterium, das
+#   auf eine Datei zeigt, die kein Branch anfasst, waere Zeremonie.
+#   Es bleibt hier, weil die Regel dahinter allgemein ist und beim naechsten
+#   geteilten Montagepunkt wieder gilt: `$(ak8)` in den Kartentext, fertig.
 #
 # Vorgeschichte, weil sie die Regel erklaert: Das erste AK8 lautete "app.ts
 # bleibt < 450 Zeilen". Die Umsetzung landete bei 565, obwohl sie die
@@ -239,10 +255,10 @@ if [ "$SPRINT" = "2" ]; then
 
 VERWEIGERT — es gibt keine Karte "Kalibrierung S1".
 
-Die freigegebene Roadmap bindet die Reihenfolge (§ Auflage für den
-Sprint-Zuschnitt): R1-F1 und R1-F2 dürfen nicht spezifiziert oder geschätzt
-werden, bevor die Kalibrierung aus dem ersten abgeschlossenen Feature gelaufen
-ist. Der Sinn eines leeren Ledgers ist, ihn zu füllen, nicht ihn zu überspringen.
+Die freigegebene Roadmap bindet die Reihenfolge (Abschnitt 8, Auflage a):
+F-R1-3 und F-R1-4 dürfen nicht spezifiziert oder geschätzt werden, bevor die
+Kalibrierung aus dem ersten abgeschlossenen Feature gelaufen ist. Der Sinn eines
+leeren Ledgers ist, ihn zu füllen, nicht ihn zu überspringen.
 
   ./create-sprint.sh 1
 EOF
@@ -262,138 +278,237 @@ fi
 # ===========================================================================
 if [ "$SPRINT" = "1" ]; then
 # ===========================================================================
-SLUG="r1-f5-api-modularisierung"
+SLUG="r1-f2-create-task-subtraktion"
 BRANCH="${PRAEFIX}esf-$SLUG"
 
-say "S1 1/5  Konzept & ADR — R1-F5 technische Härtung"
-# Der Architekt und nicht der Product Manager: R1-F5 hat keine Nutzeraufgabe,
-# sondern eine Strukturentscheidung, und die gehört nach AGENTS.md 4 in ein ADR.
-SPEC=$(k create "$S F5 1/5 — Konzept & ADR: apps/api/src/index.ts zerlegen" \
-    --assignee esf-architect \
-    --workspace "dir:$VAULT" \
-    --idempotency-key "s1-f5-spec" \
+# Die Reihenfolge dieses Sprints steht nicht hier, sondern in der freigegebenen
+# Roadmap: die Wartungskarte VOR der Feature-Arbeit, dann genau ein Feature.
+# roadmap/q1-freigegeben.html, Abschnitt 4:
+#
+#   "F-R1-5 (Biome-Hygiene) ist keine Feature-Arbeit: Sie laeuft als
+#    Wartungskarte im ersten Sprint von R1, vor der Feature-Arbeit, und belegt
+#    keinen Feature-Slot."
+#
+# Sie ist deshalb Elternteil der Spezifikationskarte: Der Feature-Branch soll
+# von einem main abzweigen, auf dem `biome ci` bereits gruen ist — sonst
+# schleppt jede spaetere Riegel-Pruefung die Bestandsschuld mit.
+
+say "S1 W 1/1  Wartung — biome ci gruen  (Hauptbaum, vor der Feature-Arbeit)"
+WARTUNG=$(k create "$S W 1/1 — Wartung: biome ci gruen" \
+    --assignee esf-dev-a \
+    --workspace "dir:$REPO" \
+    --idempotency-key "s1-wartung-biome" \
     --max-retries 2 --max-runtime 45m \
-    --body "Feature R1-F5 der freigegebenen Roadmap: technische Härtung, Position 1
-des Release auf CEO-Anweisung.
+    --body "Wartungskarte aus der freigegebenen Roadmap (roadmap/q1-freigegeben.html,
+Abschnitt 4). Kein Feature, kein Feature-Slot: Sie raeumt die Werkzeugkette auf,
+BEVOR die Feature-Arbeit beginnt.
 
-DER AUFTRAG AUS DER ROADMAP (roadmap/q1-freigegeben.html, R1-F5)
-Der höchste Kollisions-Hotspot ist apps/api/src/index.ts (968 Zeilen). Er wird
-zerlegt, BEVOR mehrere Feature-Branches daran arbeiten. Beleg:
-analysis/codebase.html §5.1, §5.2, §6.1. Die Organisation hat am 17.08.2026
-dreimal bewiesen, dass parallele Git-Arbeit ihr häufigster Ausfallgrund ist.
-Nutzersichtbar ändert sich NICHTS — das ist eine Voraussetzung, kein Feature.
+DER BEFUND, AUF DEN DU AUFSETZT (analysis/codebase.html §5.1)
+Der Architekt hat 'pnpm exec biome ci .' selbst gefahren: 1.190 Dateien in
+414 ms, 'Found 1 error. Found 80 warnings. Found 1 info.', Exit 1. Aufgeteilt
+nach Regel: 64 x lint/suspicious/noUndeclaredEnvVars (Konfiguration, keine
+Logik), 12 inhaltliche Stil-Findings (davon 8 useOptionalChain, 2 noImgElement),
+Rest verteilt. Belegt ist ausserdem, dass keine der beanstandeten Dateien vom
+Ausgangs-Commit beruehrt wurde: Bestandsschuld, kein Regressionsproblem.
 
-DEINE ARBEIT — zwei Dokumente im Vault, kein Code
-Du liest im Repo ($REPO) und änderst dort nichts.
+PRUEF DIESE ZAHLEN SELBST NACH, bevor du etwas aenderst. Sie stammen aus einer
+Analyse von heute frueh; der Arbeitsbaum hat sich seither veraendert (die
+E2E-Karte hat Specs und playwright.config.ts committet). Eine Zahl aus einem
+fremden Bericht ist eine Behauptung, bis du sie gemessen hast.
 
-1. decisions/ADR-001-api-modularisierung.html — fünf Pflichtabschnitte
-   (AGENTS.md 4): Kontext, Optionen (mindestens zwei, jede mit Konsequenz),
-   Entscheidung, Konsequenzen, Revision. Die verworfene Option mit Begründung
-   ist der Teil, der in einem Jahr Wert hat.
+DEIN ORT
+Hauptbaum ($REPO), Branch main. Kein Worktree, kein Merge, kein Riegel: Zu
+diesem Zeitpunkt arbeitet niemand sonst am Repo, und eine reine
+Formatierungs-/Konfigurationsaenderung ueber einen Feature-Branch zu fuehren
+waere Zeremonie ohne Schutzwirkung. Du committest direkt auf main.
 
-   Die Optionen, die du wirklich abwägen musst, sind: Zerlegung nach Domäne
-   (Route-Gruppen in eigene Module), Zerlegung nach Schicht (Router/Handler/
-   Middleware), und — als ernstzunehmende Nullvariante — die Datei so lassen und
-   nur die Kollisionsfläche durch Reihenfolge der Karten entschärfen. Die
-   Nullvariante ist keine Alibi-Option: eine Umstrukturierung ohne
-   Verhaltensänderung ist reines Risiko, wenn sie zu gross wird.
+$(env_hinweis)
 
-2. specs/r1-f5-haertung.html — die ausführbare Spezifikation. Sie muss
-   beantworten:
-   · Welche Datei entsteht wo, mit welchem Inhalt? Benenne die Zielstruktur
-     konkret (Pfade), nicht als Prinzip.
-   · Was darf sich NICHT ändern? Öffentliche Routen, Pfade, Statuscodes,
-     Verhalten. Das ist der wichtigste Abschnitt: Der Wert dieser Karte liegt
-     darin, dass hinterher alles genau so funktioniert wie vorher.
-   · Die Akzeptanzkriterien, prüfbar formuliert, jedes einzeln abhakbar.
-     Mindestens: Typecheck grün, Unit-Tests grün (374/374 auf dem
-     Ausgangsstand), volle E2E-Suite grün, keine Änderung an öffentlichen
-     Routen.
+WAS ZU TUN IST — in dieser Reihenfolge
+1. Messen und festhalten: 'pnpm exec biome ci .' und die Aufteilung nach Regel
+   ('biome ci --reporter=summary' oder die Ausgabe selbst auszaehlen). Das ist
+   dein Vorher-Wert.
+2. Die 64 noUndeclaredEnvVars: Das sind Umgebungsvariablen, die in turbo.json
+   nicht deklariert sind. Deklariere sie dort, ODER schalte die Regel gezielt
+   ab — welchen Weg du gehst, begruendest du im metadata. Die Regel abzuschalten
+   ist erlaubt und manchmal richtig; sie ohne Begruendung abzuschalten ist es
+   nicht.
+3. Die inhaltlichen Stil-Findings: 'pnpm exec biome check --write' fuer das
+   automatisch Behebbare. Danach LIES den Diff. Ein Auto-Fix, den niemand
+   angesehen hat, ist eine ungeprufte Aenderung, auch wenn ein Werkzeug sie
+   gemacht hat.
+4. Bleibt etwas uebrig, das weder auto-fixbar noch trivial ist: NICHT mit der
+   Hand umbauen. Ins metadata unter 'offen_gelassen' mit Regel, Datei und Grund.
+   Diese Karte darf Verhalten nicht aendern.
+5. Nachweis, alle drei, mit Zahlen:
+     pnpm exec biome ci .        -> muss Exit 0 sein
+     pnpm typecheck && pnpm test -> unveraendert gruen
+     $E2E_VORBED
+     $E2E_BEFEHL                 -> die volle Suite unveraendert gruen
+6. Commit auf main, Conventional Commits in Kleinschreibung
+   (z.B. 'chore(lint): biome-bestandsschuld abgeraeumt'). Der Pre-Commit-Hook
+   lintet deine gestageten Dateien; er wird halten. Umgehe ihn nicht, kein
+   --no-verify.
 
-   E2E: kein neuer Spec. Die Absicherung ist der volle Regressionslauf über
-   J-00..J-06 (8 Tests, analysis/journeys.html). Schreib das ausdrücklich hin,
-   damit der Entwickler nicht meint, er müsse einen erfinden.
+DIE HARTE REGEL
+Verhalten unveraendert. Diese Karte fasst keine Logik an. Faellt dir dabei ein
+echter Fehler auf: nicht beheben, sondern ins metadata unter
+'gefunden_nicht_gemacht'. Daraus wird eine eigene Karte.
+
+KOMMST DU NICHT AUF EXIT 0
+Liefere weniger, aber gruen in Typecheck, Tests und E2E. 'biome ci' teilweise
+entlastet ist ein Ergebnis; ein kaputter Hauptbaum ist keins. Was offen bleibt,
+steht im metadata mit Zahl (wieviele Findings bleiben, welcher Regel).
+
+$(metadata_pflicht 'maintenance-repo-S')
+Dazu ins metadata: die Vorher-/Nachher-Zahlen von biome ci (error/warning/info),
+die Aufteilung nach Regel vorher, welchen Weg du bei noUndeclaredEnvVars
+gewaehlt hast und warum, die Testzahlen vor und nach, der Commit-Hash.
+
+$(gate_verbot)" \
+    --json | jq -r .id)
+echo "  WARTUNG = $WARTUNG"
+
+say "S1 F2 1/5  Spezifikation — F-R1-2 Create-Task-Dialog entschlacken"
+# Der Product Manager und nicht der Architekt: F-R1-2 hat eine Nutzeraufgabe
+# (K2 aus product.html), keine Strukturentscheidung. Kein ADR noetig.
+SPEC=$(k create "$S F2 1/5 — Spezifikation F-R1-2 Create-Task-Dialog entschlacken" \
+    --assignee esf-product-manager \
+    --workspace "dir:$VAULT" \
+    --parent "$WARTUNG" \
+    --idempotency-key "s1-f2-spec" \
+    --max-retries 2 --max-runtime 45m \
+    --body "Spezifiziere F-R1-2 der freigegebenen Roadmap: die Subtraktion am
+Create-Task-Dialog.
+
+DER AUFTRAG AUS DER ROADMAP (roadmap/q1-freigegeben.html, Abschnitt 4, F-R1-2)
+Nutzeraufgabe: 'Einen Vorgang anlegen und zuweisen' (K2 aus product.html) — die
+laengste Alltags-Journey wird kuerzer. Belegt ist der Befund in deiner eigenen
+Produktanalyse: jede Eigenschaft (Assignee, Prioritaet, Termin, Label) ist ein
+eigenes Popover; J-03 hat 6 Schritte und ist der taegliche Planungskern.
+Referenzklasse feature-frontend-S. E2E: erweitert die bestehende Journey J-03.
+
+WARUM GERADE DIESE UND KEINE ANDERE
+Die Roadmap begruendet die Auswahl mit dem Subtraktions-Abschnitt: J-01 hat mit
+7 Schritten die hoechste Schrittzahl, lohnt die Kuerzung aber nicht — sie ist
+eine einmalige Onboarding-Journey. J-03 wiederholt sich taeglich. Vereinfachung
+zaehlt dort, wo sie sich wiederholt. Halte diese Begruendung in der
+Spezifikation fest; sie ist der Massstab, an dem der Reviewer misst, ob die
+Aenderung ihr Ziel trifft.
+
+DEINE ARBEIT — ein Dokument im Vault, kein Code
+Du liest im Repo ($REPO) und aenderst dort nichts. Die Oberflaeche liegt unter
+apps/web/src; der Dialog ist an der Klasse .kaneo-create-task-modal erkennbar
+(so findet ihn die bestehende Spec tests/e2e/journeys/vorgang-anlegen-zuweisen.spec.ts).
+
+SCHREIBE specs/r1-f2-create-task-subtraktion.html. Sie muss beantworten:
+ · Der Ist-Zustand, mit Zahlen: Welche Felder und Popover hat der Dialog heute,
+   wieviele Klicks kostet der haeufigste Fall? Zaehl sie an den Komponenten ab,
+   rate sie nicht.
+ · Was WEG kommt oder zusammenwaechst — und was ausdruecklich bleibt.
+   Subtraktion heisst entfernen, nicht umsortieren. Nenne je Entscheidung den
+   Fall, der dadurch schlechter wird; wenn es keinen gibt, hast du nicht genau
+   genug hingesehen.
+ · Der Soll-Zustand mit derselben Zaehlung. Die Differenz ist der Wert dieses
+   Features.
+ · Was NICHT passieren darf: kein Datenverlust, keine Aenderung an der API,
+   keine Pflichtfelder, die vorher optional waren. J-03 muss weiter gruen sein.
+ · Akzeptanzkriterien, pruefbar formuliert, jedes einzeln abhakbar.
+   Mindestens: Typecheck gruen, Unit-Tests gruen, volle E2E-Suite gruen,
+   J-03 um die neue Kuerze erweitert, Schrittzahl nachweislich gesunken.
+
+E2E: KEIN neuer Spec, sondern die bestehende J-03 erweitert
+tests/e2e/journeys/vorgang-anlegen-zuweisen.spec.ts deckt J-03 heute ab. Sie
+muss nach dem Umbau weiter gruen sein UND die kuerzere Bedienung abbilden.
+Schreib ausdruecklich hin, wie: welche Schritte in der Spec entfallen.
 
 DER ZUSCHNITT IST TEIL DEINER ARBEIT
-Der Deckel liegt bei $KARTEN_DECKEL Karten je Feature; dieses Feature hat fünf
-und davon genau EINE Bau-Karte. Also muss die Zerlegung in eine Bau-Karte
-passen. Passt sie nicht: schneide sie kleiner (ein erster Schnitt, der trägt,
-statt einer vollständigen Neuordnung) und schreib in das ADR unter Revision,
-was du bewusst für später liegen lässt. Ein Konzept, das die eigene Kadenz
-sprengt, ist kein ehrgeiziges Konzept, sondern ein ungeprüftes.
+Der Deckel liegt bei $KARTEN_DECKEL Karten je Feature; dieses Feature hat fuenf
+und davon genau EINE Bau-Karte. Passt dein Soll-Zustand nicht in eine Bau-Karte,
+schneide ihn kleiner — ein erster Schnitt, der traegt, statt einer vollstaendigen
+Neugestaltung. Was du bewusst liegen laesst, gehoert in die Spezifikation, nicht
+in eine stille Auslassung.
 
-$(metadata_pflicht 'spec-vault-M')
-Dazu ins metadata: acceptance (die Kriterien als Liste — der Entwickler und der
-Reviewer arbeiten beide gegen genau diese Liste), und die Zielstruktur als Liste
-der Dateien, die entstehen sollen.
+$(metadata_pflicht 'spec-vault-S')
+Dazu ins metadata: acceptance (die Kriterien als Liste — Entwickler und Reviewer
+arbeiten beide gegen genau diese Liste), die Schrittzahl vorher und das Ziel
+nachher als Zahlen.
 
-$(vault_format 'adr')
+$(vault_format 'spec')
 
 $(gate_verbot)" \
     --json | jq -r .id)
 echo "  SPEC = $SPEC"
 
-say "S1 2/5  Schätzung"
-EST=$(k create "$S F5 2/5 — Schätzung R1-F5" \
+say "S1 F2 2/5  Schätzung"
+EST=$(k create "$S F2 2/5 — Schätzung F-R1-2" \
     --assignee esf-estimator \
     --workspace "dir:$VAULT" \
     --parent "$SPEC" \
-    --idempotency-key "s1-f5-estimate" \
+    --idempotency-key "s1-f2-estimate" \
     --max-retries 2 --max-runtime 30m \
-    --body "Schätze die drei Folgekarten von R1-F5. Die Spezifikation deiner
-Elternkarte (specs/r1-f5-haertung.html, ADR-001) steht in deinem Handoff-Kontext.
+    --body "Schaetze die drei Folgekarten von F-R1-2. Die Spezifikation deiner
+Elternkarte (specs/r1-f2-create-task-subtraktion.html) steht in deinem
+Handoff-Kontext.
 
 DAS LEDGER IST DEINE EINZIGE QUELLE — und es ist erstmals nicht leer
-ledger/estimates.jsonl trägt die nachgebuchten Ist-Zeiten des Phase-0/1-Laufs:
+ledger/estimates.jsonl traegt die nachgebuchten Ist-Zeiten dieses Laufs:
 gemessene Wanduhrminuten aus Board-Zeitstempeln, klassifiziert, mit
 'estimate: null' und '\"backfill\": true'. Lies die Datei, bevor du rechnest.
 
 Was du dort findest und was das wert ist:
   · Die Klassen sind mit n=1 bis n=3 besetzt. Das ist wenig. Sag es hin.
-  · Es sind ISTWERTE ohne Schätzung. Es gibt also noch keine Velocity-
-    Verteilung (Ist/Schätzung) — die entsteht erst mit DIESER Schätzung und
+  · Es sind ISTWERTE ohne Schaetzung. Es gibt also noch keine Velocity-
+    Verteilung (Ist/Schaetzung) — die entsteht erst mit DIESER Schaetzung und
     ihrer Messung. Behaupte keine, die du nicht hast.
+  · Eine Zeile ist verzerrt und du musst sie erkennen: die Karte der Klasse
+    e2e-repo-L traegt 'runs: 2'. Ihr erster Lauf lief in die Zeitgrenze
+    (timed_out bei 5406 s gegen 5400 s) und wurde vom zweiten geerbt. Die
+    103 Minuten sind gemessene Wanduhr, aber gut die Haelfte davon ist
+    Wiederholung. Wer diese Zeile als Normalfall nimmt, schaetzt zu hoch.
+    Pruefe bei JEDER Zeile, die du heranziehst, das Feld 'runs'.
   · Deine Aufgabe ist trotzdem eine Zahl, nicht ein Achselzucken. Ein breites
     Intervall mit niedriger Konfidenz und benannter Grundlage ist die
     geforderte Antwort (Kapitel 8: 'Klassen ohne Historie starten mit breiten
     Intervallen und niedriger Konfidenz, und sagen das dem CEO'). Ein 'kann ich
-    nicht' wäre hier falsch: der Backfill IST die Historie.
+    nicht' waere hier falsch: der Backfill IST die Historie.
 
-SCHÄTZE DIESE DREI KARTEN, jede einzeln, jede mit ihrer Klasse:
+SCHAETZE DIESE DREI KARTEN, jede einzeln, jede mit ihrer Klasse:
 
-  Karte                    Referenzklasse       nächste Nachbarn im Ledger
+  Karte                    Referenzklasse       naechste Nachbarn im Ledger
   ---------------------------------------------------------------------------
-  $S F5 3/5 Umsetzung      impl-worktree-M      impl-worktree-S
-  $S F5 4/5 Review         review-repo-M        review-repo-S
-  $S F5 5/5 Merge          merge-repo-S         — keine, Riegel-Lauf
+  $S F2 3/5 Umsetzung      impl-worktree-S      impl-worktree-S (Probelauf)
+  $S F2 4/5 Review         review-repo-S        review-repo-S (Probelauf)
+  $S F2 5/5 Merge          merge-repo-S         — keine, Riegel-Lauf
 
-Die Größenordnung von S nach M leitest du aus der Spezifikation ab (Umfang der
-Zielstruktur, Zahl der berührten Dateien), nicht aus einem Gefühl. Schreib den
-Schritt hin: 'S hat n=1 mit 21 min; dieses Feature berührt N Dateien gegen 1 in
-der Referenz, daher …'. Wer den Schritt hinschreibt, kann später zeigen, wo er
-falsch war — das ist der ganze Zweck von Evidence-Based Scheduling.
+Die Nachbarn aus dem Probelauf sind DUMMY-Arbeit: eine triviale Datei, ein
+triviales Review. Sie sind ein schwacher Anker, kein guter. Sag genau das hin
+und rechne den Abstand vor: 'impl-worktree-S hat n=1 mit X min an einer Datei;
+dieses Feature beruehrt N Komponenten laut Spezifikation, daher ...'. Wer den
+Schritt hinschreibt, kann spaeter zeigen, wo er falsch war — das ist der ganze
+Zweck von Evidence-Based Scheduling.
 
-Für merge-repo-S gibt es keinen Nachbarn. Dort ist die ehrliche Grundlage der
-Riegel selbst: sechs Prüfungen, deren längste die volle E2E-Suite ist
-(gemessen 24,7 s für 8 Tests, RUN-PROTOKOLL.md) plus 374 Unit-Tests (unter Last
-gemessen 52,9 s allein für den Import). Rechne daraus, nenn die Rechnung.
+Fuer merge-repo-S gibt es keinen Nachbarn. Dort ist die ehrliche Grundlage der
+Riegel selbst: sechs Pruefungen, deren laengste die volle E2E-Suite ist
+(gemessen in diesem Lauf: 7 Tests, siehe reports/) plus die Unit-Tests. Rechne
+daraus, nenn die Rechnung.
 
 tokens_k und cost_usd: 'null'. Hermes v0.20.0 misst keine Tokens, und der
-OpenRouter-Zähler läuft je Rolle kumulativ — je Karte gibt es keine Zahl. Ein
-hineingeschriebener Wert wäre die vergiftete Kalibrierung aus AGENTS.md 6.
+OpenRouter-Zaehler laeuft je Rolle kumulativ — je Karte gibt es keine Zahl. Ein
+hineingeschriebener Wert waere die vergiftete Kalibrierung aus AGENTS.md 6.
 
 SCHREIBE ZWEIERLEI
-1. reports/schaetzung-r1-f5.html (esf-typ 'report'): die drei Intervalle, die
-   Referenzklassen, die Ledger-Zeilen, auf die du dich stützt (task_id nennen!),
-   die Konfidenz je Schätzung und in einem Satz, warum sie so niedrig ist.
+1. reports/schaetzung-r1-f2.html (esf-typ 'report'): die drei Intervalle, die
+   Referenzklassen, die Ledger-Zeilen, auf die du dich stuetzt (task_id nennen!),
+   die Konfidenz je Schaetzung und in einem Satz, warum sie so niedrig ist.
 2. Ins Abschluss-metadata dieser Karte ein Objekt 'estimates' mit den drei
-   Schätzungen, je Karte eines, nach dem festen Schema deiner SOUL — sowie
-   zusätzlich unter 'estimate' die Schätzung DIESER Karte selbst
+   Schaetzungen, je Karte eines, nach dem festen Schema deiner SOUL — sowie
+   zusaetzlich unter 'estimate' die Schaetzung DIESER Karte selbst
    (reference_class 'estimate-vault-S').
 
    Das metadata ist der Weg, auf dem die Zahlen bei den Folgekarten ankommen:
    sie lesen es in ihrem Handoff-Kontext. Schreib es maschinenlesbar, mit
-   genau den Kartentiteln oben als Schlüssel.
+   genau den Kartentiteln oben als Schluessel.
 
 $(metadata_pflicht 'estimate-vault-S')
 
@@ -403,16 +518,16 @@ $(gate_verbot)" \
     --json | jq -r .id)
 echo "  EST  = $EST"
 
-say "S1 3/5  Umsetzung  (eigener Worktree, eigener Branch)"
-IMPL=$(k create "$S F5 3/5 — Umsetzung R1-F5" \
+say "S1 F2 3/5  Umsetzung  (eigener Worktree, eigener Branch)"
+IMPL=$(k create "$S F2 3/5 — Umsetzung F-R1-2" \
     --assignee esf-dev-a \
     --workspace "worktree:$REPO" --branch "$BRANCH" \
     --parent "$EST" \
-    --idempotency-key "s1-f5-impl" \
+    --idempotency-key "s1-f2-impl" \
     --max-retries 2 --max-runtime 120m \
     --skill test-driven-development \
-    --body "Setze R1-F5 um: apps/api/src/index.ts nach specs/r1-f5-haertung.html
-zerlegen.
+    --body "Setze F-R1-2 um: den Create-Task-Dialog nach
+specs/r1-f2-create-task-subtraktion.html entschlacken.
 
 DEIN BAUM
 Du arbeitest in deinem eigenen Worktree auf Branch '$BRANCH'. Kein anderer
@@ -421,163 +536,180 @@ eigenen Karte, und kein Modell merged (Kapitel 6).
 
 $(env_hinweis)
 
-Die Spezifikation, das ADR und die Akzeptanzkriterien stehen in deinem
-Handoff-Kontext; die Dateien liegen im Vault unter
-$VAULT/specs/r1-f5-haertung.html und decisions/ADR-001-api-modularisierung.html.
+Die Spezifikation und die Akzeptanzkriterien stehen in deinem Handoff-Kontext;
+die Datei liegt im Vault unter
+$VAULT/specs/r1-f2-create-task-subtraktion.html.
 
 DIE EINZIGE HARTE REGEL DIESER KARTE
-Verhalten unverändert. Das ist eine Umstrukturierung, kein Feature. Jede
-Änderung an einer öffentlichen Route, einem Pfad, einem Statuscode oder einer
-Antwortform ist ein Fehler, auch wenn sie eine Verbesserung wäre. Fällt dir
-unterwegs eine echte Verbesserung auf: NICHT machen, sondern ins
-Abschluss-metadata unter 'gefunden_nicht_gemacht' schreiben. Daraus wird eine
-eigene Karte.
+Kein Datenverlust und keine API-Aenderung. Subtraktion heisst: der Anwender
+braucht weniger Schritte fuer denselben Vorgang — nicht, dass er weniger
+speichern kann. Faellt eine Eigenschaft aus dem Dialog, muss sie an anderer
+Stelle weiter erreichbar sein, und die Spezifikation sagt wo. Steht es dort
+nicht, ist das ein Befund fuer dein metadata, keine eigene Entscheidung.
 
 REIHENFOLGE
 1. Erst messen, dann schneiden. Notiere den Ausgangsstand mit Zahlen:
      cd \$(git rev-parse --show-toplevel)
      pnpm typecheck && pnpm test
-   Wieviele Tests, wie lange? Diese Zahl ist dein Vergleichsmaßstab, und du
+   Wieviele Tests, wie lange? Diese Zahl ist dein Vergleichsmassstab, und du
    brauchst sie am Ende noch.
-2. Umbauen, in kleinen Schritten, nach der Zielstruktur der Spezifikation.
+2. Umbauen, in kleinen Schritten, nach dem Soll-Zustand der Spezifikation.
    Nach jedem Schritt typecheck. Ein grosser Sprung, der am Ende rot ist, kostet
    mehr als vier kleine.
-3. $E2E_VORBED
-   $E2E_BEFEHL
-   Die volle Suite muss grün sein — sie ist der eigentliche Nachweis, dass das
-   Verhalten steht. 8 Tests waren es auf dem Ausgangsstand.
+3. Die E2E-Journey J-03 mitfuehren:
+   tests/e2e/journeys/vorgang-anlegen-zuweisen.spec.ts muss die KUERZERE
+   Bedienung abbilden und gruen sein. Was in der Spec an Schritten entfaellt,
+   steht in der Spezifikation.
+     $E2E_VORBED
+     $E2E_BEFEHL
+   Die volle Suite muss gruen sein, nicht nur J-03.
 4. Commit auf deinen Branch, Conventional Commits in Kleinschreibung
-   (z.B. 'refactor(api): routen aus index.ts in module ausgelagert').
+   (z.B. 'feat(web): create-task-dialog auf einen schritt verdichtet').
    Der Pre-Commit-Hook lintet nur DEINE gestageten Dateien — er wird halten,
    wenn deine Zeilen sauber sind. Umgehe ihn nicht. Wenn er meckert, sind es
    deine Zeilen.
 
-WENN DU NICHT DURCHKOMMST
-Liefere weniger, aber grün. Ein halber Schnitt, der grün ist und die
-Kollisionsfläche schon senkt, ist ein Ergebnis; ein vollständiger Umbau mit
-roten Tests ist keins. Was du weggelassen hast, gehört ins metadata unter
-'deliberately_not_done' mit Grund — und zwar deinem eigenen Grund, nachgeprüft.
-Im ersten Lauf hat ein Worker eine falsche Behauptung aus dem Kartentext in sein
-metadata übernommen, wo sie wie ein Befund aussah (RUN-PROTOKOLL.md). Prüf, was
-du abschreibst.
+EIN GEMESSENER STOLPERSTEIN IM HELFER
+tests/e2e/support/journey.ts enthaelt seit Phase 1 in arbeitsbereichAnlegen eine
+Schleife ueber fuenf Versuche gegen ein Rennen mit React Hook Form. Das ist
+Toleranz gegen Flakiness. Wenn DEIN Umbau dazu fuehrt, dass ein Feld nicht mehr
+ankommt, kann diese Schleife den Fehler verdecken. Faellt dir das auf: ins
+metadata, nicht stillschweigend mehr Versuche.
 
-$(metadata_pflicht 'impl-worktree-M')
-Dazu ins metadata: die Liste der angelegten und geänderten Dateien, das
-Testergebnis vor und nach dem Umbau (Zahlen!), das E2E-Ergebnis, der
-Commit-Hash, und je Akzeptanzkriterium ein Häkchen mit dem Beleg, an dem du es
-geprüft hast.
+WENN DU NICHT DURCHKOMMST
+Liefere weniger, aber gruen. Ein Dialog, der zwei Popover statt vier braucht und
+gruen ist, ist ein Ergebnis; ein vollstaendiger Umbau mit roten Tests ist keins.
+Was du weggelassen hast, gehoert ins metadata unter 'deliberately_not_done' mit
+Grund — und zwar deinem eigenen Grund, nachgeprueft. Pruef, was du abschreibst.
+
+$(metadata_pflicht 'impl-worktree-S')
+Dazu ins metadata: die Liste der geaenderten Dateien, das Testergebnis vor und
+nach dem Umbau (Zahlen!), das E2E-Ergebnis, die Schrittzahl vorher/nachher mit
+der Stelle, an der du sie gezaehlt hast, der Commit-Hash, und je
+Akzeptanzkriterium ein Haekchen mit dem Beleg.
 
 $(gate_verbot)" \
     --json | jq -r .id)
 echo "  IMPL = $IMPL"
 
-say "S1 4/5  Review  (Hauptbaum, sieht in den fremden Worktree)"
-REV=$(k create "$S F5 4/5 — Review R1-F5" \
+say "S1 F2 4/5  Review  (Hauptbaum, sieht in den fremden Worktree)"
+REV=$(k create "$S F2 4/5 — Review F-R1-2" \
     --assignee esf-reviewer \
     --workspace "dir:$REPO" \
     --parent "$IMPL" --parent "$EST" \
-    --idempotency-key "s1-f5-review" \
+    --idempotency-key "s1-f2-review" \
     --max-retries 2 --max-runtime 60m \
-    --body "Prüfe die Umsetzung von R1-F5 auf Branch '$BRANCH'.
+    --body "Pruefe die Umsetzung von F-R1-2 auf Branch '$BRANCH'.
 
 DEIN ORT
 Du arbeitest im HAUPTBAUM ($REPO), nicht in einem Worktree. Von hier siehst du
-in die fremden Bäume unter .worktrees/ hinein. Der Branch ist bereits von einem
+in die fremden Baeume unter .worktrees/ hinein. Der Branch ist bereits von einem
 Worktree beansprucht — ein 'git checkout $BRANCH' im Hauptbaum scheitert hart
-('fatal: … is already used by worktree'). Nimm 'git log/diff/show $BRANCH' und
+('fatal: ... is already used by worktree'). Nimm 'git log/diff/show $BRANCH' und
 lies im fremden Baum, ohne ihn anzufassen. Genau dieser Fehler hat im ersten
 Lauf eine Karte in den Circuit Breaker gefahren (RUN-PROTOKOLL.md).
 
-WAS DU PRÜFST — in dieser Reihenfolge, weil die erste Frage die teuerste ist
-1. Ist das Verhalten unverändert? Das ist der Zweck des Features und die
-   einzige Frage, deren falsche Antwort Nutzer trifft. Vergleiche die
-   öffentlichen Routen vor und nach dem Umbau — konkret, nicht dem Eindruck
-   nach: 'git diff main..$BRANCH' und dann die Route-Definitionen gegeneinander.
-2. Ist jedes Akzeptanzkriterium der Spezifikation erfüllt? Geh die Liste aus dem
+WAS DU PRUEFST — in dieser Reihenfolge, weil die erste Frage die teuerste ist
+1. Ist der Vorgang noch vollstaendig speicherbar? Das ist der Zweck der Regel
+   'kein Datenverlust' und die einzige Frage, deren falsche Antwort Nutzer
+   trifft. Pruefe konkret: Welche Eigenschaften konnte man vorher am Dialog
+   setzen, welche jetzt, und wo sind die uebrigen erreichbar? 'git diff
+   main..$BRANCH' und dann die Komponenten gegeneinander.
+2. Ist die Schrittzahl wirklich gesunken? Die Spezifikation nennt eine Zahl
+   vorher und ein Ziel nachher. Zaehl selbst nach, an derselben Stelle. Eine
+   Subtraktion, die nur umsortiert, hat ihr Ziel verfehlt — das ist der
+   haeufigste Fehlschlag dieser Art von Feature.
+3. Ist jedes Akzeptanzkriterium der Spezifikation erfuellt? Geh die Liste aus dem
    Handoff-Kontext einzeln durch und schreib je Kriterium hin, WORAN du es
-   geprüft hast. 'Sieht erfüllt aus' ist keine Prüfung.
-3. Führe die Tests SELBST aus, im Baum des Entwicklers. Nicht sein Protokoll
+   geprueft hast. 'Sieht erfuellt aus' ist keine Pruefung.
+4. Fuehre die Tests SELBST aus, im Baum des Entwicklers. Nicht sein Protokoll
    lesen — laufen lassen:
      cd $REPO/.worktrees/<sein-verzeichnis>
      pnpm typecheck && pnpm test
      $E2E_VORBED
      $E2E_BEFEHL
    Der Unterschied zwischen Behauptung und geprüfter Tatsache ist dein ganzer
-   Daseinsgrund. Im ersten Lauf hat dieses Vorgehen den Unterschied gemacht.
-4. Ist main unberührt? 'git log main..' und der Arbeitsbaum-Status.
-5. Ist der Umbau tatsächlich eine Entlastung des Hotspots, oder nur eine
-   Umschichtung? Zähl die Zeilen: apps/api/src/index.ts vorher 968 —
-   wieviele jetzt, und wohin sind sie gegangen?
+   Daseinsgrund.
+5. Bildet die J-03-Spec die neue, kuerzere Bedienung ab — oder ist sie nur
+   angepasst worden, bis sie wieder gruen war? Lies den Diff der Spec-Datei.
+   Eine Journey, die man an den Code anpasst, statt den Code an die Journey,
+   ist kein Regressionsnetz mehr.
+6. Ist main unberuehrt? 'git log main..' und der Arbeitsbaum-Status.
 
 WENN ETWAS FEHLT
 Dein Urteil ist 'approved' oder 'changes_requested', im metadata unter
 'verdict', mit den Befunden als Liste. Bei 'changes_requested' beschreibt jeder
 Befund, WAS zu tun ist, nicht dass etwas nicht stimmt. Du reparierst nichts
-selbst — dann wäre niemand mehr da, der prüft.
+selbst — dann waere niemand mehr da, der prueft.
 
-Ein bekannter Störfaktor, damit du ihn nicht als Befund missdeutest:
-mcp-internal-api-url.test.ts ist lastempfindlich. Fällt genau dieser Test und
-sonst nichts, lauf ihn allein nach; grün allein und rot unter Last ist ein
+Ein bekannter Stoerfaktor, damit du ihn nicht als Befund missdeutest:
+mcp-internal-api-url.test.ts ist lastempfindlich. Faellt genau dieser Test und
+sonst nichts, lauf ihn allein nach; gruen allein und rot unter Last ist ein
 Betriebsbefund, kein Fehler des Entwicklers. Notier ihn als solchen.
 
-$(metadata_pflicht 'review-repo-M')
+$(metadata_pflicht 'review-repo-S')
 Dazu ins metadata: verdict, die Befunde, das selbst gemessene Testergebnis
-(Zahlen), die Zeilenzahl-Bilanz aus Punkt 5.
+(Zahlen), die selbst nachgezaehlte Schrittzahl aus Punkt 2.
 
 $(gate_verbot)" \
     --json | jq -r .id)
 echo "  REV  = $REV"
 
-say "S1 5/5  Merge am Riegel"
-MERGE=$(k create "$S F5 5/5 — Merge R1-F5 am Riegel" \
+say "S1 F2 5/5  Merge am Riegel"
+MERGE=$(k create "$S F2 5/5 — Merge F-R1-2 am Riegel" \
     --assignee esf-qa-release \
     --workspace "dir:$REPO" \
     --parent "$REV" --parent "$EST" \
-    --idempotency-key "s1-f5-merge" \
+    --idempotency-key "s1-f2-merge" \
     --max-retries 2 --max-runtime 60m \
-    --body "Bringe R1-F5 nach main — über den Riegel, nicht mit der Hand.
+    --body "Bringe F-R1-2 nach main — ueber den Riegel, nicht mit der Hand.
 
 DER EINZIGE ERLAUBTE WEG
-    $HERE/scripts/merge-riegel.sh $BRANCH --protokoll $VAULT/reports/riegel-r1-f5.txt
+    $HERE/scripts/merge-riegel.sh $BRANCH --protokoll $VAULT/reports/riegel-r1-f2.txt
 
 Du rufst kein 'git merge'. Der Riegel merged oder verweigert; das ist der
-Unterschied zwischen einer Regel und einem Riegel (Kapitel 6). Sechs Prüfungen:
-Erreichbarkeit, Konfliktfreiheit, Linter auf den geänderten Dateien, Typecheck,
+Unterschied zwischen einer Regel und einem Riegel (Kapitel 6). Sechs Pruefungen:
+Erreichbarkeit, Konfliktfreiheit, Linter auf den geaenderten Dateien, Typecheck,
 Unit-Tests, volle E2E-Suite.
 
 VORBEDINGUNGEN, die du selbst herstellst — sonst verweigert er ohne Sachgrund
 1. Das Urteil des Reviewers muss 'approved' sein. Steht 'changes_requested' in
    deinem Handoff-Kontext: NICHT mergen. Schliesse ab mit dem Befund im
-   metadata und lege eine neue Karte für die Nacharbeit an.
+   metadata und lege eine neue Karte fuer die Nacharbeit an.
 2. Der Arbeitsbaum von $REPO muss sauber sein. Im ersten Lauf verweigerte der
-   Riegel, weil dort uncommittete Fremdänderungen lagen — eine Verweigerung
+   Riegel, weil dort uncommittete Fremdaenderungen lagen — eine Verweigerung
    ohne Sachbezug. 'git status --short' zuerst; ist er schmutzig und nicht deine
-   Schuld, notier das und melde es, statt aufzuräumen.
+   Schuld, notier das und melde es, statt aufzuraeumen.
 3. Postgres muss laufen: $E2E_VORBED
+4. Es duerfen keine fremden Dev-Server auf den E2E-Ports stehen. Die
+   Playwright-Konfiguration hat 'reuseExistingServer' an — ein alter Server aus
+   einem fremden Worktree wuerde die FALSCHE Anwendung testen, und die Suite
+   waere trotzdem gruen. Genau das ist der schwerste Messbefund des ersten
+   Laufs. Pruefe es, bevor du startest.
 
 WENN ER VERWEIGERT
 Der Riegel hat immer einen Grund und er schreibt ihn ins Protokoll. Zwei Sorten,
 und die Unterscheidung ist dein Urteil:
- · Sachgrund (Konflikt, roter Test, Linter auf neuen Zeilen) → nicht mergen,
-   abschliessen, neue Karte für die Nacharbeit, Befund ins metadata.
+ · Sachgrund (Konflikt, roter Test, Linter auf neuen Zeilen) -> nicht mergen,
+   abschliessen, neue Karte fuer die Nacharbeit, Befund ins metadata.
  · Betriebsgrund (schmutziger Baum, lastempfindlicher Test — bekannt:
-   mcp-internal-api-url.test.ts, gemessen 52,9 s Import unter vier Workern
-   gegen 7,3 s allein) → Ursache benennen, EINMAL sauber nachlaufen lassen,
-   und wenn er dann besteht, mergen. Verweigert er erneut, ist es ein Sachgrund.
+   mcp-internal-api-url.test.ts) -> Ursache benennen, EINMAL sauber nachlaufen
+   lassen, und wenn er dann besteht, mergen. Verweigert er erneut, ist es ein
+   Sachgrund.
 
-Was du NICHT tust: den Riegel überstimmen. Ein Riegel, den man überstimmt, ist
+Was du NICHT tust: den Riegel ueberstimmen. Ein Riegel, den man ueberstimmt, ist
 keiner. Und du benutzt kein --no-verify.
 
 DANACH
-· Das Riegel-Protokoll bleibt als Rohbeleg liegen (reports/riegel-r1-f5.txt,
+· Das Riegel-Protokoll bleibt als Rohbeleg liegen (reports/riegel-r1-f2.txt,
   .txt und nicht .html — AGENTS.md 2.1 nimmt Maschinenprotokolle aus der
-  HTML-Pflicht aus; ein Rohbeleg, den jemand für die Darstellung angefasst hat,
+  HTML-Pflicht aus; ein Rohbeleg, den jemand fuer die Darstellung angefasst hat,
   ist keiner mehr).
-· Ist gemerged: den Worktree des Entwicklers NICHT aufräumen. Er ist Beleg.
+· Ist gemerged: den Worktree des Entwicklers NICHT aufraeumen. Er ist Beleg.
 
 $(metadata_pflicht 'merge-repo-S')
 Dazu ins metadata: das Riegel-Ergebnis (bestanden/verweigert), welche der sechs
-Prüfungen wie ausging, der Merge-Commit auf main, die Testzahlen aus dem
+Pruefungen wie ausging, der Merge-Commit auf main, die Testzahlen aus dem
 Riegel-Lauf.
 
 $(gate_verbot)" \
@@ -585,124 +717,135 @@ $(gate_verbot)" \
 echo "  MERGE= $MERGE"
 
 LETZTE="$MERGE"
-FEATURES="R1-F5"
+FEATURES="F-R1-2 (dazu die Wartungskarte F-R1-5)"
 
 # ===========================================================================
 else   # SPRINT 2
 # ===========================================================================
-SLUG_F1="r1-f1-globale-suche"
-SLUG_F2="r1-f2-zwei-faktor"
-BRANCH_F1="${PRAEFIX}esf-$SLUG_F1"
-BRANCH_F2="${PRAEFIX}esf-$SLUG_F2"
+SLUG_FA="r1-f3-tastatur-command-palette"
+SLUG_FB="r1-f4-e2e-netz-j05-j06"
+BRANCH_FA="${PRAEFIX}esf-$SLUG_FA"
+BRANCH_FB="${PRAEFIX}esf-$SLUG_FB"
 
-# --- Feature R1-F1 · Globaler Sucheinstieg ---------------------------------
-say "S2 F1 1/4  Spezifikation — R1-F1 globaler Sucheinstieg"
-F1_SPEC=$(k create "$S F1 1/4 — Spezifikation R1-F1 globaler Sucheinstieg" \
+# Die beiden Features dieses Sprints stehen in roadmap/q1-freigegeben.html,
+# Abschnitt 4. Sie laufen parallel, weil sie sich nicht beruehren: F-R1-3 baut
+# an der Weboberflaeche, F-R1-4 an der E2E-Suite unter tests/. Genau diese
+# Disjunktheit ist der Grund, dass zwei Worktrees hier vertretbar sind —
+# parallele Git-Arbeit war im ersten Lauf der haeufigste Ausfallgrund.
+
+# --- Feature F-R1-3 · Tastaturbedienung & Command-Palette ------------------
+say "S2 F3 1/4  Spezifikation — F-R1-3 Tastaturbedienung & Command-Palette"
+FA_SPEC=$(k create "$S F3 1/4 — Spezifikation F-R1-3 Tastatur & Command-Palette" \
     --assignee esf-product-manager \
     --workspace "dir:$VAULT" \
-    --idempotency-key "s2-f1-spec" \
+    --idempotency-key "s2-f3-spec" \
     --max-retries 2 --max-runtime 45m \
-    --body "Spezifiziere R1-F1 der freigegebenen Roadmap: den sichtbaren globalen
-Sucheinstieg.
+    --body "Spezifiziere F-R1-3 der freigegebenen Roadmap: Tastaturbedienung und
+eine Command-Palette.
 
-DER AUFTRAG AUS DER ROADMAP (roadmap/q1-freigegeben.html, R1-F1, H1, Score 22,5)
-Nutzeraufgabe K9 — 'eine bestimmte Aufgabe in einem von mehreren Projekten
-finden' — ist heute tastaturgebunden (Kommando-Palette, eigene Such-Route). Das
-ist der grösste Bruch mit dem eigenen Versprechen 'find tasks across projects'
-(analysis/product.html §5, K9). Ziel: ein SICHTBARER Griff.
+DER AUFTRAG AUS DER ROADMAP (roadmap/q1-freigegeben.html, Abschnitt 4, F-R1-3)
+Nutzeraufgabe: 'Aufgabe anlegen / Board wechseln' ohne Maus — senkt die Reibung
+im taeglichen Flow. Beleg aus analysis/market.html H5 (Score 18,5): Plane
+(Power K), Linear und Kanboard liefern das als Kategoriestandard; Kaneo hat
+keine explizite Spur. Bewertet als reine Frontend-Arbeit ohne Datenrisiko
+(risiko_invers 4, aufwand_invers 4). Referenzklasse feature-frontend-M.
+E2E: erweitert J-02 und J-04.
 
-DIE VORHANDENE SUBSTANZ ZUERST — das ist die Hälfte der Arbeit
-Lies analysis/codebase.html und dann im Repo ($REPO) nach, was es schon gibt:
-Kommando-Palette, Such-Route, Such-Endpunkt im API. Deine Spezifikation baut
-darauf auf, statt daneben. Ein zweiter Suchpfad neben dem bestehenden wäre genau
-die Flächenvergrösserung, gegen die Kaneos Versprechen baut
-(roadmap § 'Was wir NICHT machen').
+PRUEFE DIE PRAEMISSE, BEVOR DU SPEZIFIZIERST
+'Kaneo hat keine explizite Spur' stammt aus einer Korpus-Analyse, nicht aus dem
+Code. Sieh selbst nach, ob es schon Tastaturkuerzel gibt (apps/web/src, Suche
+nach keydown, hotkey, cmdk, Shortcut). Findest du welche, ist das kein Grund,
+die Karte abzubrechen — es aendert den Zuschnitt: dann ist die Aufgabe
+Vereinheitlichen und Sichtbarmachen, nicht Neubauen. Schreib den Befund hin.
+Im ersten Lauf hat ein Architekt eine Kartentext-Behauptung geprueft und
+widerlegt; das ist das erwartete Verhalten, nicht die Ausnahme.
 
-Zitiere jede Aussage über den Bestand mit datei.ts:zeile. Wenn du eine Datei
-nicht gefunden hast, schreib das hin statt zu vermuten.
+DEINE ARBEIT — ein Dokument im Vault, kein Code
+Du liest im Repo ($REPO) und aenderst dort nichts.
 
-WAS DIE SPEZIFIKATION LEISTEN MUSS
- · Welche Nutzeraufgabe wird um welche Schritte kürzer? Nenn die Schrittzahl
-   vorher und die Zielzahl. Die Schrittzahl ist die UX-Metrik der Organisation
-   (Kapitel 6), und dieses Feature wird an ihr gemessen.
- · Der sichtbare Griff: wo genau in der Oberfläche, mit welcher Beschriftung,
-   welchem Verhalten bei Klick, welchem Tastaturkürzel (das bestehende bleibt).
- · Was das Feature NICHT tut. Kein Filter-Baukasten, keine gespeicherten
-   Suchen, keine Volltext-Indizierung — es sei denn, du belegst, dass es ohne
-   nicht geht.
- · Akzeptanzkriterien, einzeln abhakbar, jedes von aussen sichtbar prüfbar.
- · Die E2E-Journey J-07 'Aufgabe über die Suche wiederfinden'. Sie ist im
-   Katalog bewusst offen (analysis/journeys.html) und wird mit diesem Feature
-   geschrieben. Beschreib die Schritte, die der Spec nachspielen soll — der
-   Entwickler schreibt ihn, du legst fest, was er beweisen muss.
+SCHREIBE specs/r1-f3-tastatur-command-palette.html. Sie muss beantworten:
+ · Welche Aktionen bekommen ein Kuerzel? Leite sie aus den Kernaufgaben in
+   analysis/product.html ab (K1-K7), nicht aus einer Wunschliste. Jede Aktion
+   mit der Begruendung, warum gerade sie.
+ · Wie oeffnet sich die Command-Palette, und was steht darin? Nenne die
+   konkrete Tastenkombination und begruende sie gegen die Wettbewerber im
+   Korpus.
+ · Konflikte mit Browser- und Betriebssystem-Kuerzeln. Das ist der Abschnitt,
+   den man vergisst und der hinterher weh tut.
+ · Barrierefreiheit: Fokus-Reihenfolge, sichtbarer Fokus, Escape schliesst.
+ · Was NICHT passieren darf: keine Aktion, die nur per Tastatur erreichbar ist;
+   keine Aenderung an der API; kein Kuerzel, das in einem Textfeld feuert.
+ · Akzeptanzkriterien, pruefbar formuliert, jedes einzeln abhakbar.
+   Mindestens: Typecheck gruen, Unit-Tests gruen, volle E2E-Suite gruen,
+   J-02 und J-04 um mindestens je einen Tastaturweg erweitert.
 
-DER ZUSCHNITT IST TEIL DEINER ARBEIT
-Eine Bau-Karte, ein Entwickler, $KARTEN_DECKEL Karten Deckel je Feature. Was in
-eine Bau-Karte passt, ist die Spezifikation; der Rest ist ein Vorschlag für
-später und steht unter 'nicht in diesem Feature'. Ein zu grosser Schnitt fällt
-nicht auf, bis er am Riegel rot ist.
-
-Achtung Parallelität: R1-F2 (2FA) wird GLEICHZEITIG von esf-dev-b gebaut. Halte
-dich von Auth-Dateien fern und benenne im Abschnitt 'Berührungspunkte', welche
-Dateien du erwartest — der Reviewer braucht das.
-
-SCHREIBE nach specs/r1-f1-suche.html.
+ACHTUNG PARALLELITAET
+F-R1-4 (E2E-Netz J-05/J-06) wird GLEICHZEITIG gebaut, von esf-dev-b, in einem
+eigenen Worktree. Beruehrungsflaeche ist tests/e2e/. Deine Spezifikation darf
+verlangen, dass J-02 und J-04 erweitert werden — sie darf NICHT verlangen, dass
+tests/e2e/support/journey.ts umgebaut wird, denn dort arbeitet das andere
+Feature. Braucht dein Feature einen neuen Helfer, schreib hin: eigene Datei,
+nicht journey.ts erweitern.
 
 $(metadata_pflicht 'spec-vault-M')
-Dazu ins metadata: acceptance (die Kriterien als Liste), die erwarteten
-Berührungspunkte im Code, Schrittzahl vorher/Ziel.
+Dazu ins metadata: acceptance (die Kriterien als Liste), die Liste der
+Aktionen mit ihren Kuerzeln, und dein Befund zur geprueften Praemisse.
 
 $(vault_format 'spec')
 
 $(gate_verbot)" \
     --json | jq -r .id)
-echo "  F1_SPEC = $F1_SPEC"
+echo "  FA_SPEC = $FA_SPEC"
 
-say "S2 F1 2/4  Schätzung — R1-F1"
-F1_EST=$(k create "$S F1 2/4 — Schätzung R1-F1" \
+say "S2 F3 2/4  Schätzung — F-R1-3"
+FA_EST=$(k create "$S F3 2/4 — Schätzung F-R1-3" \
     --assignee esf-estimator \
     --workspace "dir:$VAULT" \
-    --parent "$F1_SPEC" \
-    --idempotency-key "s2-f1-estimate" \
+    --parent "$FA_SPEC" \
+    --idempotency-key "s2-f3-estimate" \
     --max-retries 2 --max-runtime 30m \
-    --body "Schätze die zwei Folgekarten von R1-F1 und die Merge-Karte.
-Die Spezifikation steht in deinem Handoff-Kontext.
+    --body "Schaetze die zwei Folgekarten von F-R1-3 und die Merge-Karte.
 
-DAS LEDGER TRÄGT JETZT ECHTE PAARE — das ist der Unterschied zu S1
-ledger/estimates.jsonl enthält nach S1 erstmals (Schätzung, Ist)-Paare, nicht
-nur nachgebuchte Istwerte. Lies auch reports/controller-s1.html: dort steht die
-Schätzgüte-Baseline, also der Faktor Ist/Schätzung je Klasse aus S1.
+DAS LEDGER TRAEGT JETZT ECHTE PAARE
+ledger/estimates.jsonl enthaelt nach S1 erstmals (Schaetzung, Ist)-Paare, nicht
+nur nachgebuchte Istwerte. Das aendert deine Arbeit grundlegend: Du kannst
+erstmals eine VELOCITY rechnen — Ist geteilt durch Schaetzung, je Klasse — und
+deine neue Schaetzung damit korrigieren.
 
-Das ist die CEO-Auflage aus roadmap/q1-freigegeben.html in Aktion: 'Nach dem
-ERSTEN vollständig abgeschlossenen Feature … schätzt der esf-estimator die
-restlichen R1-Features neu, bevor sie starten.' Du bist diese Neuschätzung.
+    $HERE/scripts/check-sprint.sh S1
 
-DESHALB GILT HIER EINE ZUSÄTZLICHE PFLICHT
-Nenn je Klasse den Faktor aus S1 und wende ihn an. Hat S1 die Klasse
-impl-worktree-M um Faktor 1,8 unterschätzt, dann steht in deiner Schätzung, dass
-du 1,8 angewendet hast — und nicht ein glatteres Ergebnis, das besser aussieht.
-Deine SOUL sagt es: eine Schätzung, die nach unten angepasst wird, um zu
-gefallen, ist der Plan, der sich selbst belügt.
+zeigt dir die Paare von S1. Lies auch reports/controller-s1.html, wenn es
+schon liegt: Der Controller hat dort ausgerechnet, wo S1 daneben lag.
 
-Die Konfidenz darf jetzt steigen — aber nur soweit die Datenmenge es hergibt.
-Eine Klasse mit zwei Paaren bleibt unter 0.4, auch wenn die beiden gut trafen.
-Schreib die Zahl hin, aus der du die Konfidenz ableitest (n).
+Drei Dinge, die du dabei ehrlich halten musst:
+  · n ist immer noch klein. Eine Velocity aus einem Sprint ist ein Hinweis,
+    keine Verteilung. Sag es hin.
+  · Pruefe bei jeder Ledger-Zeile das Feld 'runs'. Eine Karte mit zwei Laeufen
+    traegt die Wiederholung in ihrer Wanduhrzeit; sie als Normalfall zu nehmen
+    schaetzt zu hoch.
+  · Die Klasse dieses Features ist feature-frontend-M, die von S1 war
+    feature-frontend-S. Der Sprung von S nach M ist eine Behauptung ueber den
+    Umfang. Belege ihn an der Spezifikation (Zahl der Aktionen, Zahl der
+    beruehrten Komponenten), nicht am Buchstaben.
 
-SCHÄTZE:
-  Karte                    Referenzklasse       Grundlage
+SCHAETZE DIESE DREI KARTEN, jede einzeln, jede mit ihrer Klasse:
+
+  Karte                    Referenzklasse       naechste Nachbarn im Ledger
   ---------------------------------------------------------------------------
-  $S F1 3/4 Umsetzung      impl-worktree-M      S1-Paar + Backfill
-  $S F1 4/4 Review         review-repo-M        S1-Paar + Backfill
-  $S Merge F1              merge-repo-S         S1-Paar
+  $S F3 3/4 Umsetzung      impl-worktree-M      impl-worktree-S (aus S1, mit Paar)
+  $S F3 4/4 Review         review-repo-M        review-repo-S (aus S1, mit Paar)
+  $S Merge F3              merge-repo-S         merge-repo-S (aus S1, mit Paar)
 
-tokens_k und cost_usd bleiben 'null' — je Karte gibt es keine Zahl, der
-OpenRouter-Zähler läuft je Rolle kumulativ. Was du STATTDESSEN liefern kannst
-und sollst: ein Wort dazu, was S1 laut ledger/kosten-je-rolle.jsonl an
-Rollenkosten verursacht hat, falls die Datei Zahlen trägt.
+tokens_k und cost_usd: 'null'. Hermes v0.20.0 misst keine Tokens, und der
+OpenRouter-Zaehler laeuft je Rolle kumulativ.
 
-SCHREIBE reports/schaetzung-r1-f1.html und die Schätzungen ins
-Abschluss-metadata unter 'estimates', je Folgekarte eine, mit dem Kartentitel
-als Schlüssel.
+SCHREIBE ZWEIERLEI
+1. reports/schaetzung-r1-f3.html (esf-typ 'report'): die drei Intervalle, die
+   Klassen, die Ledger-Zeilen mit task_id, die gerechnete Velocity je Klasse
+   und die Konfidenz je Schaetzung.
+2. Ins Abschluss-metadata ein Objekt 'estimates' mit den drei Schaetzungen, je
+   Karte eines, mit genau den Kartentiteln oben als Schluessel — plus unter
+   'estimate' die Schaetzung DIESER Karte (reference_class 'estimate-vault-S').
 
 $(metadata_pflicht 'estimate-vault-S')
 
@@ -710,243 +853,234 @@ $(vault_format 'report')
 
 $(gate_verbot)" \
     --json | jq -r .id)
-echo "  F1_EST  = $F1_EST"
+echo "  FA_EST  = $FA_EST"
 
-say "S2 F1 3/4  Umsetzung — R1-F1  (esf-dev-a)"
-F1_IMPL=$(k create "$S F1 3/4 — Umsetzung R1-F1 globaler Sucheinstieg" \
+say "S2 F3 3/4  Umsetzung — F-R1-3  (esf-dev-a)"
+FA_IMPL=$(k create "$S F3 3/4 — Umsetzung F-R1-3 Tastatur & Command-Palette" \
     --assignee esf-dev-a \
-    --workspace "worktree:$REPO" --branch "$BRANCH_F1" \
-    --parent "$F1_EST" \
-    --idempotency-key "s2-f1-impl" \
+    --workspace "worktree:$REPO" --branch "$BRANCH_FA" \
+    --parent "$FA_EST" \
+    --idempotency-key "s2-f3-impl" \
     --max-retries 2 --max-runtime 120m \
     --skill test-driven-development \
-    --body "Setze R1-F1 um: den sichtbaren globalen Sucheinstieg nach
-specs/r1-f1-suche.html.
+    --body "Setze F-R1-3 um: Tastaturbedienung und Command-Palette nach
+specs/r1-f3-tastatur-command-palette.html.
 
 DEIN BAUM
-Eigener Worktree, Branch '$BRANCH_F1'. Du mergst NICHT.
+Eigener Worktree, Branch '$BRANCH_FA'. Du mergst NICHT.
 
 $(env_hinweis)
 
-$(ak8)
+ACHTUNG PARALLELITAET — das ist die wichtigste Zeile dieser Karte
+esf-dev-b baut GLEICHZEITIG F-R1-4 (die Journeys J-05 und J-06) in einem
+eigenen Worktree. Eure Beruehrungsflaeche ist tests/e2e/.
+ · Du fasst tests/e2e/support/journey.ts NICHT an. Brauchst du einen Helfer,
+   leg eine eigene Datei an.
+ · Du fasst die Spec-Dateien von J-05 und J-06 nicht an — die entstehen drueben.
+ · J-02 und J-04 gehoeren dir.
+Im ersten Lauf war parallele Git-Arbeit der haeufigste Ausfallgrund; die
+Trennung oben ist der Grund, warum dieser Sprint sie trotzdem wagt.
 
-PARALLELBETRIEB — lies das, bevor du eine Datei anfasst
-esf-dev-b baut GLEICHZEITIG R1-F2 (2FA) in einem anderen Worktree. Zwei
-Feature-Branches, ein main. Deshalb:
- · Bleib in den Dateien, die deine Spezifikation unter 'Berührungspunkte'
-   nennt. Brauchst du eine darüber hinaus, schreib sie ins metadata unter
-   'zusaetzlich_beruehrt' — der Reviewer und der Riegel brauchen das, weil ein
-   Merge-Konflikt zwischen euch beiden hier entsteht und nicht im Code.
- · Fass keine Auth-Dateien an. Die gehören dem anderen Feature.
- · Rebase nicht auf main und merge nicht von main. Dein Branch startet, wo er
-   startet.
-
-DIE ARBEIT
-1. Lies erst, was es schon gibt — die Spezifikation nennt die Fundstellen. Baue
-   auf dem bestehenden Suchpfad auf, leg keinen zweiten daneben.
-2. TDD, wie dein Skill es verlangt: erst der fallende Test, dann der Code.
-   Bei einem UI-Feature ist der E2E-Spec dieser Test.
-3. Die E2E-Journey J-07 ist Pflicht, nicht Zugabe (Kapitel 6: 'ein Feature ohne
-   grüne E2E-Journey merged nicht'). Schreib
-   $E2E_DIR/aufgabe-ueber-suche-finden.spec.ts nach dem Vorbild der vorhandenen
-   Specs — nummerierte Schritt-Kommentare, sichtbare Nutzerschritte, keine
-   Implementierungsdetails.
-
-   Zwei Fallen, die dort schon dokumentiert sind:
-   · Das Passwort-Label zeigt per 'for' auf den Wrapper-<div>. Nimm
-     input[name=\"password\"], nicht getByLabel('Password').
-   · Ein frisches Konto landet auf /onboarding. Erst nach 'Arbeitsbereich
-     anlegen' geht es weiter. tests/e2e/support/journey.ts hat die Helfer.
-4. Volle Suite grün:
+REIHENFOLGE
+1. Erst messen: 'pnpm typecheck && pnpm test' — Zahlen notieren.
+2. Umbauen in kleinen Schritten, nach der Spezifikation. Nach jedem Schritt
+   typecheck.
+3. Die Kuerzel in J-02 und J-04 mitfuehren, dann:
      $E2E_VORBED
      $E2E_BEFEHL
-   Vorher waren es 8 Tests. Mit J-07 sind es mehr — nenn die Zahl.
-5. Commit auf deinen Branch, Conventional Commits in Kleinschreibung. Der
+   Die volle Suite muss gruen sein.
+4. Commit auf deinen Branch, Conventional Commits in Kleinschreibung. Der
    Pre-Commit-Hook lintet deine gestageten Dateien. Umgehe ihn nicht.
 
+EIN GEMESSENER STOLPERSTEIN
+Ein Kuerzel, das in einem Textfeld feuert, ist der klassische Fehler dieser
+Art von Feature — und die E2E-Suite tippt viel in Textfelder. Faellt eine
+bestehende Journey nach deinem Umbau, ist das mit hoher Wahrscheinlichkeit
+kein flaky Test, sondern genau dieser Fehler. Sieh hin, bevor du wiederholst.
+
 WENN DU NICHT DURCHKOMMST
-Weniger, aber grün. 'deliberately_not_done' mit Grund ins metadata. Prüf jede
-Behauptung, die du aus dem Kartentext übernimmst — im ersten Lauf ist eine
-falsche Prämisse aus einem Kartentext ins Abschluss-metadata gewandert und sah
-dort wie ein Befund aus.
+Liefere weniger, aber gruen. Drei Kuerzel, die sitzen, schlagen zehn, die
+kollidieren. Was du weggelassen hast, ins metadata unter
+'deliberately_not_done' mit Grund.
 
 $(metadata_pflicht 'impl-worktree-M')
-Dazu ins metadata: geänderte und angelegte Dateien, 'zusaetzlich_beruehrt',
-Testergebnis vor/nach mit Zahlen, die neue Schrittzahl der Journey J-07, der
-Commit-Hash, je Akzeptanzkriterium ein Häkchen mit Beleg.
+Dazu ins metadata: geaenderte Dateien, Testergebnis vor und nach (Zahlen),
+E2E-Ergebnis, Commit-Hash, je Akzeptanzkriterium ein Haekchen mit Beleg, und
+die Liste der Dateien unter tests/, die du beruehrt hast (der Merge-Wart
+braucht sie, um die Schnittmenge mit F-R1-4 zu beurteilen).
 
 $(gate_verbot)" \
     --json | jq -r .id)
-echo "  F1_IMPL = $F1_IMPL"
+echo "  FA_IMPL = $FA_IMPL"
 
-say "S2 F1 4/4  Review — R1-F1"
-F1_REV=$(k create "$S F1 4/4 — Review R1-F1" \
+say "S2 F3 4/4  Review — F-R1-3"
+FA_REV=$(k create "$S F3 4/4 — Review F-R1-3" \
     --assignee esf-reviewer \
     --workspace "dir:$REPO" \
-    --parent "$F1_IMPL" --parent "$F1_EST" \
-    --idempotency-key "s2-f1-review" \
+    --parent "$FA_IMPL" --parent "$FA_EST" \
+    --idempotency-key "s2-f3-review" \
     --max-retries 2 --max-runtime 60m \
-    --body "Prüfe R1-F1 auf Branch '$BRANCH_F1'.
+    --body "Pruefe die Umsetzung von F-R1-3 auf Branch '$BRANCH_FA'.
 
 DEIN ORT
-Hauptbaum ($REPO). Kein 'git checkout $BRANCH_F1' — der Branch ist von einem
-Worktree beansprucht, das scheitert hart. 'git log/diff/show' und Lesen im
-fremden Baum unter .worktrees/.
+HAUPTBAUM ($REPO). Der Branch ist von einem Worktree beansprucht — ein
+'git checkout' scheitert hart. Nimm 'git log/diff/show $BRANCH_FA' und lies im
+fremden Baum unter .worktrees/, ohne ihn anzufassen.
 
-WAS DU PRÜFST
-1. Jedes Akzeptanzkriterium der Spezifikation einzeln, mit der Fundstelle,
-   AN DER du es geprüft hast. 'Sieht erfüllt aus' ist keine Prüfung.
-2. Ist der Griff wirklich sichtbar? Das ist der Kern des Features: eine Suche,
-   die man nur mit der Tastatur erreicht, hat das Problem nicht gelöst. Prüf
-   das an der Komponente, nicht an der Beschreibung.
-3. Ist ein ZWEITER Suchpfad entstanden, wo einer hätte genügt? Das wäre die
-   Flächenvergrösserung, die die Roadmap ausdrücklich ausschliesst. Nenn die
-   Dateien.
-4. Führe die Tests SELBST aus, im Baum des Entwicklers:
+WAS DU PRUEFST
+1. Feuert ein Kuerzel in einem Textfeld? Das ist der teuerste Fehler dieser
+   Feature-Art. Sieh dir die Event-Handler an: Wird auf das Ziel des Ereignisses
+   geprueft (INPUT, TEXTAREA, contenteditable)? Fehlt die Pruefung, ist das ein
+   Befund, auch wenn alle Tests gruen sind.
+2. Kollidiert ein Kuerzel mit Browser oder Betriebssystem? Die Spezifikation
+   hat einen Abschnitt dazu; geh die Liste durch.
+3. Ist jede Aktion AUCH ohne Tastatur erreichbar? Die Spezifikation verbietet
+   Nur-Tastatur-Aktionen. Eine versteckte Funktion ist keine Bedienhilfe.
+4. Barrierefreiheit: sichtbarer Fokus, Escape schliesst die Palette,
+   Fokus-Reihenfolge sinnvoll.
+5. Jedes Akzeptanzkriterium einzeln, mit der Angabe, WORAN du es geprueft hast.
+6. Fuehre die Tests SELBST aus, im Baum des Entwicklers:
      cd $REPO/.worktrees/<sein-verzeichnis>
      pnpm typecheck && pnpm test
      $E2E_VORBED
      $E2E_BEFEHL
-   Und lies den neuen Spec J-07: Spielt er die Nutzeraufgabe nach oder prüft er
-   die Implementierung? Ein Spec, der Selektoren prüft statt Aufgaben, ist ein
-   Befund.
-5. Berührt das Feature Dateien, die R1-F2 (2FA, esf-dev-b, Branch
-   '$BRANCH_F2') auch anfasst? Das ist der wahrscheinlichste Weg, auf dem der
-   Merge nachher scheitert. Vergleiche
-     git diff --name-only main..$BRANCH_F1
-     git diff --name-only main..$BRANCH_F2
-   und melde die Schnittmenge — auch wenn sie leer ist, dann als geprüft.
-6. Ist main unberührt?
+7. Hat er die Grenze zu F-R1-4 eingehalten? tests/e2e/support/journey.ts und
+   die Spec-Dateien von J-05/J-06 gehoeren ihm NICHT. 'git diff main..$BRANCH_FA
+   --name-only' zeigt es. Ein Verstoss ist ein Befund, auch wenn er harmlos
+   aussieht — er erzeugt den Merge-Konflikt, den dieser Sprint vermeiden will.
+8. Ist main unberuehrt?
 
-Störfaktor, nicht Befund: mcp-internal-api-url.test.ts ist lastempfindlich.
-Fällt genau dieser und sonst nichts, allein nachlaufen lassen.
+Dein Urteil ist 'approved' oder 'changes_requested', im metadata unter
+'verdict', mit den Befunden als Liste. Du reparierst nichts selbst.
+
+Bekannter Stoerfaktor: mcp-internal-api-url.test.ts ist lastempfindlich.
+Faellt genau der und sonst nichts, lauf ihn allein nach.
 
 $(metadata_pflicht 'review-repo-M')
-Dazu ins metadata: verdict ('approved' | 'changes_requested'), Befunde als
-Liste, selbst gemessene Testzahlen, die Schnittmenge aus Punkt 5.
+Dazu ins metadata: verdict, Befunde, selbst gemessenes Testergebnis (Zahlen),
+und die Liste der von diesem Branch beruehrten Dateien unter tests/.
 
 $(gate_verbot)" \
     --json | jq -r .id)
-echo "  F1_REV  = $F1_REV"
+echo "  FA_REV  = $FA_REV"
 
-# --- Feature R1-F2 · 2FA ---------------------------------------------------
-say "S2 F2 1/4  Spezifikation — R1-F2 Zwei-Faktor-Authentifizierung"
-F2_SPEC=$(k create "$S F2 1/4 — Spezifikation R1-F2 Zwei-Faktor-Authentifizierung" \
-    --assignee esf-product-manager \
+# --- Feature F-R1-4 · E2E-Netz J-05 + J-06 ---------------------------------
+say "S2 F4 1/4  Spezifikation — F-R1-4 E2E-Netz J-05 + J-06"
+# Der QA-Eigner und nicht der Product Manager: Das Ergebnis dieses Features IST
+# die Suite. Wer sie besitzt, sagt auch, was sie abdecken muss.
+FB_SPEC=$(k create "$S F4 1/4 — Spezifikation F-R1-4 E2E-Netz J-05 + J-06" \
+    --assignee esf-qa-release \
     --workspace "dir:$VAULT" \
-    --idempotency-key "s2-f2-spec" \
+    --idempotency-key "s2-f4-spec" \
     --max-retries 2 --max-runtime 45m \
-    --body "Spezifiziere R1-F2 der freigegebenen Roadmap: Zwei-Faktor-
-Authentifizierung.
+    --body "Spezifiziere F-R1-4 der freigegebenen Roadmap: die Journeys J-05 und
+J-06 e2e-fest machen.
 
-DER AUFTRAG AUS DER ROADMAP (roadmap/q1-freigegeben.html, R1-F2, H4, Score 17,0)
-Security ist im Selbst-Hosting-Segment Einlasskarte, kein USP: Kanboard liefert
-fast nur Härtung, Vikunja 'Ten security fixes', Plane drei GHSA-Fixes, Huly 2FA
-(analysis/market.html H4). Der selbsthostende Administrator sichert den Zugang.
-Risikohinweis aus der Roadmap: Auth ist sicherheitskritisch, ein Fehl-Update
-sperrt Nutzer aus — Review-Pflicht (analysis/codebase.html §6.3).
+DER AUFTRAG AUS DER ROADMAP (roadmap/q1-freigegeben.html, Abschnitt 4, F-R1-4)
+J-05 'Teammitglied einladen' (K5) und J-06 'Vorgang bis ins Detail pflegen'
+(K4) stehen im Katalog analysis/journeys.html als 'offen' mit '—' als
+Spec-Datei. Beleg fuer die Dringlichkeit: analysis/codebase.html §4 und §5.6 —
+apps/web/src umfasst rund 62.600 Zeilen bei 35 Testdateien und praktisch keinem
+Component-Rendering. Und: J-05 ist Voraussetzung dafuer, dass J-03 die Zuweisung
+an ein ZWEITES Mitglied ueberhaupt testen kann; heute faellt die Zuweisung auf
+den Anwender selbst zurueck. Referenzklasse e2e-M.
 
-DER ZUSCHNITT IST HIER DIE WICHTIGSTE ENTSCHEIDUNG, NICHT EINE NEBENFRAGE
-'2FA' ist ein Wort für sehr unterschiedlich grosse Vorhaben. Was in EINE
-Bau-Karte passt, ist die Spezifikation; alles andere ist ein Vorschlag für
-später. Der Deckel ist $KARTEN_DECKEL Karten je Feature und dieses Feature hat
-eine einzige Bau-Karte.
+DAS BESONDERE AN DIESEM FEATURE
+Sein Ergebnis ist kein Produktcode, sondern das Regressionsnetz selbst. Es gibt
+deshalb keine 'erweiterte Journey' — die Journeys ENTSTEHEN hier. Was sonst die
+Akzeptanz sichert, ist hier der Liefergegenstand. Schreib das ausdruecklich in
+die Spezifikation, damit der Reviewer nicht nach einer Absicherung sucht, die
+es nicht getrennt gibt.
 
-Nimm deshalb ausdrücklich Stellung zu diesen Schnitten, jeweils mit Begründung
-am Bestand (analysis/codebase.html und die Auth-Dateien im Repo, zitiert mit
-datei.ts:zeile):
- · TOTP (Authenticator-App) — die kleinste Fläche, kein Mailversand, kein SMS.
- · Opt-in je Nutzer gegen erzwungen für alle — erzwungen ist ein Breaking
-   Change gegenüber Bestandsnutzern und damit gate-pflichtig (Kapitel 7). Für
-   dieses Release: opt-in.
- · Wiederherstellungs-Codes — was passiert, wenn das Gerät weg ist? Ohne
-   Antwort darauf ist 2FA ein Aussperr-Mechanismus. Wenn du sie in diesem
-   Schnitt nicht unterbringst, MUSS die Spezifikation sagen, wie ein
-   ausgesperrter Administrator wieder hereinkommt (z.B. ein Skript-Pfad) —
-   und dass das eine bewusste Einschränkung ist.
- · Welche Auth-Wege es überhaupt gibt (lokal, OAuth-Anbieter?) und für welche
-   das Feature gilt.
+DEINE ARBEIT — ein Dokument im Vault, kein Code
+Du liest im Repo ($REPO) und aenderst dort nichts.
 
-Kommst du zu dem Schluss, dass ein tragfähiger 2FA-Schnitt NICHT in eine
-Bau-Karte passt, dann ist das ein Ergebnis und keine Niederlage: Schreib die
-Spezifikation für den kleinsten tragfähigen Schnitt, benenne im metadata unter
-'zu_gross_fuer_eine_karte' was du herausgeschnitten hast, und begründe es. Ein
-überdehnter Schnitt fällt erst am Riegel auf, und dann teuer.
+SCHREIBE specs/r1-f4-e2e-netz-j05-j06.html. Sie muss beantworten:
+ · Je Journey: die Schritte, die eine Spec nachspielen muss, in der Sprache des
+   Anwenders. Grundlage sind analysis/product.html (K4, K5) und die
+   Schrittanalyse in analysis/journeys.html.
+ · Der Zustellkanal von J-05. Aus product.html: Ohne SMTP bleibt das
+   Invite-Modal offen und zeigt den Einladungslink zum manuellen Verteilen
+   (invite-team-member-modal.tsx:105-125). Genau das macht die Journey ohne
+   Mailserver autonom testbar — sag hin, wie die Spec an den Link kommt.
+ · Wie J-05 zwei Konten braucht und wie die Spec das zuverlaessig herstellt.
+   Das ist der schwierigste Teil und der Grund, warum diese Journey bisher
+   offen ist.
+ · Die Dateinamen der beiden neuen Specs unter $E2E_DIR, im Stil der
+   bestehenden (Kleinschreibung, Bindestriche, deutsche Nutzeraufgabe).
+ · Was NICHT passieren darf: kein Produktcode geaendert, kein bestehender Spec
+   angefasst, tests/e2e/support/journey.ts NICHT umgebaut (dort arbeitet
+   F-R1-3 parallel) — Helfer nur additiv in eigener Datei.
+ · Akzeptanzkriterien, pruefbar: beide Specs existieren, die volle Suite laeuft
+   gruen, analysis/journeys.html fuehrt J-05 und J-06 mit ihrer Spec-Datei
+   statt mit '—'.
 
-WAS DIE SPEZIFIKATION LEISTEN MUSS
- · Der Ablauf aus Nutzersicht: Einrichten, Anmelden mit zweitem Faktor,
-   Abschalten. Je Schritt, was sichtbar passiert.
- · Datenhaltung: welches Feld, welche Tabelle, verschlüsselt oder nicht,
-   Migration ja/nein. Eine Migration ist irreversibel gegenüber
-   Bestandsinstallationen — steht sie in deinem Schnitt, sag es ausdrücklich.
- · Was das Feature NICHT tut.
- · Akzeptanzkriterien, einzeln abhakbar, von aussen prüfbar. Mindestens eines
-   muss den Aussperr-Fall abdecken.
- · Die E2E-Journey: eine neue Journey (Auth-Härtung), die J-01 (Konto anlegen)
-   erweitert. Beschreib die Schritte. TOTP im Test heisst: der Spec muss den
-   Code selbst berechnen können — nenn die Bibliothek, mit der das geht, oder
-   schreib hin, dass das zu klären ist.
-
-Achtung Parallelität: R1-F1 (Suche) wird GLEICHZEITIG von esf-dev-a gebaut.
-Benenne im Abschnitt 'Berührungspunkte' die Dateien, die du erwartest.
-
-SCHREIBE nach specs/r1-f2-zwei-faktor.html.
+EIN GEMESSENER STOLPERSTEIN, DEN DU EINPLANEN MUSST
+tests/e2e/support/journey.ts enthaelt in arbeitsbereichAnlegen seit Phase 1
+eine Schleife ueber fuenf Versuche gegen ein Rennen mit React Hook Form. Das ist
+Toleranz gegen Flakiness und kann echte Fehler verdecken. Deine Specs duerfen
+sich nicht auf weitere solche Schleifen stuetzen. Verlange in den
+Akzeptanzkriterien, dass jede Wartebedingung an einem SICHTBAREN Zustand haengt
+(ein Element, ein URL-Wechsel), nicht an einer Wiederholung.
 
 $(metadata_pflicht 'spec-vault-M')
-Dazu ins metadata: acceptance, die erwarteten Berührungspunkte,
-'zu_gross_fuer_eine_karte' falls zutreffend, und ob eine Datenmigration
-enthalten ist (das entscheidet, ob später ein Irreversibel-Gate nötig wird).
+Dazu ins metadata: acceptance als Liste, die beiden geplanten Dateinamen, und
+die Schritte je Journey als Liste.
 
 $(vault_format 'spec')
 
 $(gate_verbot)" \
     --json | jq -r .id)
-echo "  F2_SPEC = $F2_SPEC"
+echo "  FB_SPEC = $FB_SPEC"
 
-say "S2 F2 2/4  Schätzung — R1-F2"
-F2_EST=$(k create "$S F2 2/4 — Schätzung R1-F2" \
+say "S2 F4 2/4  Schätzung — F-R1-4"
+FB_EST=$(k create "$S F4 2/4 — Schätzung F-R1-4" \
     --assignee esf-estimator \
     --workspace "dir:$VAULT" \
-    --parent "$F2_SPEC" \
-    --idempotency-key "s2-f2-estimate" \
+    --parent "$FB_SPEC" \
+    --idempotency-key "s2-f4-estimate" \
     --max-retries 2 --max-runtime 30m \
-    --body "Schätze die zwei Folgekarten von R1-F2 und die Merge-Karte.
-Die Spezifikation steht in deinem Handoff-Kontext.
+    --body "Schaetze die zwei Folgekarten von F-R1-4 und die Merge-Karte.
 
-GRUNDLAGE
-ledger/estimates.jsonl (jetzt mit echten Paaren aus S1) und
-reports/controller-s1.html (die Schätzgüte-Baseline). Du bist Teil der
-CEO-Auflage: Neuschätzung der restlichen R1-Features nach der ersten
-Kalibrierung.
+DEINE BESTE UND SCHLECHTESTE ZEILE IST DIESELBE
+Fuer die Klasse e2e-repo gibt es genau einen Ledger-Eintrag: die E2E-Karte aus
+Phase 1, 103 Minuten, Klasse e2e-repo-L. Und sie ist verzerrt — 'runs: 2', weil
+der erste Lauf in die Zeitgrenze lief (timed_out bei 5406 s gegen 5400 s) und
+der zweite die Vorarbeit erbte. Gut die Haelfte der 103 Minuten ist
+Wiederholung.
 
-SCHÄTZE:
-  Karte                    Referenzklasse       Grundlage
+Das ist keine Ausrede, sondern deine Rechenaufgabe: Schaetze, was EIN Lauf
+gekostet haette, und sag, wie du das aufteilst. Nenn beide Zahlen — die
+gemessene und die bereinigte — und begruende die Bereinigung. Wer eine verzerrte
+Zeile ungefiltert weiterreicht, vergiftet jede kuenftige Schaetzung dieser
+Klasse.
+
+Zweiter Massstab: Jene Karte schrieb DREI Specs (J-02, J-03, J-04) und baute
+das Harness mit. Dieses Feature schreibt ZWEI Specs auf ein fertiges Harness.
+Rechne den Abstand vor.
+
+Dazu traegt das Ledger nach S1 erstmals echte (Schaetzung, Ist)-Paare. Nutze
+sie fuer die Velocity, auch wenn sie aus anderen Klassen stammen:
+
+    $HERE/scripts/check-sprint.sh S1
+
+SCHAETZE DIESE DREI KARTEN:
+
+  Karte                    Referenzklasse       naechste Nachbarn im Ledger
   ---------------------------------------------------------------------------
-  $S F2 3/4 Umsetzung      impl-worktree-M      S1-Paar + Backfill
-  $S F2 4/4 Review         review-repo-M        S1-Paar + Backfill
-  $S Merge F2              merge-repo-S         S1-Paar
+  $S F4 3/4 Umsetzung      e2e-repo-M           e2e-repo-L (verzerrt, runs=2)
+  $S F4 4/4 Review         review-repo-M        review-repo-S (aus S1, mit Paar)
+  $S Merge F4              merge-repo-S         merge-repo-S (aus S1, mit Paar)
 
-EINE BESONDERHEIT, die du nicht glattbügeln darfst
-R1-F2 ist Auth: sicherheitskritisch, mit Datenhaltung und möglicherweise einer
-Migration. Die Klasse impl-worktree-M deckt das nicht sauber ab — die S1-Karte
-in dieser Klasse war eine Umstrukturierung ohne Verhaltensänderung. Zwei
-ehrliche Möglichkeiten, und du entscheidest sichtbar:
- · Neue Klasse 'impl-worktree-auth-M' aufmachen, ohne Historie, mit breitem
-   Intervall — deine SOUL sagt: 'A new class is a decision you write down.'
- · Bei impl-worktree-M bleiben und einen Aufschlag begründen, mit der Zahl.
-Was du nicht tust: die Klasse benutzen, als passte sie, und den Unterschied
-nicht erwähnen.
+tokens_k und cost_usd: 'null'.
 
-Nenn ausserdem, ob die Spezifikation ein 'zu_gross_fuer_eine_karte' meldet.
-Wenn ja, ist das die wichtigste Zeile deiner Schätzung: eine p90, die über dem
---max-runtime der Bau-Karte (120 min) liegt, sagt voraus, dass die Karte
-abgebrochen wird. Schreib das hin, statt es zu unterschätzen. Genau dafür bist
-du eine eigene Rolle.
-
-tokens_k und cost_usd bleiben 'null'.
-
-SCHREIBE reports/schaetzung-r1-f2.html und die Schätzungen ins
-Abschluss-metadata unter 'estimates', mit dem Kartentitel als Schlüssel.
+SCHREIBE ZWEIERLEI
+1. reports/schaetzung-r1-f4.html (esf-typ 'report'): die drei Intervalle, die
+   Klassen, die Ledger-Zeilen mit task_id, die Bereinigung der verzerrten Zeile
+   mit Rechnung, die Konfidenz je Schaetzung.
+2. Ins Abschluss-metadata ein Objekt 'estimates' mit den drei Schaetzungen, je
+   Karte eines, mit genau den Kartentiteln oben als Schluessel — plus unter
+   'estimate' die Schaetzung DIESER Karte (reference_class 'estimate-vault-S').
 
 $(metadata_pflicht 'estimate-vault-S')
 
@@ -954,225 +1088,226 @@ $(vault_format 'report')
 
 $(gate_verbot)" \
     --json | jq -r .id)
-echo "  F2_EST  = $F2_EST"
+echo "  FB_EST  = $FB_EST"
 
-say "S2 F2 3/4  Umsetzung — R1-F2  (esf-dev-b)"
-F2_IMPL=$(k create "$S F2 3/4 — Umsetzung R1-F2 Zwei-Faktor-Authentifizierung" \
+say "S2 F4 3/4  Umsetzung — F-R1-4  (esf-dev-b)"
+FB_IMPL=$(k create "$S F4 3/4 — Umsetzung F-R1-4 E2E-Netz J-05 + J-06" \
     --assignee esf-dev-b \
-    --workspace "worktree:$REPO" --branch "$BRANCH_F2" \
-    --parent "$F2_EST" \
-    --idempotency-key "s2-f2-impl" \
+    --workspace "worktree:$REPO" --branch "$BRANCH_FB" \
+    --parent "$FB_EST" \
+    --idempotency-key "s2-f4-impl" \
     --max-retries 2 --max-runtime 120m \
     --skill test-driven-development \
-    --body "Setze R1-F2 um: Zwei-Faktor-Authentifizierung nach
-specs/r1-f2-zwei-faktor.html.
+    --body "Setze F-R1-4 um: die Journeys J-05 und J-06 nach
+specs/r1-f4-e2e-netz-j05-j06.html als Playwright-Specs bauen.
 
 DEIN BAUM
-Eigener Worktree, Branch '$BRANCH_F2'. Du mergst NICHT.
+Eigener Worktree, Branch '$BRANCH_FB'. Du mergst NICHT.
 
 $(env_hinweis)
 
-$(ak8)
+ACHTUNG PARALLELITAET — das ist die wichtigste Zeile dieser Karte
+esf-dev-a baut GLEICHZEITIG F-R1-3 (Tastatur & Command-Palette) in einem
+eigenen Worktree. Eure Beruehrungsflaeche ist tests/e2e/.
+ · Du fasst tests/e2e/support/journey.ts NICHT an. Brauchst du Helfer, leg eine
+   eigene Datei an (z.B. tests/e2e/support/einladung.ts).
+ · Du fasst die Specs von J-02 und J-04 nicht an — die gehoeren drueben.
+ · J-05 und J-06 gehoeren dir.
+ · Du aenderst KEINEN Produktcode. Dieses Feature testet, es baut nicht.
+   Findest du beim Testen einen echten Produktfehler: nicht beheben, sondern
+   ins metadata unter 'gefunden_nicht_gemacht'. Daraus wird eine eigene Karte.
 
-PARALLELBETRIEB
-esf-dev-a baut GLEICHZEITIG R1-F1 (globale Suche) in einem anderen Worktree.
-Bleib in den Auth-Dateien deiner Spezifikation. Kein Rebase, kein Merge von
-main. Zusätzlich berührte Dateien ins metadata unter 'zusaetzlich_beruehrt'.
+DIE HARTE REGEL DIESER KARTE
+Keine Wartebedingung, die auf Wiederholung setzt. Jede Erwartung haengt an
+einem sichtbaren Zustand — ein Element, ein URL-Wechsel, ein Text. Der
+bestehende Helfer arbeitsbereichAnlegen enthaelt eine Schleife ueber fuenf
+Versuche; sie ist gemessene Toleranz gegen ein React-Hook-Form-Rennen und
+bleibt, wie sie ist. Bau keine zweite. Eine Suite, die Fehler wegwiederholt,
+ist kein Regressionsnetz.
 
-DIE HÄRTESTE ANFORDERUNG DIESER KARTE
-Niemand darf sich aussperren können. 2FA, die eine Anmeldung unmöglich macht,
-ist schlimmer als keine 2FA. Der Aussperr-Fall aus der Spezifikation ist ein
-Akzeptanzkriterium wie jedes andere, und er wird getestet.
-
-DIE ARBEIT
-1. Lies erst den bestehenden Auth-Pfad. Die Spezifikation nennt die
-   Fundstellen; prüf sie nach, statt sie zu glauben.
-2. TDD: erst der fallende Test. Bei Auth heisst das Unit-Tests für die
-   TOTP-Prüfung UND den E2E-Spec — die Verifikationslogik ist genau die Sorte
-   Code, die man nicht durch Ausprobieren im Browser absichert.
-3. Die neue E2E-Journey ist Pflicht: $E2E_DIR/<slug>.spec.ts, nach dem Vorbild
-   der vorhandenen Specs, nummerierte Schritt-Kommentare.
-   Die dokumentierten Fallen: Passwort-Label zeigt auf den Wrapper-<div> (nimm
-   input[name=\"password\"]); ein frisches Konto landet auf /onboarding.
-   tests/e2e/support/journey.ts hat die Helfer.
-   Für TOTP im Test brauchst du den Code deterministisch — nimm dieselbe
-   Bibliothek wie die Implementierung, statt Zeit zu simulieren.
-4. Migration, falls deine Spezifikation eine enthält: das Schema-Werkzeug des
-   Repos benutzen, nicht von Hand am SQL schrauben. Und die Migration muss auf
-   einer bestehenden Datenbank laufen, nicht nur auf einer frischen — prüf das.
-5. Volle Suite grün:
+REIHENFOLGE
+1. Erst den Ist-Zustand messen: die volle Suite laufen lassen, Zahl und Dauer
+   notieren.
      $E2E_VORBED
      $E2E_BEFEHL
-6. Commit auf deinen Branch, Conventional Commits in Kleinschreibung. Der
-   Pre-Commit-Hook lintet deine gestageten Dateien. Umgehe ihn nicht.
+2. J-05 bauen. Das ist der schwierige Teil: zwei Konten, Einladungslink ohne
+   SMTP. Die Spezifikation sagt, wie du an den Link kommst.
+3. J-06 bauen.
+4. Die volle Suite gruen laufen lassen — nicht nur deine beiden. Eine neue
+   Spec, die eine alte umwirft, ist kein Fortschritt.
+5. analysis/journeys.html im VAULT nachziehen: J-05 und J-06 tragen jetzt ihre
+   Spec-Datei statt '—'. Das ist der Katalog, gegen den
+   scripts/check-onboarding.sh die Abdeckung zaehlt. Vault-Format nach
+   AGENTS.md 2.2 beachten.
+6. Commit auf deinen Branch (Produkt-Repo) und Commit im Vault (Katalog),
+   Conventional Commits in Kleinschreibung.
 
 WENN DU NICHT DURCHKOMMST
-Das ist bei diesem Feature die wahrscheinlichste Lage, und der richtige Umgang
-damit ist nicht Mut, sondern Buchführung. Liefere den kleineren, grünen
-Ausschnitt. Was fehlt, kommt ins metadata unter 'deliberately_not_done' mit
-Grund. Ein halb eingebautes Auth-Feature, das rot ist, ist schlechter als
-gar keins — der Riegel lässt es ohnehin nicht durch, und dann hat die Karte
-Geld gekostet, ohne etwas zu hinterlassen.
+Eine Journey gruen ist besser als zwei rot. Kommst du bei J-05 an den zwei
+Konten nicht vorbei, liefere J-06 gruen und schreib bei J-05 GENAU hin, woran
+es lag — welcher Schritt, welche Fehlermeldung, was du versucht hast. Das ist
+dann ein Befund fuer die naechste Karte, kein Versagen.
 
-$(metadata_pflicht 'impl-worktree-M')
-Dazu ins metadata: geänderte und angelegte Dateien, 'zusaetzlich_beruehrt',
-Testergebnis vor/nach mit Zahlen, ob eine Migration enthalten ist, wie der
-Aussperr-Fall gelöst ist, der Commit-Hash, je Akzeptanzkriterium ein Häkchen
-mit Beleg.
+$(metadata_pflicht 'e2e-repo-M')
+Dazu ins metadata: die angelegten Dateien, das Suite-Ergebnis vor und nach
+(Zahl der Tests und Dauer), ob J-05 und J-06 gruen sind, die Commit-Hashes in
+Produkt-Repo UND Vault, je Akzeptanzkriterium ein Haekchen mit Beleg, und die
+Liste der von dir beruehrten Dateien unter tests/.
 
 $(gate_verbot)" \
     --json | jq -r .id)
-echo "  F2_IMPL = $F2_IMPL"
+echo "  FB_IMPL = $FB_IMPL"
 
-say "S2 F2 4/4  Review — R1-F2"
-F2_REV=$(k create "$S F2 4/4 — Review R1-F2" \
+say "S2 F4 4/4  Review — F-R1-4"
+FB_REV=$(k create "$S F4 4/4 — Review F-R1-4" \
     --assignee esf-reviewer \
     --workspace "dir:$REPO" \
-    --parent "$F2_IMPL" --parent "$F2_EST" \
-    --idempotency-key "s2-f2-review" \
+    --parent "$FB_IMPL" --parent "$FB_EST" \
+    --idempotency-key "s2-f4-review" \
     --max-retries 2 --max-runtime 60m \
-    --body "Prüfe R1-F2 auf Branch '$BRANCH_F2'. Das ist das sicherheitskritische
-Feature des Release — die Roadmap schreibt für dieses Feature ausdrücklich
-Review-Pflicht fest (analysis/codebase.html §6.3).
+    --body "Pruefe die Umsetzung von F-R1-4 auf Branch '$BRANCH_FB'.
 
 DEIN ORT
-Hauptbaum ($REPO). Kein 'git checkout $BRANCH_F2'. Lesen im fremden Baum unter
-.worktrees/.
+HAUPTBAUM ($REPO). Der Branch ist von einem Worktree beansprucht. Nimm
+'git log/diff/show $BRANCH_FB' und lies im fremden Baum unter .worktrees/.
 
-WAS DU PRÜFST — Punkt 1 ist der, für den du hier stehst
-1. KANN SICH JEMAND AUSSPERREN? Geh den Weg durch: 2FA eingerichtet, Gerät
-   verloren. Was jetzt? Prüf, ob der in der Spezifikation vorgesehene Ausweg
-   im Code wirklich existiert und funktioniert — nicht ob er beschrieben ist.
-   Wenn er nicht existiert, ist das 'changes_requested', unabhängig davon, wie
-   gut der Rest ist.
-2. Ist die TOTP-Prüfung korrekt und nicht umgehbar? Konkret: Wird der zweite
-   Faktor auf JEDEM Anmeldeweg geprüft, oder gibt es einen Pfad daneben
-   (API-Token, OAuth, Passwort-Reset)? Nenn die Pfade, die du geprüft hast, mit
-   Fundstelle. Ein zweiter Faktor mit einer Hintertür ist keiner.
-3. Wird das Geheimnis sicher gehalten? Nicht im Klartext geloggt, nicht in einer
-   Antwort zurückgegeben, nicht im Frontend-Zustand liegengeblieben.
-4. Enthält die Änderung eine Datenmigration? Wenn ja: Läuft sie auf einer
-   BESTEHENDEN Datenbank? Und ist sie rücknehmbar? Eine irreversible Migration
-   ist nach Kapitel 7 gate-pflichtig — dann ist dein Befund nicht 'Fehler',
-   sondern 'braucht ein Irreversibel-Gate', und das gehört ins metadata.
-5. Jedes Akzeptanzkriterium einzeln, mit der Fundstelle, an der du es geprüft
-   hast.
-6. Führe die Tests SELBST aus, im Baum des Entwicklers:
+DIE ERSTE FRAGE IST HIER EINE ANDERE ALS SONST
+Bei einem Produkt-Feature fragst du, ob die Tests den Code absichern. Hier SIND
+die Tests der Liefergegenstand — also fragst du, ob sie etwas wert sind:
+
+1. Faellt jede der beiden neuen Specs, wenn man das Feature kaputtmacht? Das
+   ist die einzige Frage, die zaehlt. Pruefe sie nicht durch Nachdenken:
+   Aendere im Baum des Entwicklers versuchsweise etwas, das die Journey brechen
+   MUSS (ein Selektor, ein Beschriftungstext), lauf die Spec, sieh sie fallen,
+   und mach die Aenderung rueckgaengig. Eine Spec, die immer gruen ist, ist
+   kein Test, sondern Dekoration. Dokumentier, was du kaputtgemacht hast und
+   was passiert ist.
+2. Haengt jede Wartebedingung an einem sichtbaren Zustand — oder gibt es neue
+   Wiederholschleifen? Die Spezifikation verbietet sie. Lies die Diffs unter
+   tests/ Zeile fuer Zeile.
+3. Wurde tests/e2e/support/journey.ts angefasst? Das gehoert F-R1-3 und ist ein
+   Befund. 'git diff main..$BRANCH_FB --name-only'.
+4. Wurde Produktcode geaendert? Diese Karte darf keinen anfassen. Auch das
+   zeigt --name-only.
+5. Fuehre die volle Suite SELBST aus, im Baum des Entwicklers:
      cd $REPO/.worktrees/<sein-verzeichnis>
-     pnpm typecheck && pnpm test
      $E2E_VORBED
      $E2E_BEFEHL
-7. Schnittmenge mit R1-F1 (Branch '$BRANCH_F1'):
-     git diff --name-only main..$BRANCH_F1
-     git diff --name-only main..$BRANCH_F2
-   Melde sie — auch die leere, dann als geprüft. Dein Merge ist der zweite von
-   zwei; was hier kollidiert, kollidiert nachher am Riegel.
-8. Ist main unberührt?
+   Nicht nur die neuen Specs — die ganze Suite.
+6. Fuehrt analysis/journeys.html im Vault J-05 und J-06 jetzt mit ihrer
+   Spec-Datei? Und stimmen die Dateinamen mit denen im Repo ueberein? Ein
+   Katalog, der auf eine Datei zeigt, die es nicht gibt, ist die haeufigste
+   Form von Scheinvollstaendigkeit.
+7. Ist main unberuehrt?
 
-Störfaktor, nicht Befund: mcp-internal-api-url.test.ts ist lastempfindlich.
+Dein Urteil ist 'approved' oder 'changes_requested', im metadata unter
+'verdict'. Du reparierst nichts selbst.
 
 $(metadata_pflicht 'review-repo-M')
-Dazu ins metadata: verdict, Befunde als Liste, die geprüften Anmeldewege aus
-Punkt 2, Aussperr-Fall ja/nein, Migration ja/nein und ob sie ein
-Irreversibel-Gate braucht, selbst gemessene Testzahlen, Schnittmenge.
+Dazu ins metadata: verdict, Befunde, das selbst gemessene Suite-Ergebnis
+(Zahlen), das Ergebnis deines Kaputtmach-Versuchs aus Punkt 1, und die Liste
+der von diesem Branch beruehrten Dateien unter tests/.
 
 $(gate_verbot)" \
     --json | jq -r .id)
-echo "  F2_REV  = $F2_REV"
+echo "  FB_REV  = $FB_REV"
 
-# --- Die zwei Merges, serialisiert ----------------------------------------
-say "S2  Merge F1 am Riegel"
-F1_MERGE=$(k create "$S Merge F1 — R1-F1 am Riegel" \
+say "S2  Merge F3 am Riegel"
+FA_MERGE=$(k create "$S Merge F3 — F-R1-3 am Riegel" \
     --assignee esf-qa-release \
     --workspace "dir:$REPO" \
-    --parent "$F1_REV" --parent "$F1_EST" \
-    --idempotency-key "s2-merge-f1" \
+    --parent "$FA_REV" --parent "$FA_EST" \
+    --idempotency-key "s2-merge-f3" \
     --max-retries 2 --max-runtime 60m \
-    --body "Bringe R1-F1 nach main — über den Riegel.
+    --body "Bringe F-R1-3 nach main — ueber den Riegel.
 
-    $HERE/scripts/merge-riegel.sh $BRANCH_F1 --protokoll $VAULT/reports/riegel-r1-f1.txt
+    $HERE/scripts/merge-riegel.sh $BRANCH_FA --protokoll $VAULT/reports/riegel-r1-f3.txt
 
 Du bist der ERSTE von zwei Merges dieses Sprints. Danach merged eine zweite
-Karte R1-F2; sie hängt an dir, damit die beiden Riegel-Läufe sich nicht
+Karte F-R1-4; sie haengt an dir, damit die beiden Riegel-Laeufe sich nicht
 gegenseitig unter Last setzen.
 
 VORBEDINGUNGEN
 1. Reviewer-Urteil 'approved'. Bei 'changes_requested': NICHT mergen,
-   abschliessen, neue Karte für die Nacharbeit.
+   abschliessen, neue Karte fuer die Nacharbeit.
 2. Arbeitsbaum von $REPO sauber ('git status --short').
-3. Postgres läuft: $E2E_VORBED
+3. Postgres laeuft: $E2E_VORBED
+4. Keine fremden Dev-Server auf den E2E-Ports. 'reuseExistingServer' ist an —
+   ein alter Server aus einem fremden Worktree wuerde die FALSCHE Anwendung
+   testen und die Suite trotzdem gruen melden. Der schwerste Messbefund des
+   ersten Laufs. Pruef es, bevor du startest.
 
 WENN ER VERWEIGERT
- · Sachgrund (Konflikt, roter Test, Linter auf neuen Zeilen) → nicht mergen,
+ · Sachgrund (Konflikt, roter Test, Linter auf neuen Zeilen) -> nicht mergen,
    abschliessen, neue Karte, Befund ins metadata.
  · Betriebsgrund (schmutziger Baum; mcp-internal-api-url.test.ts ist
-   lastempfindlich, gemessen 52,9 s Import unter vier Workern gegen 7,3 s
-   allein) → Ursache benennen, EINMAL sauber nachlaufen lassen, bei Bestehen
-   mergen. Verweigert er erneut, ist es ein Sachgrund.
+   lastempfindlich) -> Ursache benennen, EINMAL sauber nachlaufen lassen, bei
+   Bestehen mergen. Verweigert er erneut, ist es ein Sachgrund.
 
-Du überstimmst den Riegel nicht und du benutzt kein --no-verify. Kein Modell
-merged (Kapitel 6). Den Worktree des Entwicklers nicht aufräumen — er ist Beleg.
+Du ueberstimmst den Riegel nicht und du benutzt kein --no-verify. Kein Modell
+merged (Kapitel 6). Den Worktree des Entwicklers nicht aufraeumen — er ist Beleg.
 
 $(metadata_pflicht 'merge-repo-S')
-Dazu ins metadata: Riegel-Ergebnis, welche der sechs Prüfungen wie ausging,
+Dazu ins metadata: Riegel-Ergebnis, welche der sechs Pruefungen wie ausging,
 Merge-Commit auf main, Testzahlen aus dem Riegel-Lauf.
 
 $(gate_verbot)" \
     --json | jq -r .id)
-echo "  F1_MERGE= $F1_MERGE"
+echo "  FA_MERGE= $FA_MERGE"
 
-say "S2  Merge F2 am Riegel  (hängt an Merge F1 — bewusst serialisiert)"
-F2_MERGE=$(k create "$S Merge F2 — R1-F2 am Riegel" \
+say "S2  Merge F4 am Riegel  (hängt an Merge F3 — bewusst serialisiert)"
+FB_MERGE=$(k create "$S Merge F4 — F-R1-4 am Riegel" \
     --assignee esf-qa-release \
     --workspace "dir:$REPO" \
-    --parent "$F2_REV" --parent "$F1_MERGE" --parent "$F2_EST" \
-    --idempotency-key "s2-merge-f2" \
+    --parent "$FB_REV" --parent "$FA_MERGE" --parent "$FB_EST" \
+    --idempotency-key "s2-merge-f4" \
     --max-retries 2 --max-runtime 60m \
-    --body "Bringe R1-F2 nach main — über den Riegel. Du bist der ZWEITE Merge
-dieses Sprints; R1-F1 liegt bereits auf main.
+    --body "Bringe F-R1-4 nach main — ueber den Riegel. Du bist der ZWEITE Merge
+dieses Sprints; F-R1-3 liegt bereits auf main.
 
-    $HERE/scripts/merge-riegel.sh $BRANCH_F2 --protokoll $VAULT/reports/riegel-r1-f2.txt
+    $HERE/scripts/merge-riegel.sh $BRANCH_FB --protokoll $VAULT/reports/riegel-r1-f4.txt
 
-WARUM DU AN ZWEI ELTERN HÄNGST
-An deiner Review-Karte, weil du ihr Urteil brauchst. Und an 'Merge F1', weil
-zwei gleichzeitige Riegel-Läufe sich unter Last setzen und eine Verweigerung
-ohne Sachgrund produzieren. Der Riegel fährt 374 Unit-Tests und die volle
-E2E-Suite; das verträgt keinen Parallelbetrieb.
+WARUM DU AN DREI ELTERN HAENGST
+An deiner Review-Karte, weil du ihr Urteil brauchst. An 'Merge F3', weil zwei
+gleichzeitige Riegel-Laeufe sich unter Last setzen und eine Verweigerung ohne
+Sachgrund produzieren. Und an der Schaetzkarte, damit dein (Schaetzung,
+Ist)-Paar zusammenbleibt.
 
 DAS BESONDERE AN DEINEM MERGE
-Dein Branch startete von einem main OHNE R1-F1. Inzwischen liegt R1-F1 dort.
-Der Riegel prüft Konfliktfreiheit im Trockenlauf — wenn er einen Konflikt
-meldet, ist das der erwartete Fall und kein Betriebsproblem:
- · Konflikt in Dateien, die beide Features berühren → Sachgrund. NICHT selbst
-   auflösen: du bist der Riegel-Wart, nicht der Entwickler. Abschliessen, den
-   Konflikt genau benennen (Dateien, Zeilen), neue Karte für esf-dev-b.
- · Kein Konflikt → weiter wie üblich.
+Dein Branch startete von einem main OHNE F-R1-3. Inzwischen liegt es dort. Beide
+Features haben unter tests/ gearbeitet — das ist die Stelle, an der ein Konflikt
+zu erwarten ist. Die Listen der beruehrten Test-Dateien haben dir BEIDE
+Reviewer ins metadata geschrieben. Lies sie zuerst und bilde die Schnittmenge:
+ · Leere Schnittmenge -> ein Konflikt waere ueberraschend.
+ · Nicht leer -> genau dort wird er auftreten, und du weisst es vorher.
 
-Die Schnittmenge der berührten Dateien hat dir der Reviewer ins metadata
-geschrieben. Lies sie zuerst; sie sagt dir, was zu erwarten ist.
+Meldet der Riegel einen Konflikt: NICHT selbst aufloesen. Du bist der
+Riegel-Wart, nicht der Entwickler. Abschliessen, den Konflikt genau benennen
+(Dateien, Zeilen), neue Karte fuer esf-dev-b.
 
 VORBEDINGUNGEN
-1. Reviewer-Urteil 'approved'. Und: Meldet das Review 'braucht ein
-   Irreversibel-Gate' (Datenmigration), dann mergst du NICHT. Schliesse ab mit
-   diesem Befund im metadata und lege eine Gate-Karte
-   'GATE Irreversibel — R1-F2 Migration' an, die sich selbst blockiert. Eine
-   irreversible Änderung gegenüber Bestandsinstallationen ist nach Kapitel 7
-   immer gate-pflichtig, auch mitten im Release.
-2. Arbeitsbaum sauber. 3. Postgres läuft: $E2E_VORBED
+1. Reviewer-Urteil 'approved'.
+2. Arbeitsbaum sauber.
+3. Postgres laeuft: $E2E_VORBED
+4. Keine fremden Dev-Server auf den E2E-Ports.
 
-WENN ER VERWEIGERT: dieselbe Unterscheidung Sachgrund/Betriebsgrund wie oben.
-Du überstimmst ihn nicht, du benutzt kein --no-verify.
+NACH DEM MERGE — eine Pruefung, die nur du machen kannst
+Auf main liegen jetzt BEIDE Features. Lauf die volle Suite noch einmal auf main
+und vergleiche die Zahl der Tests mit der Summe, die du erwartest: die Suite vor
+dem Sprint plus die zwei neuen Journeys aus F-R1-4. Stimmt die Zahl nicht, ist
+beim Merge etwas verlorengegangen — und das faellt sonst niemandem auf.
 
 $(metadata_pflicht 'merge-repo-S')
-Dazu ins metadata: Riegel-Ergebnis, die sechs Prüfungen, Merge-Commit,
-Testzahlen, und ob ein Konflikt mit R1-F1 auftrat.
+Dazu ins metadata: Riegel-Ergebnis, die sechs Pruefungen, Merge-Commit,
+Testzahlen, ob ein Konflikt mit F-R1-3 auftrat, und die Zahl der Tests auf main
+nach beiden Merges gegen die erwartete Zahl.
 
 $(gate_verbot)" \
     --json | jq -r .id)
-echo "  F2_MERGE= $F2_MERGE"
+echo "  FB_MERGE= $FB_MERGE"
 
-LETZTE="$F2_MERGE"
-FEATURES="R1-F1 und R1-F2"
+LETZTE="$FB_MERGE"
+FEATURES="F-R1-3 und F-R1-4"
 fi
 
 # ===========================================================================
