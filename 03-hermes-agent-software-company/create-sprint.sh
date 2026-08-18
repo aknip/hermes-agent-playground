@@ -81,6 +81,25 @@ KARTEN_DECKEL="$(cad karten_pro_feature)"
 k() { hermes kanban --board "$BOARD" "$@"; }
 say() { printf '\n\033[1m%s\033[0m\n' "$*"; }
 
+# --- Zu den --max-runtime-Werten ------------------------------------------
+# Am 18.08.2026 rissen ZWEI Karten ihre Zeitgrenze um Sekunden und verloren
+# damit ihren ganzen Lauf:
+#
+#   Onboarding 4/6 (E2E)   5406 s gegen 5400 s  -> 103 min statt ~50
+#   Probelauf 2/4 (Bau)    1516 s gegen 1500 s  ->  36 min statt 11
+#
+# Die Bau-Karte schreibt eine dreizeilige Markdown-Datei; ihr erfolgreicher
+# zweiter Lauf brauchte dafuer 11 Minuten. Das ist kein Haenger, sondern die
+# Arbeitsgeschwindigkeit dieses Modells — und die Grenzen der Skripte waren
+# fuer ein schnelleres kalibriert. Der Ausgang ist der teuerste denkbare:
+# voller Preis, kein Ergebnis, vollstaendige Wiederholung. Und die verlorene
+# Zeit landet als Wanduhr im Ledger und verzerrt jede kuenftige Schaetzung.
+#
+# Die Karten, die die volle E2E-Suite UND die Unit-Tests fahren (Wartung,
+# Review, Merge), stehen deshalb auf 90 Minuten statt 60. Ein zu hoher Deckel
+# kostet nichts, wenn er nicht erreicht wird; ein zu niedriger kostet einen
+# ganzen Lauf.
+
 # ---------------------------------------------------------------------------
 # Bausteine, die in jedem Kartentext gleich lauten
 # ---------------------------------------------------------------------------
@@ -298,7 +317,7 @@ WARTUNG=$(k create "$S W 1/1 — Wartung: biome ci gruen" \
     --assignee esf-dev-a \
     --workspace "dir:$REPO" \
     --idempotency-key "s1-wartung-biome" \
-    --max-retries 2 --max-runtime 45m \
+    --max-retries 2 --max-runtime 90m \
     --body "Wartungskarte aus der freigegebenen Roadmap (roadmap/q1-freigegeben.html,
 Abschnitt 4). Kein Feature, kein Feature-Slot: Sie raeumt die Werkzeugkette auf,
 BEVOR die Feature-Arbeit beginnt.
@@ -598,7 +617,7 @@ REV=$(k create "$S F2 4/5 — Review F-R1-2" \
     --workspace "dir:$REPO" \
     --parent "$IMPL" --parent "$EST" \
     --idempotency-key "s1-f2-review" \
-    --max-retries 2 --max-runtime 60m \
+    --max-retries 2 --max-runtime 90m \
     --body "Pruefe die Umsetzung von F-R1-2 auf Branch '$BRANCH'.
 
 DEIN ORT
@@ -661,7 +680,7 @@ MERGE=$(k create "$S F2 5/5 — Merge F-R1-2 am Riegel" \
     --workspace "dir:$REPO" \
     --parent "$REV" --parent "$EST" \
     --idempotency-key "s1-f2-merge" \
-    --max-retries 2 --max-runtime 60m \
+    --max-retries 2 --max-runtime 90m \
     --body "Bringe F-R1-2 nach main — ueber den Riegel, nicht mit der Hand.
 
 DER EINZIGE ERLAUBTE WEG
@@ -919,7 +938,7 @@ FA_REV=$(k create "$S F3 4/4 — Review F-R1-3" \
     --workspace "dir:$REPO" \
     --parent "$FA_IMPL" --parent "$FA_EST" \
     --idempotency-key "s2-f3-review" \
-    --max-retries 2 --max-runtime 60m \
+    --max-retries 2 --max-runtime 90m \
     --body "Pruefe die Umsetzung von F-R1-3 auf Branch '$BRANCH_FA'.
 
 DEIN ORT
@@ -1164,7 +1183,7 @@ FB_REV=$(k create "$S F4 4/4 — Review F-R1-4" \
     --workspace "dir:$REPO" \
     --parent "$FB_IMPL" --parent "$FB_EST" \
     --idempotency-key "s2-f4-review" \
-    --max-retries 2 --max-runtime 60m \
+    --max-retries 2 --max-runtime 90m \
     --body "Pruefe die Umsetzung von F-R1-4 auf Branch '$BRANCH_FB'.
 
 DEIN ORT
@@ -1218,7 +1237,7 @@ FA_MERGE=$(k create "$S Merge F3 — F-R1-3 am Riegel" \
     --workspace "dir:$REPO" \
     --parent "$FA_REV" --parent "$FA_EST" \
     --idempotency-key "s2-merge-f3" \
-    --max-retries 2 --max-runtime 60m \
+    --max-retries 2 --max-runtime 90m \
     --body "Bringe F-R1-3 nach main — ueber den Riegel.
 
     $HERE/scripts/merge-riegel.sh $BRANCH_FA --protokoll $VAULT/reports/riegel-r1-f3.txt
@@ -1261,7 +1280,7 @@ FB_MERGE=$(k create "$S Merge F4 — F-R1-4 am Riegel" \
     --workspace "dir:$REPO" \
     --parent "$FB_REV" --parent "$FA_MERGE" --parent "$FB_EST" \
     --idempotency-key "s2-merge-f4" \
-    --max-retries 2 --max-runtime 60m \
+    --max-retries 2 --max-runtime 90m \
     --body "Bringe F-R1-4 nach main — ueber den Riegel. Du bist der ZWEITE Merge
 dieses Sprints; F-R1-3 liegt bereits auf main.
 
