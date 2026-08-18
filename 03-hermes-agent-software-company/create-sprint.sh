@@ -120,10 +120,31 @@ Zuordnung vom Skript kommt und nicht vom Modell.
 
 kanban_complete(metadata={ ... "estimate": {"reference_class": "$1", ...} ... })
 
-Trägst du im Handoff-Kontext deiner Elternkarte ein Schätz-Intervall des
-esf-estimator für DIESE Karte, dann kopiere das vollständige estimate-Objekt
-WÖRTLICH — dieselben Zahlen, dasselbe confidence, dasselbe estimated_by. Nicht
-neu schätzen, nicht runden, nicht "verbessern".
+DIE KLASSE IST PFLICHT, DAS INTERVALL NICHT IMMER.
+Zwei Faelle, und du musst wissen, in welchem du bist:
+
+ a) Dein Handoff-Kontext enthaelt ein Schaetz-Intervall des esf-estimator fuer
+    DIESE Karte. Dann kopiere das vollstaendige estimate-Objekt WOERTLICH —
+    dieselben Zahlen, dasselbe confidence, dasselbe estimated_by. Nicht neu
+    schaetzen, nicht runden, nicht "verbessern".
+
+ b) Es enthaelt keines — weil du VOR dem esf-estimator laufst (jede erste Karte
+    einer Feature-Kette tut das). Dann schreibst du das estimate-Objekt
+    trotzdem, nur mit der Klasse allein:
+
+        "estimate": {"reference_class": "$1", "wall_minutes": null,
+                     "confidence": null, "estimated_by": null,
+                     "tokens_k": null, "cost_usd": null}
+
+    Du erfindest keine Zahl. Aber du laesst das Objekt auch nicht weg.
+
+Am 19.08.2026 ist genau Fall b) schiefgegangen: Die Spezifikationskarte von
+F-R1-2 schrieb ein vollstaendiges metadata mit acceptance, Schrittzahlen und
+Commit — und ohne estimate. Sie las die Bedingung "traegst du ein Intervall,
+dann kopiere", fand keines, und liess das ganze Objekt weg. check-sprint.sh
+meldete sie als "ohne metadata.estimate.reference_class"; im Ledger waere sie
+als 'unklassifiziert' gelandet und fuer jede kuenftige Schaetzung wertlos.
+Der Fehler lag im Kartentext, nicht im Modell: Er sprach fast nur vom Kopieren.
 
 Warum das penibel ist: ledger-sync.sh liest Schätzung und Istwert aus dem
 metadata DERSELBEN Karte. Die Schätzung entsteht aber auf einer anderen. Wer
