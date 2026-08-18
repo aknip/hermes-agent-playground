@@ -471,7 +471,7 @@ if [ "$AUFTRAEGE" -eq 1 ]; then
         k create "$titel_karte" \
             --assignee esf-video-designer \
             --workspace "dir:$komp" \
-            --idempotency-key "video-komposition-$(printf '%s' "$rel" | tr -c 'a-zA-Z0-9' '-')" \
+            --idempotency-key "video-komposition-$(printf '%s' "$rel" | tr -c 'a-zA-Z0-9' '-')-$(printf '%s' "$dauer" | tr -c '0-9' '-')" \
             --max-retries 2 --max-runtime 30m \
             --body "Gestalte die Video-Zusammenfassung von $rel.
 
