@@ -198,7 +198,7 @@ for name in "${PROFILE_NAMES[@]}"; do
     # Ein Deckel, der von der Root-Konfiguration der Maschine abhängt, ist kein
     # Deckel, sondern ein Zufall.
     case "$name" in
-        esf-dev-a|esf-dev-b|esf-reviewer|esf-qa-release)
+        esf-dev-a|esf-dev-b|esf-reviewer|esf-qa-release|esf-video-designer)
             hermes -p "$name" config set agent.max_turns 1200 >/dev/null
             printf '      agent.max_turns = 1200 (werkzeugintensive Rolle)\n' ;;
         *)
