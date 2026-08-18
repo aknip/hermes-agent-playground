@@ -17,7 +17,12 @@
 #   3. Die geänderten Dateien sind sauber (biome auf DIESEN Dateien)
 #   4. Typecheck der betroffenen Workspaces
 #   5. Unit-Tests
-#   6. Die VOLLE E2E-Suite ist grün — inklusive der Journey des Features
+#   6. Die VOLLE E2E-Suite ist grün — inklusive der Journey des Features,
+#      headless erzwungen (Wächter aus e2e-video.sh)
+#
+# Nach bestandenem Merge (kein Trockenlauf) folgt nicht-blockierend die
+# Videoaufzeichnung: die Journey des Features und die ganze Suite
+# (scripts/e2e-video.sh, AGENTS.md 8).
 #
 # Prüfung 3 lintet bewusst nur die geänderten Dateien, nicht das ganze Repo:
 # Gemessen wird die Regression, nicht der Absolutstand. Ein Riegel, der an
@@ -241,6 +246,19 @@ titel "6/6  Volle E2E-Suite"
 # Die ganze Suite, nicht nur die Journey des Features: Der Riegel ist das
 # Regressionsnetz. Ein Feature, das seine eigene Journey grün bekommt und drei
 # fremde bricht, darf nicht durch.
+
+# HEADLESS IST PFLICHT. Ein `--headed` im Befehl oder ein `headless: false`
+# in der Playwright-Config hielte jeden Cron- und Riegel-Lauf auf einem
+# Bildschirm fest, den es dort nicht gibt — und ein Riegel, der auf ein
+# Fenster wartet, sieht vom Board aus exakt aus wie Arbeit (das
+# Wachhund-Muster aus Phase 2). Der Wächter wohnt in e2e-video.sh, damit
+# Riegel, Tick und Aufzeichnung DENSELBEN Code ausführen.
+if [ -x "$HERE/e2e-video.sh" ]; then
+    if ! "$HERE/e2e-video.sh" --headless-waechter "$REPO" "$E2E_BEFEHL" | sed 's/^/  /'; then
+        verweigert_und_aufraeumen "Headless-Pflicht verletzt (siehe Befund oben) — erst die Konfiguration bereinigen."
+    fi
+fi
+
 zeile "  Vorbedingung: $E2E_VORBED"
 eval "$E2E_VORBED" >/dev/null 2>&1 || zeile "  ⚠ Vorbedingung meldete einen Fehler — der Lauf zeigt gleich, ob es trägt"
 
@@ -311,6 +329,28 @@ fi
 # festschreiben — kein zweiter Merge-Versuch, kein zweites Risiko.
 if git commit -q --no-verify -m "Merge $BRANCH (Riegel bestanden)" 2>/dev/null; then
     zeile "✓ Gemerged: $(git rev-parse --short HEAD)"
+
+    # ------------------------------------------------------------------
+    # Nach jedem bestandenen Merge: die zwei Video-Akten (AGENTS.md 8) —
+    # die Journey des Features und die ganze Suite, beide per Playwright-
+    # Videoaufzeichnung. NICHT blockierend: Der Merge ist geprüft und
+    # festgeschrieben; ein gescheitertes Video ist ein Betriebsbefund,
+    # keine Rücknahme. e2e-video.sh liest videos.e2e_aufzeichnung selbst.
+    # ------------------------------------------------------------------
+    if [ -x "$HERE/e2e-video.sh" ]; then
+        E2E_DIR="$(sed -n 's/^[[:space:]]*e2e_verzeichnis:[[:space:]]*//p' "$CADENCE" | head -1 | sed 's/[[:space:]]*#.*$//')"
+        feature_specs="$(git diff --name-only HEAD~1 HEAD -- "$E2E_DIR" 2>/dev/null | grep '\.spec\.ts$' || true)"
+        if [ -n "$feature_specs" ]; then
+            # shellcheck disable=SC2086
+            "$HERE/e2e-video.sh" --feature $feature_specs | sed 's/^/  /' \
+                || zeile "⚠ Feature-Video fehlgeschlagen — Merge bleibt; Karte für esf-qa-release"
+        else
+            zeile "  (kein geänderter Journey-Spec im Merge — kein Feature-Video)"
+        fi
+        "$HERE/e2e-video.sh" --alle | sed 's/^/  /' \
+            || zeile "⚠ Suiten-Video fehlgeschlagen — Merge bleibt; Karte für esf-qa-release"
+    fi
+
     zeile ""
     zeile "Der Worktree des Branches bleibt bestehen — der Reviewer braucht ihn"
     zeile "noch. Aufgeräumt wird beim Sprint-Abschluss."

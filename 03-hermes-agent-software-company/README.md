@@ -75,7 +75,9 @@ ins Ledger nach — die Schätzgrundlage, ohne die der `esf-estimator` nach
 
 Vorbedingungen: `hermes` v0.20.0, `jq`, `git`, `python3`, `pnpm`, Docker für
 die Testdatenbank des Ziel-Repos. Modell und Provider kommen aus der
-Hermes-Root-Konfiguration.
+Hermes-Root-Konfiguration. Für den Video-Kanal (AGENTS.md 8): `ffmpeg` und
+macOS-`say` (Pflicht, der gemessene Rückfallpfad) sowie Node 22+ für den
+Hyperframes-Primärpfad (optional, Annahme).
 
 ### Die Schlüsseldatei
 
@@ -129,6 +131,7 @@ Drei Dinge dazu:
 | `seed/company/` | Der Vault-Master: `AGENTS.md`, `cadence.yaml`, Struktur, Start-Korpus |
 | `seed/lint-selbsttest/` | Fixture mit genau neun bekannten Linter-Befunden |
 | `seed/ceo-selbsttest/` | Vier Fixtures des CEO-Dokument-Riegels: eine gültige, drei defekte mit zusammen genau fünf bekannten Befunden |
+| `templates/hyperframes-zusammenfassung/` | Die Hyperframes-Komposition der Video-Zusammenfassungen; `video-werkzeug.py` instanziiert sie je Dokument mit `daten.js` |
 | `seed/quellen.txt` | Die Markt-Quellen, die `fetch-sources.sh` täglich holt |
 | `workspace/` | Die Wegwerfkopie — gitignored |
 | `beispiel-lauf-1/` | **Die Akte von Phase 0/1 (17.08.2026)**: Board mit voller Karten-Historie, Vault, Laufzeiten, beide Git-Historien. Erzeugt von `scripts/dump-lauf.sh` |
@@ -148,6 +151,9 @@ Drei Dinge dazu:
 | `ceo-lint.py` | je Dokument | Der Riegel vor jeder CEO-Entscheidung: Verb passt zur Gate-Art, Messbeleg (`<pre>` mit selbst gefahrenem Check) vorhanden, Begründungspflicht. Fixtures in `seed/ceo-selbsttest/` |
 | `eskalation.sh` | stündlich :15 | **Die Notfall-Leiter.** Code entscheidet, was ein Notfall ist: bekannte Betriebsmuster werden (bei `betriebsrettung: auto`) einmal je Karte selbst repariert, alles andere geht laut und journaliert an den Supervisor |
 | `check-phase3.sh` | je Stufe | Die Nachweise der Stufen A/B/C: Verben an jedem Unblock, Schatten-Übereinstimmungsquote, `[von:esf-ceo]` an jedem CEO-Gate, Einspruchsfrist belegt |
+| `video-render.sh` | stündlich :45 | **Der Video-Kanal** (AGENTS.md 8): Sprechertext aus dem Dokument → `say`-Audio → gemessene Dauer → `.vtt`-Untertitel → Hyperframes-Komposition; gemessener ffmpeg-Rückfall. `--gates` vertont offene Gate-Vorlagen (der Blockgrund ist der Sprechertext) |
+| `video-werkzeug.py` | je Job | Die deterministischen Stufen des Video-Kanals einzeln: Jobs finden, Sprechertext extrahieren, VTT aus gemessener Dauer, Komposition instanziieren |
+| `e2e-video.sh` | je Merge | Playwright-Videoaufzeichnung: die Journey des Features und die ganze Suite als Akte unter `reports/e2e-videos/<datum>/`, headless erzwungen. Trägt den **Headless-Wächter**, den auch Riegel und Tick ausführen |
 | `vault-lint.py` | je Schreibvorgang | Setzt `company/AGENTS.md` durch und zitiert bei jedem Befund den Abschnitt |
 | `fetch-sources.sh` | vom Tick | Holt die Quellen und **normalisiert deterministisch**, bevor sie im Korpus landen |
 | `check-onboarding.sh`<br>`check-daily.sh`<br>`check-sprint.sh`<br>`check-release.sh`<br>`check-phase2.sh` | je Ebene | Deterministische Endzustands-Checks — Code entscheidet, ob etwas fertig ist. `check-sprint.sh` trägt den Riegel, an dem Phase 2 hängt: ein Istwert **ohne** bezifferte Schätzung ist rot, denn dann ist das (Schätzung, Ist)-Paar zerrissen |
@@ -166,20 +172,23 @@ schützt fremde Profile vor dem Teardown.
 
 | Profil | Auftrag | Tier | Skills |
 |--------|---------|------|--------|
-| `esf-ceo` | Entscheidet Release-, Irreversibel- und Budget-Gates: selbst nachmessen, Entscheidungsdokument mit Verb, `escalate` statt raten. Nie planen, nie bauen, nie `kanban_unblock` | hoch (eigenes Tier `ESF_MODELL_CEO`) | — |
-| `esf-chief-of-staff` | Sprint-Planung, Kartengraphen, Gate-Vorlagen, Sprint-Abschluss | hoch | writing-plans · dispatching-parallel-agents · brainstorming |
+| `esf-ceo` | Entscheidet Release-, Irreversibel- und Budget-Gates: selbst nachmessen, Entscheidungsdokument mit Verb, `escalate` statt raten. Nie planen, nie bauen, nie `kanban_unblock` | hoch (eigenes Tier `ESF_MODELL_CEO`) | esf-video-zusammenfassung |
+| `esf-chief-of-staff` | Sprint-Planung, Kartengraphen, Gate-Vorlagen, Sprint-Abschluss | hoch | writing-plans · dispatching-parallel-agents · brainstorming · esf-video-zusammenfassung |
 | `esf-market-scout` | Den Tages-Korpus sichten, normalisieren, deduplizieren | günstig | — |
-| `esf-market-analyst` | Signale scoren, Feature-Hypothesen, Subtraktions-Sichtung | hoch | — |
-| `esf-product-manager` | Spezifikationen mit Akzeptanzkriterien | hoch | brainstorming · verification-before-completion |
-| `esf-architect` | Konzepte, ADRs, Schnittstellenverträge für parallele Arbeit | hoch | writing-plans · dispatching-parallel-agents · brainstorming |
+| `esf-market-analyst` | Signale scoren, Feature-Hypothesen, Subtraktions-Sichtung | hoch | esf-video-zusammenfassung |
+| `esf-product-manager` | Spezifikationen mit Akzeptanzkriterien | hoch | brainstorming · verification-before-completion · esf-video-zusammenfassung |
+| `esf-architect` | Konzepte, ADRs, Schnittstellenverträge für parallele Arbeit | hoch | writing-plans · dispatching-parallel-agents · brainstorming · esf-video-zusammenfassung |
 | `esf-estimator` | Referenzklasse, Intervallschätzung, Konfidenz — nur aus dem Ledger | mittel | — |
 | `esf-dev-a`, `esf-dev-b` | Features in eigenen Worktrees umsetzen, mit Tests | hoch | test-driven-development · executing-plans · systematic-debugging · using-git-worktrees · receiving-code-review |
 | `esf-reviewer` | Fan-in-Review, führt fremde Tests selbst aus | hoch | requesting-code-review · verification-before-completion |
-| `esf-qa-release` | Eigner der E2E-Suite, Merge-Gate, Release-Paket | mittel | verification-before-completion · systematic-debugging · finishing-a-development-branch |
-| `esf-controller` | Schätzgüte, Kosten, Velocity, CEO-Report | mittel | — |
+| `esf-qa-release` | Eigner der E2E-Suite, Merge-Gate, Release-Paket | mittel | verification-before-completion · systematic-debugging · finishing-a-development-branch · esf-video-zusammenfassung |
+| `esf-controller` | Schätzgüte, Kosten, Velocity, CEO-Report | mittel | esf-video-zusammenfassung |
 
-Die fünf ohne Skills sind Absicht: Ihre Arbeit ist Erkennen, Bewerten,
-Messen und Entscheiden, nicht Bauen. Ihre Präzision wohnt in der `SOUL.md`.
+Die zwei ohne Skills (`esf-market-scout`, `esf-estimator`) sind Absicht: Ihre
+Arbeit ist Erkennen und Messen, nicht Bauen — und sie schreiben keine
+CEO-Dokumente. `esf-video-zusammenfassung` ist ESF-eigen (kein Superpowers-Port)
+und trägt genau eine Pflicht: den Sprechertext nach `AGENTS.md 8` — gerendert
+wird von Code, nie vom Modell.
 
 **In diesem Lauf zeigen alle drei Tiers auf `deepseek/deepseek-v4-flash-0731`.**
 Die Struktur bleibt: `ESF_MODELL_HOCH=… ./setup.sh` differenziert sie ohne

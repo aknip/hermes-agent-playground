@@ -81,6 +81,18 @@ fuehrung:
 # Gate an den CEO: Lage, Optionen, Empfehlung.
 budget_eskalation_bei: 1.5
 
+# --- Video-Kanal (AGENTS.md 8) ------------------------------------------------
+videos:
+  # an|aus — scripts/video-render.sh rendert Zusammenfassungen der Dokumente
+  # unter analysis/, roadmap/ und reports/ (Sprechertext aus dem Dokument).
+  zusammenfassungen: an
+  # Die macOS-`say`-Stimme des Sprecher-Audios. Der Hyperframes-Weg kann sie
+  # später durch eine bessere TTS ersetzen; die Struktur bleibt.
+  stimme: Anna
+  # an|aus — Playwright-Videoaufzeichnung nach jedem bestandenen Merge
+  # (scripts/e2e-video.sh, gerufen vom Merge-Riegel).
+  e2e_aufzeichnung: an
+
 # --- Das Ziel-Repo ----------------------------------------------------------
 produkt:
   name: Kaneo
@@ -89,4 +101,9 @@ produkt:
   e2e_verzeichnis: tests/e2e/journeys
   # Vorbedingung jedes E2E-Laufs: Postgres im Container.
   e2e_vorbedingung: docker compose -f compose.yml up -d postgres
+  # HEADLESS IST PFLICHT — ohne Ausnahme. Ein `--headed` hier oder ein
+  # `headless: false` in der Playwright-Config hielte jeden Cron- und
+  # Riegel-Lauf auf einem Bildschirm fest, den es dort nicht gibt.
+  # Durchgesetzt vom Wächter (scripts/e2e-video.sh --headless-waechter),
+  # den merge-riegel.sh und tick.sh vor jedem Lauf ausführen.
   e2e_befehl: pnpm exec playwright test

@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>ESF Video-Zusammenfassung</title>
+<!--
+  Hyperframes-Komposition der ESF-Video-Zusammenfassungen.
+
+  Eine selbst genügende HTML-Szene im Sinne der Hyperframes-Doku
+  (https://developers.heygen.com/hyperframes-overview): Inhalt und Timing
+  kommen aus daten.js, das scripts/video-werkzeug.py `komposition` je Job
+  erzeugt — window.ESF_DATEN = { titel, dauer, audio, cues[] }. Dieselben
+  Cue-Zeiten erzeugen auch die .vtt-Untertitel: Bild, Ton und Untertitel
+  teilen EINE Zeitquelle.
+
+  ⚠ Annahme (VERIFIKATION.md): Die exakte Render-Konvention von
+  `npx hyperframes render` (Projektlayout, Dauer-Deklaration, Audio-Attribute)
+  ist gegen diese Vorlage noch nicht gemessen. Der erste echte Lauf gleicht
+  sie gegen `npx hyperframes init` ab; bis dahin rendert video-render.sh
+  über den ffmpeg-Rückfallpfad (Titelkarte + Sprecher-Audio), der gemessen ist.
+-->
+<script src="daten.js"></script>
+<style>
+  html, body { margin: 0; width: 1280px; height: 720px; overflow: hidden;
+               background: #101418; color: #e8eaed;
+               font-family: "Avenir Next", Avenir, "Segoe UI", system-ui, sans-serif; }
+  .buehne { box-sizing: border-box; width: 100%; height: 100%;
+            padding: 64px 88px; display: flex; flex-direction: column; }
+  .kopf { font-size: 20px; letter-spacing: 0.12em; color: #9aa0a6;
+          text-transform: uppercase; }
+  h1 { font-size: 46px; line-height: 1.2; margin: 18px 0 0; font-weight: 600; }
+  .cue { flex: 1; display: flex; align-items: center; }
+  .cue p { font-size: 30px; line-height: 1.5; max-width: 22em; margin: 0;
+           opacity: 0; transition: opacity 0.4s ease; }
+  .cue p.aktiv { opacity: 1; }
+  .fuss { font-size: 16px; color: #9aa0a6; }
+  .balken { height: 4px; background: #2a2f36; margin-top: 10px; }
+  .balken div { height: 100%; width: 0; background: #8ab4f8; }
+</style>
+</head>
+<body>
+<div class="buehne">
+  <div class="kopf">ESF · Video-Zusammenfassung</div>
+  <h1 id="titel"></h1>
+  <div class="cue"><p id="cue"></p></div>
+  <div class="fuss">Erzeugt mit Hyperframes · Sprechertext aus dem Dokument · Untertitel als .vtt daneben</div>
+  <div class="balken"><div id="fortschritt"></div></div>
+</div>
+<audio id="audio" data-start="0" data-track-index="0" data-volume="1"></audio>
+<script>
+  const D = window.ESF_DATEN;
+  document.getElementById("titel").textContent = D.titel;
+  document.getElementById("audio").src = D.audio;
+  const cueEl = document.getElementById("cue");
+  const balken = document.getElementById("fortschritt");
+  // Zeitgetrieben statt frame-getrieben formuliert; Hyperframes rendert
+  // deterministisch, ein Browser-Preview zeigt dasselbe Bild.
+  function zeichne(t) {
+    const cue = D.cues.find(c => t >= c.start && t < c.ende) || D.cues[D.cues.length - 1];
+    if (cueEl.textContent !== cue.text) {
+      cueEl.textContent = cue.text;
+      cueEl.classList.remove("aktiv");
+      void cueEl.offsetWidth;
+      cueEl.classList.add("aktiv");
+    }
+    balken.style.width = Math.min(100, 100 * t / D.dauer) + "%";
+  }
+  zeichne(0);
+  const start = performance.now();
+  (function tick() {
+    const t = (performance.now() - start) / 1000;
+    zeichne(Math.min(t, D.dauer));
+    if (t < D.dauer) requestAnimationFrame(tick);
+  })();
+</script>
+</body>
+</html>

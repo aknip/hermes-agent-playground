@@ -289,6 +289,22 @@ ersten Lauf liefert.
 | **Einspruchsfrist am Irreversibel-Gate** | **nicht geprüft** | Frist-Arithmetik über `validiert`-Journalzeilen; nie mit echten Zeitstempeln durchlaufen. |
 | **Zwölfter Key für `esf-ceo`** | **Datei geprüft, Zuordnung nicht gelaufen** | `openrouter-keys.txt` trägt seit dem 18.08.2026 zwölf Paare (`esf-hermes-agent-12` als letztes). Mit der Einlese-Logik von `assign-keys.sh` nachgemessen: 12 Keys, 12 verschiedene, und die elf Fingerabdrücke der Phase-2-Zuordnung sind unverändert — der neue Key verschiebt keine Rolle. Die Zuordnung selbst (`config set` auf ein existierendes Profil) und der Verbrauchsnachweis stehen aus, bis die ESF wieder installiert ist; `config get` bewiese auch dann nichts. |
 
+## Der Video-Kanal (18.08.2026) — was gemessen ist und was nicht
+
+Gebaut nach `AGENTS.md 8`: Video-Zusammenfassungen aller CEO-/Supervisor-
+Dokumente, vertonte Gate-Vorlagen, Playwright-Videoaufzeichnung nach jedem
+Merge, Headless-Pflicht. Die Messlage, sauber getrennt:
+
+| Baustein | Status | Warum |
+|----------|--------|-------|
+| **Der Rückfall-Renderer (`say` → ffmpeg)** | **real gemessen** | `video-render.sh --selbsttest` rendert eine echte 17-Sekunden-Probe mit Sprecher-Audio: Extraktion (5 Sätze), `.vtt` aus gemessener Audiodauer (Cues enden exakt bei der Solldauer), Titelkarten-Video per ffmpeg. Werkzeuge auf dieser Maschine: ffmpeg 7.1.1, ffprobe, `say` mit Stimme „Anna" (de_DE). |
+| **Die Linter-Regeln zu `AGENTS.md 8`** | **modellfrei gemessen** | Meta-ohne-Skript → ERROR, falscher Videoname → ERROR, fehlende Zusammenfassung im Geltungsbereich → WARN (Übergang: die Phase-0–2-Dokumente tragen noch keine Skripte, `restore-phase1.sh` spielt sie unverändert zurück). Die Fixture-Invariante des Vault-Linters (genau 9 ERROR) blieb dabei unverändert — nachgemessen mit echtem Exit-Code, nicht mit `… \| tail; echo $?`. |
+| **Der Headless-Wächter** | **modellfrei gemessen** | Vier Fälle im Selbsttest von `e2e-video.sh`: saubere Config passiert, `headless: false` gefangen, `--headed` gefangen, die eigene abgeleitete Config wird nicht als Verstoß gelesen. Riegel (verweigert), Tick (überspringt + Karte) und Aufzeichnung führen DENSELBEN Wächter aus. |
+| **Hyperframes als primärer Renderer** | **Annahme, Probe gescheitert** | Die CLI-Konvention (`npx hyperframes render`, Projektlayout, Audio-`data-`-Attribute) stammt aus der offiziellen Doku (Apache 2.0, lokales Rendern, Node 22+/ffmpeg). Die Probe am 18.08.2026 scheiterte, bevor sie etwas beweisen konnte: npm zeigt auf die Firmen-Registry `artifacts.mgm-tp.com`, die nicht auflösbar ist — dasselbe Netzmuster wie die `APIConnectionError`-Ausfälle der Phase 2. Genau deshalb rendert der Kanal über den gemessenen Rückfall, bis der erste echte Hyperframes-Lauf protokolliert ist. |
+| **Playwright-Videoaufzeichnung** | **Annahme** | Die abgeleitete Config (erbt die Repo-Config, überstimmt `video`, `headless`, `outputDir`) ist erzeugt und geprüft, aber nie gegen einen laufenden Stack gefahren. Ungeprüft ist insbesondere die Vererbungs-Annahme über den Default-Export von `playwright.config.ts` und das Einsammeln der je-Test-`.webm`. Das Ziel-Repo ist derzeit auf den Ausgangszustand zurückgesetzt — es gibt nichts, wogegen man messen könnte. |
+| **`.vtt`-Cue-Genauigkeit** | **Näherung, benannt** | Die Cue-Zeiten verteilen die GEMESSENE Gesamtdauer proportional zur Wortzahl je Satz. Das ist deterministisch und passt in der 17-s-Probe; wortgenaue Zeitmarken lieferte erst eine TTS mit Timing-Ausgabe. Die Näherung steht in `AGENTS.md 8` als solche. |
+| **Sprechertext-Pflicht der Rollen** | **ungeprüft, per Bauart** | Ob ein deepseek-Worker den Skill `esf-video-zusammenfassung` befolgt und brauchbare 120–220 Wörter liefert, ist nicht gemessen — dieselbe offene Frage wie bei den Superpowers-Skills. Der Linter fängt das Fehlen (WARN) und die Formfehler (ERROR); die Qualität fängt er nicht. |
+
 ## Bewusst nicht benutzt
 
 Übernommen aus Kapitel 13 des Konzepts — für jedes gibt es einen verifizierten

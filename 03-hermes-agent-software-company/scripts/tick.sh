@@ -102,7 +102,24 @@ AKTE="$VAULT/reports/e2e-$HEUTE"
 
 if [ "$DRY" -eq 1 ]; then
     log "  würde laufen lassen: $E2E_BEFEHL in $REPO"
+elif [ -d "$REPO" ] && ! "$HERE/e2e-video.sh" --headless-waechter "$REPO" "$E2E_BEFEHL" > "/tmp/esf-headless-befund.$$" 2>&1; then
+    # HEADLESS IST PFLICHT (AGENTS.md 8 / cadence.yaml): Ein headed-Lauf aus
+    # Cron wartete ewig auf einen Bildschirm — und sähe vom Board aus wie
+    # Arbeit. Der Lauf wird ÜBERSPRUNGEN und der Verstoss wird eine Karte.
+    log "E2E: ÜBERSPRUNGEN — Headless-Pflicht verletzt ($(cat "/tmp/esf-headless-befund.$$" | head -1))"
+    k create "[$HEUTE] Headless-Pflicht verletzt — E2E-Regressionslauf übersprungen" \
+        --assignee esf-qa-release \
+        --workspace "dir:$REPO" \
+        --idempotency-key "headless-verstoss-$HEUTE" \
+        --max-retries 2 --max-runtime 30m \
+        --body "Der tägliche E2E-Lauf wurde übersprungen: $(cat "/tmp/esf-headless-befund.$$")
+
+Entferne --headed bzw. headless: false aus Konfiguration oder e2e_befehl.
+Headless ist Pflicht ohne Ausnahme — Wächter: scripts/e2e-video.sh
+--headless-waechter. Danach läuft der Tick von selbst wieder." >/dev/null 2>&1 || true
+    rm -f "/tmp/esf-headless-befund.$$"
 elif [ -d "$REPO" ]; then
+    rm -f "/tmp/esf-headless-befund.$$"
     mkdir -p "$AKTE"
     ( cd "$REPO" && eval "$E2E_VORBED" ) >/dev/null 2>&1 || true
     set +e

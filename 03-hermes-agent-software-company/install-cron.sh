@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
-# ESF — Die sechs Betriebs-Skripte takten
-# ========================================
+# ESF — Die sieben Betriebs-Skripte takten
+# =========================================
 #
 #   ./install-cron.sh            einrichten
 #   ./install-cron.sh --remove   zurückbauen
@@ -11,6 +11,7 @@
 #   monitor.sh       stündlich :00   stille Ausfälle + Abschluss-Erkennung
 #   eskalation.sh    stündlich :15   die Notfall-Leiter (Phase 3)
 #   ceo-tick.sh      stündlich :30   Entscheidungskarten + Executor (Phase 3)
+#   video-render.sh  stündlich :45   Video-Zusammenfassungen + Gate-Videos (AGENTS.md 8)
 #   report-gates.sh  18:00 täglich   der Report, über den der Supervisor erfährt
 #   ledger-sync.sh   23:30 täglich   Wanduhrzeiten und Kosten ins Ledger
 #
@@ -97,6 +98,8 @@ ${MARKE}eskalation — die Notfall-Leiter: Code entscheidet, was ein Notfall ist
 15 * * * *  cd "$HERE" && ./scripts/eskalation.sh >> "$LOG" 2>&1
 ${MARKE}ceo-tick — Entscheidungskarten für esf-ceo, Validierung, Ausführung
 30 * * * *  cd "$HERE" && ./scripts/ceo-tick.sh >> "$LOG" 2>&1
+${MARKE}video-render — Sprecher-Videos der Dokumente und offenen Gate-Vorlagen
+45 * * * *  cd "$HERE" && ./scripts/video-render.sh --gates >> "$LOG" 2>&1
 ${MARKE}report-gates — der Weg zum Supervisor
 0 18 * * *  cd "$HERE" && ./scripts/report-gates.sh >> "$LOG" 2>&1
 ${MARKE}ledger-sync — Messwerte ins Ledger
@@ -116,6 +119,7 @@ Von Hand auslösen, ohne auf die Uhr zu warten:
   ./scripts/monitor.sh
   ./scripts/eskalation.sh --dry-run
   ./scripts/ceo-tick.sh --dry-run
+  ./scripts/video-render.sh --dry-run --gates
   ./scripts/report-gates.sh
   ./scripts/ledger-sync.sh --dry-run
 

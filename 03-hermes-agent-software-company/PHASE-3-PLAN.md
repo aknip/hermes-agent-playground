@@ -196,3 +196,29 @@ gemessen hat, ob ein `deepseek`-CEO die Urteilsarbeit überhaupt trägt.
 - **Latenz**: Gates warten im Cron-Betrieb bis zum nächsten `ceo-tick` (bis zu
   einer Stunde) plus ggf. Einspruchsfrist. Gewollt — Bedenkzeit ist billig —
   aber in der Sprint-Kadenz einzupreisen.
+
+## Nachtrag 18.08.2026: der Video-Kanal
+
+Auf Wunsch des Supervisors erweitert — drei Stücke, alle gebaut, Messlage in
+`VERIFIKATION.md` („Der Video-Kanal"):
+
+1. **Video-Zusammenfassungen** aller Dokumente unter `analysis/`, `roadmap/`
+   und `reports/` (`AGENTS.md 8`): Die schreibende Rolle liefert den
+   Sprechertext (`<section id="video-skript">`, Skill
+   `esf-video-zusammenfassung` bei den sieben schreibenden Rollen inkl.
+   `esf-ceo`); `scripts/video-render.sh` rendert deterministisch —
+   Hyperframes (https://hyperframes.heygen.com, Apache 2.0, lokal) als
+   Primärpfad (Annahme), `say`+ffmpeg als **gemessener** Rückfall. Untertitel
+   als zuschaltbare `.vtt`-Spur, Cues aus der gemessenen Audiodauer.
+   Gate-Vorlagen werden ohne Modell vertont: der Blockgrund ist der
+   Sprechertext (`--gates`, Cron :45).
+2. **E2E-Videos nach jedem Merge**: `merge-riegel.sh` ruft nach jedem
+   bestandenen Merge (nicht blockierend) `scripts/e2e-video.sh` — die Journey
+   des Features und die ganze Suite als Playwright-Aufzeichnung nach
+   `reports/e2e-videos/<datum>/`, bei vorhandenem ffmpeg zusätzlich ein
+   zusammengefügtes `alle-journeys.mp4`.
+3. **Headless-Pflicht ohne Ausnahme**: ein Wächter
+   (`e2e-video.sh --headless-waechter`, gegen vier Fixtures gemessen) läuft
+   vor jedem E2E-Lauf — der Riegel verweigert bei Verstoß, der Tick
+   überspringt und legt eine Karte an, die Aufzeichnung erzwingt
+   `headless: true` in der abgeleiteten Config.

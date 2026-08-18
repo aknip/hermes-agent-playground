@@ -177,3 +177,46 @@ Im Modus `ceo_modus: schatten` schreibt `esf-ceo` seine Dokumente, aber
 ausgeführt wird nichts — der Supervisor antwortet wie bisher, und der
 Vergleich der beiden Antworten ist die Messgröße, an der die Umstellung auf
 `live` hängt.
+
+## 8 Video-Zusammenfassungen
+
+Jedes Dokument, das für CEO oder Supervisor geschrieben wird — alles unter
+`analysis/`, `roadmap/` und `reports/` (ausgenommen Maschinenprotokolle und
+die `e2e-`/`gate-videos`-Akten) — trägt eine **Video-Zusammenfassung**:
+Sprecher-Audio, dazu optional einblendbare Untertitel. Wer das Dokument
+schreibt, liefert den **Sprechertext**; gerendert wird deterministisch von
+`scripts/video-render.sh` (Hyperframes, https://hyperframes.heygen.com — mit
+gemessenem ffmpeg-Rückfall). Kein Modell rendert, kein Skript textet.
+
+Drei Bausteine, alle drei Pflicht (`vault-lint.py` prüft die Konsistenz):
+
+1. **Das Meta** im Kopf, benannt nach dem Dokument — die Namenskonvention
+   trägt die Zuordnung:
+
+       <meta name="esf-video" content="<dokument-basisname>.mp4">
+
+2. **Der Sprechertext** als eigener Abschnitt, 120–220 Wörter gesprochene
+   Sprache. Die ersten zwei Sätze tragen Kernaussage und Empfehlung; jede
+   Zahl darin steht auch im Dokument; keine Dateipfade, keine IDs vorlesen:
+
+       <section id="video-skript"><p>…</p></section>
+
+3. **Das Video-Element** im Dokument, mit Untertitel-Spur (nicht `default` —
+   die Untertitel sind zuschaltbar, nicht eingebrannt):
+
+       <figure class="esf-video">
+         <video controls preload="metadata" width="100%" src="<basisname>.mp4">
+           <track kind="subtitles" srclang="de" label="Untertitel" src="<basisname>.vtt">
+         </video>
+         <figcaption>Video-Zusammenfassung; Untertitel zuschaltbar. Gerendert von scripts/video-render.sh.</figcaption>
+       </figure>
+
+Die `.mp4`/`.m4a` sind **Akten, keine Quellen** — sie entstehen reproduzierbar
+aus dem Sprechertext, liegen neben dem Dokument und sind vom Vault-Git
+ausgenommen (wie die `e2e-`-Traces). Die `.vtt` ist Text und wird committet;
+ihre Cue-Zeiten entstehen aus der **gemessenen** Audiodauer, proportional zur
+Wortzahl je Satz — Bild, Ton und Untertitel teilen eine Zeitquelle.
+
+Gate-Vorlagen brauchen keinen eigenen Sprechertext: Der Blockgrund **ist** die
+Vorlage, `video-render.sh --gates` liest ihn vom Board und legt das Video
+unter `reports/gate-videos/` ab.

@@ -82,9 +82,17 @@ Ergänze Konzept "03-hermes-agent-software-company/KONZEPT.html" und die Profile
 
 
 
+Nach Überarbeitung des Konzepts "03-hermes-agent-software-company/KONZEPT.html":
+Ich möchte die Umsetzungs-Roadmap (Kapitel 12) aus dem Konzept nocheinmal durchspielen, beginnend mit Phase 1 Onboarding. Dazu soll der aktuelle Entwicklungsstand der ESF-Profile aus "03-hermes-agent-software-company" verwendet werden.
+Als erstes installiere ESF in Hermes Agent (Profile, Board etc.), beginne dann mit der Umsetzung von Phase 1.
+Nutze als Modell "deepseek/deepseek-v4-flash-0731" über OpenRouter.
+Übernimm für diesen Test bitte die Rolle des Supervisor und "ent-blocke" alle Tickets im Kanban-Board nach eigener Einschätzung. Beantworte auch alle anderen Rückfragen werden der Entwicklung selbstständig.
+Bitte regelmässig nach git committen, so dass auch jederzeit zurückgerollt werden kann.
 
 
-4. Installiere ESF aus "03-hermes-agent-software-company" neu
+
+
+
 
 
 

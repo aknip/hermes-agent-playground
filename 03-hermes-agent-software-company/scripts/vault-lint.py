@@ -32,7 +32,9 @@ PFLICHT_META = ("esf-typ", "esf-karte", "esf-datum")
 ERLAUBTE_TYPEN = {"analyse", "adr", "spec", "report", "roadmap", "katalog"}
 
 # AGENTS.md 2.3 — Dateinamen
-NAME_OK = re.compile(r"^[a-z0-9][a-z0-9.-]*\.[a-z]+$")
+# Endungen duerfen Ziffern tragen (mp4, m4a) — seit AGENTS.md 8 liegen
+# Medien-Akten neben ihren Dokumenten.
+NAME_OK = re.compile(r"^[a-z0-9][a-z0-9.-]*\.[a-z0-9]+$")
 ADR_NAME_OK = re.compile(r"^ADR-\d{3}-[a-z0-9-]+\.html$")
 
 # AGENTS.md 4 — ein ADR hat fuenf Abschnitte
@@ -103,6 +105,27 @@ def pruefe_dokument(pfad, rel, b):
 
     if not re.search(r"<title\b[^>]*>\s*\S", text, re.I):
         b.warn("2.2", rel, "kein <title> — im Browser nicht wiederzuerkennen")
+
+    # AGENTS.md 8 — Video-Zusammenfassung: Meta und Skript-Abschnitt gehoeren
+    # zusammen. Nur eines von beiden ist der Fehler, der spaeter keiner mehr
+    # zu sein scheint: ein Meta ohne Skript rendert nie, ein Skript ohne Meta
+    # wird nie gefunden. Das VIDEO selbst darf fehlen — es entsteht asynchron
+    # durch scripts/video-render.sh.
+    oberster_ordner = rel.replace("\\", "/").split("/")[0]
+    hat_video_meta = "esf-video" in meta
+    hat_skript = re.search(
+        r'<section\b[^>]*\bid\s*=\s*["\']video-skript["\']', text, re.I) is not None
+    if hat_video_meta != hat_skript:
+        fehlt = "der Abschnitt video-skript" if hat_video_meta else "das Meta esf-video"
+        b.error("8", rel, f"Video-Zusammenfassung unvollstaendig — {fehlt} fehlt")
+    if hat_video_meta:
+        erwartet = os.path.splitext(os.path.basename(rel))[0] + ".mp4"
+        if meta.get("esf-video") != erwartet:
+            b.error("8", rel, f"esf-video muss '{erwartet}' heissen (Namenskonvention traegt die Zuordnung)")
+    elif oberster_ordner in ("analysis", "roadmap", "reports"):
+        # WARN, nicht ERROR: Dokumente aus den Phasen 0-2 tragen noch keine
+        # Skripte, und restore-phase1.sh spielt sie unveraendert zurueck.
+        b.warn("8", rel, "keine Video-Zusammenfassung (video-skript + esf-video) — AGENTS.md 8")
 
     # AGENTS.md 4 — ADRs tragen fuenf Abschnitte
     if os.path.basename(rel).startswith("ADR-"):
@@ -231,6 +254,10 @@ def pruefe_vault(wurzel, b):
                 pruefe_dokument(pfad, rel, b)
             elif datei.endswith((".md", ".txt")):
                 b.error("2.1", rel, "Doku-Artefakte sind .html — Markdown nur fuer AGENTS/SOUL/SKILL/Plaene")
+            elif datei.endswith((".mp4", ".webm", ".m4a", ".vtt")):
+                # AGENTS.md 8: Video-Zusammenfassungen und ihre Untertitel sind
+                # Render-Akten neben ihrem Dokument — erlaubt, nicht geprueft.
+                pass
             elif not datei.endswith((".yaml", ".yml", ".json", ".jsonl")):
                 b.warn("2.1", rel, "unerwartete Dateiendung im Vault")
 

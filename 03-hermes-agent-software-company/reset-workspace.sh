@@ -52,6 +52,12 @@ cat > "$VAULT/.gitignore" <<'EOF'
 # Traces und Screenshots eines E2E-Laufs sind Akten, keine Quellen — sie
 # werden pro Lauf neu erzeugt und blähen die Historie auf.
 reports/e2e-*/
+# Dasselbe gilt für die gerenderten Video-Zusammenfassungen und ihr Audio
+# (AGENTS.md 8): reproduzierbar aus dem Sprechertext im Dokument. Die .vtt
+# ist Text und wird bewusst MIT committet.
+*.mp4
+*.webm
+*.m4a
 EOF
 
 echo "  workspace/company/     — der Firmen-Vault"
