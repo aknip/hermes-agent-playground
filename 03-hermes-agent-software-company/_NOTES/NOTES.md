@@ -63,21 +63,28 @@ Es läuft gerade Sprint 2 von ESF (03-hermes-agent-software-company) für die Ap
 Bitte fasse den aktuellen Stand von Sprint 1 und 2 (was wurde geplant, was umgesetzt, wie lange dauerte es, wie teuer war es?) zusammen.
 
 
-Ich möchte die Umsetzungs-Roadmap (Kapitel 12) aus dem Konzept "03-hermes-agent-software-company/KONZEPT.html" nocheinmal von vorne durchspielen, ab Phase 1 Onboarding. Es soll der aktuelle Entwicklungsstand der ESF-Profile aus "03-hermes-agent-software-company" hierzu verwendet werden:
-1. Stelle sicher, dass in "03-hermes-agent-software-company" der aktuelle Stand der ESF aus Hermes Agent vorhanden ist
+Ich möchte die Umsetzungs-Roadmap (Kapitel 12) aus dem Konzept "03-hermes-agent-software-company/KONZEPT.html" nocheinmal von vorne durchspielen, ab Phase 1 Onboarding. Hierzu möchte ich auch die Installation von ESF im aktuellen Stand noch einmal testen. Dazu soll der aktuelle Entwicklungsstand der ESF-Profile aus "03-hermes-agent-software-company" verwendet werden:
+1. Stelle sicher, dass in "03-hermes-agent-software-company" der aktuelle Stand der ESF aus der Hermes Agent Instantz vorhanden ist, so dass bei einer Neuinstallation nichts verloren geht.
 2. Entferne alle ESF-Profile, Kanban-Board etc. aus Hermes Agent
-3. Warte auf Bestätigung von mir, dass alles aus Hermes Agent entfernt wurde
+3. Versetze "04-hermes-agent-software-company-test-kaneo" zurück in den initialen Zustand (enferne die von ESF hinzugefügten Features)
+4. Warte auf Bestätigung von mir für den nächsten Schritt
+
+
+Hinweis: Ich habe ESF aus der Hermes-Instanz deinstalliert und "04-hermes-agent-software-company-test-kaneo" zurück in den initialen Zustand gesetzt - als Vorbereitung für eine nächsten Test.
+Deine Aufgabe: Schlage vor, wie man die Selbstorganisation der Organisation weiter optimieren kann. Idee: CEO als Agenten/Profil abbilden und den Menschen als "Supervisor" nur zu jeder Quartalsplanung (Abnahme / Bestätigung der CEO-Planung) und ansonsten nur im absoluten "Notfall" (Blockade, Endlos-Schleife, CEO kann nicht entscheiden) einbeziehen.
+Bitte nur analysieren/planen, nicht umsetzen.
+
+
+Ergänze Konzept "03-hermes-agent-software-company/KONZEPT.html" und die Profile/Scripts in "03-hermes-agent-software-company" => 
+1. Ergänze alle Analysen, Research-Ergebnisse, Berichte, Reports, Entscheidungsvorlagen für den CEO und Supervisor jeweils mit einem Video, das den jeweiligen Inhalt zusammenfasst (mit Sprecher-Audio und optional einblendbaren Untertiteln, per Hyperframes erstellt https://hyperframes.heygen.com). Ergänze ggf. passende Hyperframes-Skills für das / die passenden Profile.
+2. Erstelle nach jeder Feature-Implementierung ein Video, das den erfolgreichen Browser-E2E-Test des Features zeigt. Zusätzlich soll nach jeder Feature-Implementierung ein Video erstellt bzw. aktualisiert werden, das alle E2E-Tests der Anwendung zeigt (alles per Playwright Video-Aufzeichung).
+3. Stelle sicher, dass alle E2E Tests immer headless ausgeführt werden.
+
+
+
+
+
 4. Installiere ESF aus "03-hermes-agent-software-company" neu
-5. Versetze "04-hermes-agent-software-company-test-kaneo" zurück in den initialen Zustand (enferne die von ESF hinzugefügten Features)
-6. Warte auf Bestätigung von mir für den nächsten Schritt
-
-
-
-Ergänze Konzept 03-hermes-agent-software-company => 
-1. Ergänze alle Analysen, Research-Ergebnisse, Berichte, Reports, Entscheidungsvorlagen für den CEO jeweils mit einem Video, das den jeweiligen Inhalt zusammenfasst (mit Sprecher-Audio und optional einblendbaren Untertiteln, per Hyperframes erstellt https://hyperframes.heygen.com). 
-2. Erstelle nach jeder Feature-Implementierung ein Video, das den Browser-E2E-Test des Features zeigt. Zusätzlich soll nach jeder Feature-Implementierung ein Video erstellt bzw. aktualisiert werden, das alle E2E-Tests der Anwendung zeigt.
-
-
 
 
 
