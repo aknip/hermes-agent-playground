@@ -1,11 +1,20 @@
 #!/usr/bin/env bash
 #
-# ESF — Die CEO-Hülle
-# ===================
+# ESF — Die Supervisor-Hülle (bis Phase 2: die CEO-Hülle)
+# ========================================================
 #
 # Der einzige legitime Weg, ein Gate zu öffnen. Ohne Argumente zeigt das Skript
 # alle wartenden Gates mit ihrer Entscheidungsvorlage; mit Argumenten antwortet
 # es.
+#
+# Seit Phase 3 gibt es zwei Aufrufer (AGENTS.md 7):
+#   · der SUPERVISOR (Mensch) — direkt, wie bisher. Roadmap-Gates und
+#     Notfälle sind ausschließlich seine.
+#   · scripts/ceo-tick.sh — führt validierte Entscheidungsdokumente von
+#     esf-ceo aus und hängt dafür `--von esf-ceo` an. Der Zusatz landet als
+#     `[von:esf-ceo]` im UNBLOCK-Kommentar; check-phase3.sh zählt daran, wer
+#     was beantwortet hat. Ein Roadmap-Gate mit --von esf-ceo wird hier
+#     VERWEIGERT — nicht delegierbar ist nicht delegierbar.
 #
 #   ROADMAP     ./gate.sh approve  <id>
 #               ./gate.sh approve  <id> "horizont: quartal"
@@ -164,6 +173,11 @@ fi
 VERB="${1:-}"
 ID="${2:-}"
 TEXT="${3:-}"
+VON=""
+# `--von <name>` darf als 3./4. bzw. 5. Argument stehen (ceo-tick.sh hängt es
+# hinten an). Alles andere an dieser Position ist ein Aufruffehler.
+if [ "${3:-}" = "--von" ]; then VON="${4:-}"; TEXT=""; fi
+if [ "${4:-}" = "--von" ]; then VON="${5:-}"; fi
 
 case " $VERBEN_ENTSCHEIDUNG $VERBEN_BUDGET " in
     *" $VERB "*) ;;
@@ -199,13 +213,24 @@ case " $erlaubt " in
        exit 1 ;;
 esac
 
+# Das Roadmap-Gate ist nicht delegierbar — auch nicht an das eigene
+# CEO-Profil. ceo-lint.py verweigert dort schon jedes Verb außer escalate;
+# dieser Riegel hier ist die zweite, unabhängige Hälfte derselben Regel.
+if [ -n "$VON" ] && [ "$art" = "roadmap" ]; then
+    echo "VERWEIGERT: das Roadmap-Gate beantwortet nur der Supervisor selbst."
+    echo "            (Aufruf kam mit --von $VON.)"
+    exit 1
+fi
+
 # Verben, die eine Begründung brauchen. `approve` darf einen Zusatz tragen
 # (z.B. "horizont: quartal"), muss aber nicht.
+MARKE=""
+[ -n "$VON" ] && MARKE=" [von:$VON]"
 case "$VERB" in
     modify|shelve|cut|stop)
         [ -n "$TEXT" ] || { echo "'$VERB' braucht einen Text (Änderung bzw. Grund)."; exit 1; }
-        REASON="$VERB: $TEXT" ;;
-    *)  if [ -n "$TEXT" ]; then REASON="$VERB: $TEXT"; else REASON="$VERB"; fi ;;
+        REASON="$VERB$MARKE: $TEXT" ;;
+    *)  if [ -n "$TEXT" ]; then REASON="$VERB$MARKE: $TEXT"; else REASON="$VERB$MARKE"; fi ;;
 esac
 
 printf 'Antwort an %s (%s-Gate):  "%s"\n' "$ID" "$art" "$REASON"

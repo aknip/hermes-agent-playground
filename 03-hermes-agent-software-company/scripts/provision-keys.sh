@@ -60,7 +60,7 @@ done
 PROFILE_NAMES=(
     esf-chief-of-staff esf-market-scout esf-market-analyst esf-product-manager
     esf-architect esf-estimator esf-dev-a esf-dev-b esf-reviewer
-    esf-qa-release esf-controller
+    esf-qa-release esf-controller esf-ceo
 )
 
 command -v jq >/dev/null || { echo "FEHLER: 'jq' fehlt"; exit 1; }

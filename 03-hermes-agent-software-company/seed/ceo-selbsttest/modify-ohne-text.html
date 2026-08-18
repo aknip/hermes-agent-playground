@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <title>CEO-Entscheid Probe (defekt: modify ohne Text) — ESF</title>
+  <meta name="esf-typ" content="report">
+  <meta name="esf-karte" content="t_selbsttest3">
+  <meta name="esf-datum" content="2026-08-18">
+  <meta name="esf-gate" content="t_3bb0cf65">
+  <meta name="esf-verb" content="modify">
+</head>
+<body>
+<section id="vorlage">
+  <p>Wörtlich aus dem blocked-Ereignis: Irreversibel-Gate zur Datenmigration
+  two_factor, additiv, Boot-Migrate, Schlimmstfall Betriebsausfall ohne Datenverlust.</p>
+</section>
+<section id="messung">
+  <pre>$ git -C produkt log --oneline -1 -- apps/api/migrations
+ae4cbe7 docs(auth): backup-hinweis</pre>
+</section>
+<section id="begruendung">
+  <p>Die Migration selbst ist verifiziert additiv; offen ist allein die
+  Reihenfolge gegenüber dem geschlossenen zweiten Faktor.</p>
+</section>
+<section id="antwort"><p>Mit Auflagen.</p></section>
+</body>
+</html>

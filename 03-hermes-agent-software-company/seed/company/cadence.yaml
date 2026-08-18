@@ -48,6 +48,34 @@ rubrik:
     risiko_invers:              # Wenig Irreversibilität/Bruchgefahr = hohe Punktzahl
       gewicht: 1.0
 
+# --- Führungsebene (Phase 3) -------------------------------------------------
+# Wer welches Gate öffnet. Der Supervisor (Mensch) beantwortet das
+# Roadmap-Gate und Notfälle; esf-ceo entscheidet Release, Irreversibel und
+# Budget über Entscheidungsdokumente (AGENTS.md 7). Kein Modell ruft je
+# kanban_unblock — scripts/ceo-tick.sh validiert und führt aus.
+fuehrung:
+  # schatten: esf-ceo schreibt Entscheidungsdokumente, ausgeführt wird nichts;
+  #           der Supervisor antwortet wie bisher. Der Vergleich beider
+  #           Antworten (ledger/ceo-entscheidungen.jsonl) ist die Messgröße.
+  # live:     scripts/ceo-tick.sh führt gültige CEO-Entscheidungen aus.
+  # Umgestellt wird NUR vom Supervisor, am Roadmap-Gate — nie von einem Modell.
+  ceo_modus: schatten
+  # Deckel für neu angelegte Entscheidungskarten je ceo-tick-Lauf. Ein Modell
+  # mit zwölf wartenden Gates winkt genauso durch wie ein Mensch.
+  ceo_fragen_pro_tag: 6
+  # Gültige CEO-Entscheidungen an Irreversibel-Gates warten diese Frist ab,
+  # bevor sie ausgeführt werden. Antwortet der Supervisor vorher selbst über
+  # gate.sh, gilt die CEO-Entscheidung als überholt.
+  irreversibel_einspruch_stunden: 24
+  # Ein Gate, das so lange ohne gültiges Entscheidungsdokument blockiert
+  # steht, ist ein Notfall (scripts/eskalation.sh).
+  gate_unbeantwortet_stunden: 24
+  # melden: die Notfall-Leiter meldet Betriebsmuster nur (Default).
+  # auto:   bekannte Betriebsmuster werden EINMAL je Karte selbst repariert
+  #         (unblock "manuell: betriebsrettung …"); das zweite Mal ist ein
+  #         Notfall.
+  betriebsrettung: melden
+
 # --- Budget-Eskalation ------------------------------------------------------
 # Reißt ein Feature oder Sprint diesen Anteil seiner P90-Schätzung, geht ein
 # Gate an den CEO: Lage, Optionen, Empfehlung.

@@ -93,11 +93,19 @@ for ort in "${STANDARD_ORTE[@]}"; do
     if [ -r "$ort" ]; then STANDARD_DATEI="$ort"; break; fi
 done
 
+# esf-ceo steht am ENDE: zugeordnet wird nach Reihenfolge, und die elf Keys
+# der Phasen 0–2 behalten so ihre Rollen — die Verbrauchszahlen bleiben über
+# den Rundlauf vergleichbar. Ein ZWÖLFTER Key (für esf-ceo) ist optional:
+# fehlt er, läuft die Führungsrolle auf dem Root-Key, und genau das wird
+# gelb gesagt — die Kosten der Führung wären dann nicht zurechenbar, was
+# Phase 2 als blinden Fleck benannt hat.
 PROFILE_NAMES=(
     esf-chief-of-staff esf-market-scout esf-market-analyst esf-product-manager
     esf-architect esf-estimator esf-dev-a esf-dev-b esf-reviewer
-    esf-qa-release esf-controller
+    esf-qa-release esf-controller esf-ceo
 )
+# Profile, die ohne eigenen Key laufen DÜRFEN (gelb statt rot):
+OPTIONAL_OHNE_KEY="esf-ceo"
 
 DATEI="${ESF_OPENROUTER_KEYFILE:-$STANDARD_DATEI}"
 AKTION="zuordnen"
@@ -132,10 +140,20 @@ if [ "$AKTION" = "pruefen" ]; then
     for name in "${PROFILE_NAMES[@]}"; do
         env_datei="$HOME/.hermes/profiles/$name/.env"
         if [ ! -f "$env_datei" ]; then
+            case " $OPTIONAL_OHNE_KEY " in
+                *" $name "*)
+                    printf '  \033[33m⚠\033[0m %s — keine .env (Root-Key); erlaubt, siehe oben\n' "$name"
+                    continue ;;
+            esac
             nein "$name — keine .env"; fehler=1; continue
         fi
         wert="$(sed -n 's/^OPENROUTER_API_KEY=//p' "$env_datei" | tail -1 | tr -d "\"'")"
         if [ -z "$wert" ]; then
+            case " $OPTIONAL_OHNE_KEY " in
+                *" $name "*)
+                    printf '  \033[33m⚠\033[0m %s — ohne eigenen Key (Root-Key); erlaubt, aber die Kosten der Führung sind dann nicht zurechenbar\n' "$name"
+                    continue ;;
+            esac
             nein "$name — .env definiert kein OPENROUTER_API_KEY"
             printf '      Dieses Profil fällt auf den Root-Key zurück. Lautlos.\n'
             fehler=1; continue
@@ -227,9 +245,14 @@ while IFS= read -r zeile || [ -n "$zeile" ]; do
     esac
 done < "$DATEI"
 
-if [ "${#keys[@]}" -ne "${#PROFILE_NAMES[@]}" ]; then
-    printf '\n\033[31mFEHLER:\033[0m %s Key(s) in der Datei, aber %s Profile.\n' \
-        "${#keys[@]}" "${#PROFILE_NAMES[@]}" >&2
+# Erlaubt sind GENAU so viele Keys wie Profile — oder einer weniger: dann
+# bleibt das letzte Profil (esf-ceo) ohne eigenen Key. Jede andere Zahl ist
+# ein Fehler, denn die Zuordnung geht nach Reihenfolge und ein Versatz würde
+# still alle Rollen verschieben.
+if [ "${#keys[@]}" -ne "${#PROFILE_NAMES[@]}" ] \
+   && [ "${#keys[@]}" -ne "$(( ${#PROFILE_NAMES[@]} - 1 ))" ]; then
+    printf '\n\033[31mFEHLER:\033[0m %s Key(s) in der Datei, aber %s Profile (%s ohne CEO).\n' \
+        "${#keys[@]}" "${#PROFILE_NAMES[@]}" "$(( ${#PROFILE_NAMES[@]} - 1 ))" >&2
     printf 'Die Zuordnung geht nach Reihenfolge und muss deshalb aufgehen.\n' >&2
     exit 1
 fi
@@ -250,7 +273,7 @@ if [ "$AKTION" = "verbrauch" ]; then
     say "Verbrauch je Rolle bei OpenRouter"
     printf '  %-22s %12s %12s\n' PROFIL "USD" "LIMIT"
     summe=0
-    for i in "${!PROFILE_NAMES[@]}"; do
+    for i in "${!keys[@]}"; do
         antwort="$(curl -fsS https://openrouter.ai/api/v1/key \
                     -H "Authorization: Bearer ${keys[$i]}" 2>/dev/null || echo '{}')"
         nutzung="$(printf '%s' "$antwort" | jq -r '.data.usage // "?"')"
@@ -284,7 +307,11 @@ printf '  Quelle: %s (%s Keys)\n\n' "$DATEI" "${#keys[@]}"
 } > "$ZUORDNUNG"
 
 fehler=0
-for i in "${!PROFILE_NAMES[@]}"; do
+if [ "${#keys[@]}" -lt "${#PROFILE_NAMES[@]}" ]; then
+    printf '\033[33m  ⚠ %s Keys für %s Profile — %s läuft auf dem Root-Key.\033[0m\n' \
+        "${#keys[@]}" "${#PROFILE_NAMES[@]}" "${PROFILE_NAMES[$(( ${#PROFILE_NAMES[@]} - 1 ))]}"
+fi
+for i in "${!keys[@]}"; do
     name="${PROFILE_NAMES[$i]}"
     key="${keys[$i]}"
     ab="$(fingerabdruck "$key")"

@@ -202,9 +202,9 @@
 <header class="hero">
   <p class="eyebrow">ESF · Konzept · Hermes Agent v0.20.0 · Kanban-Board · Superpowers-Skills · OpenRouter</p>
   <h1>Enterprise Software Factory</h1>
-  <p class="lede">Die <strong>ESF</strong> ist eine autonome Organisation aus Hermes-Agenten, die eine bestehende B2B-Software kontinuierlich weiterentwickelt — vom Marktsignal über Roadmap, Sprint und Review bis zum Release. Ein Mensch führt als CEO an klar definierten Gates; alles andere läuft selbstständig, gemessen und nachvollziehbar.</p>
+  <p class="lede">Die <strong>ESF</strong> ist eine autonome Organisation aus Hermes-Agenten, die eine bestehende B2B-Software kontinuierlich weiterentwickelt — vom Marktsignal über Roadmap, Sprint und Review bis zum Release. Die Führung ist zweistufig: ein <strong>CEO-Profil</strong> entscheidet die operativen Gates über validierte Entscheidungsdokumente, ein Mensch führt als <strong>Supervisor</strong> an der Quartals-Roadmap und im Notfall. Alles andere läuft selbstständig, gemessen und nachvollziehbar.</p>
   <div class="hero-meta">
-    <span>Stand: 17.08.2026</span>
+    <span>Stand: 18.08.2026 (Fortschreibung Phase 3: CEO als Profil, Mensch als Supervisor)</span>
     <span>Basis: verifizierte Tutorials in <code>02-hermes-agent-kanban-tutorials/</code></span>
     <span>Zielverzeichnis: <code>03-hermes-agent-software-company/</code></span>
   </div>
@@ -231,8 +231,8 @@
 
 <div class="cards">
   <div class="card"><div class="k">1 Board</div><div class="l">Boards sind hart isoliert — die ganze Firma lebt auf einem Board (<code>sw-company</code>).</div></div>
-  <div class="card"><div class="k">11 Profile</div><div class="l">Vom Markt-Scout bis zum Controller, jedes mit eigener <code>SOUL.md</code> und eigenem Modell-Tier.</div></div>
-  <div class="card"><div class="k">4 Gates</div><div class="l">Roadmap, Release, Entfernen von Funktionen, Budget-Eskalation — nur dort ist der CEO gefragt.</div></div>
+  <div class="card"><div class="k">12 Profile</div><div class="l">Vom Markt-Scout bis zum CEO, jedes mit eigener <code>SOUL.md</code> und eigenem Modell-Tier.</div></div>
+  <div class="card"><div class="k">4 Gates</div><div class="l">Roadmap gehört dem Supervisor (Mensch); Release, Irreversibles und Budget entscheidet das CEO-Profil.</div></div>
   <div class="card"><div class="k">≤ 3 / Tag</div><div class="l">Maximal drei Gate-Fragen pro Tageslauf. Die knappe Ressource ist Aufmerksamkeit, nicht Tokens.</div></div>
 </div>
 
@@ -242,7 +242,7 @@
   <h2>Ausgangslage &amp; Zielbild</h2>
   <div class="prose">
     <p><strong>Gegeben</strong> ist eine bestehende B2B-Software in einem Git-Repository. <strong>Gesucht</strong> ist eine Organisation aus Agenten, die diese Software dauerhaft weiterentwickelt: Markt- und Wettbewerbsanalyse, eine lebende Feature-Roadmap, priorisierte Umsetzung in Sprints und Releases, kontinuierliche Qualitätssicherung — und der Mut, Funktionen auch zu <em>entfernen</em>, wenn einfachere, bessere Wege existieren. Der Endanwender soll seine Aufgaben so einfach und so automatisiert wie möglich erledigen können, bei voller Kontrolle.</p>
-    <p>Ein Mensch nimmt die Rolle des <strong>CEO</strong> ein. Er steckt nicht im Alltagsgeschäft, sondern entscheidet an definierten Gates: Roadmap-Freigaben, Release-Go, irreversible Eingriffe. Ihm wird die Planung regelmäßig hochverdichtet vorgelegt — mit der Option, jedes Detail bis auf Karten- und Commit-Ebene nachzuprüfen.</p>
+    <p><strong>Ursprünglich (bis Phase 2)</strong> nahm ein Mensch die Rolle des <strong>CEO</strong> ein und entschied an allen definierten Gates. <strong>Fortschreibung 18.08.2026, nach der Messung der Phase 2</strong> (beide Aussagen bleiben nebeneinander stehen, wie es der eigene Vault-Vertrag verlangt): Von den neun menschlichen Gate-Öffnungen der zwei gefahrenen Sprints trugen nur zwei ein Entscheidungsverb — sieben waren Betriebsrettungen, und 61&nbsp;% der Kartenzeit liefen auf ad hoc von Hand geschriebenen Karten. Die knappe Ressource war nie die Entscheidung, sondern alles darum herum. Deshalb ist der CEO ab Phase&nbsp;3 ein <strong>Profil</strong> (<code>esf-ceo</code>), das die operativen Gates über validierte Entscheidungsdokumente entscheidet; der Mensch führt als <strong>Supervisor</strong> — planmäßig nur am Roadmap-/Quartals-Gate, außerplanmäßig nur, wenn die deterministische Notfall-Leiter ihn ruft (Kapitel&nbsp;7). Ihm wird die Planung weiterhin hochverdichtet vorgelegt, mit der Option, jedes Detail bis auf Karten- und Commit-Ebene nachzuprüfen.</p>
     <p><strong>Stabilität und Qualität haben hohe Priorität.</strong> Schon mit der ersten Analyse des Repositories wird eine <strong>browserbasierte End-to-End-Testsuite</strong> (Playwright) aufgebaut — oder eine vorhandene ausgebaut —, die alle Kernfunktionen systematisch aus Sicht des Endanwenders prüft. Sie wächst mit jedem Feature mit, dient als Regressionsnetz vor jedem Merge und Release, und ist zugleich das lebende Nutzerhandbuch: Wer die Suite liest, versteht, wie die Software bedient wird — und wo sie zu kompliziert ist (Kapitel&nbsp;6).</p>
     <p>Jede Planung — Feature, Sprint, Release, Quartal — trägt eine <strong>Aufwandsschätzung</strong> (Dauer, Tokenverbrauch, Tokenkosten). Geschätzte und reale Aufwände werden kontinuierlich gemessen und verglichen, damit die Schätzungen über die Zeit belastbarer werden. Alle Arbeitsschritte — Recherche, Konzepte, Vorschläge, Prototypen, Planungen — werden systematisch dokumentiert, sodass Produkthistorie und Entscheidungswege dauerhaft nachvollziehbar bleiben.</p>
     <p>Diese Organisation heißt im Folgenden <strong>ESF — Enterprise Software Factory</strong>. Das Konzept ist als <strong>generischer Blueprint</strong> angelegt: Es beschreibt die ESF so, dass sie auf ein beliebiges B2B-Repo aufgesetzt werden kann. Ein Onboarding-Prozess (Phase&nbsp;0, Kapitel&nbsp;12) analysiert die konkrete Codebasis, das Konzeptumfeld und den Markt und erzeugt daraus den ersten Plan. Festgelegt sind (Rückfragen vom 17.08.2026): CEO-Gates als blockierte Karten auf dem Board und PR-basierte Entwicklung mit Auto-Merge nach Agenten-Review — der CEO gibt Releases und Roadmap frei, nicht einzelne Pull Requests. Der Arbeitstakt ist <strong>inhaltsgetrieben</strong>: Sprint, Release und Quartal sind über Mengen-Limits definierte Ebenen, keine Zeiträume — die Organisation läuft ohne Unterbrechung bis zum Rand ihres Autonomie-Horizonts durch (Kapitel&nbsp;5 und&nbsp;7); Kalenderbegriffe dienen als Denkmodell und Berichtsrhythmus.</p>
@@ -303,7 +303,7 @@
   <span class="chapno">Kapitel 04</span>
   <h2>Die Organisation</h2>
   <div class="prose">
-    <p>Elf Profile, ein Mensch. Alle Profilnamen tragen das Präfix <code>esf-</code> — Profile liegen bei Hermes global, und das Präfix hält den Namensraum der ESF von allem anderen auf der Maschine getrennt. Die Grenze zwischen Agenten und Mensch ist im System physisch: Sie verläuft durch <strong>Gate-Karten</strong> (<code>blocked</code>-Status), die nur der CEO per <code>unblock</code> öffnen kann. Unterhalb der Grenze orchestriert der <em>Chief of Staff</em> — ein Planer-Profil, das per <code>kanban_create</code> selbst Karten anlegt, wie in Story&nbsp;10/11 verifiziert.</p>
+    <p>Zwölf Profile, ein Mensch. Alle Profilnamen tragen das Präfix <code>esf-</code> — Profile liegen bei Hermes global, und das Präfix hält den Namensraum der ESF von allem anderen auf der Maschine getrennt. Die Grenze zwischen Agenten und Mensch ist im System physisch: Sie verläuft durch <strong>Gate-Karten</strong> (<code>blocked</code>-Status). Seit Phase&nbsp;3 ist die Führung darunter zweistufig: <code>esf-ceo</code> entscheidet Release-, Irreversibel- und Budget-Gates über validierte Entscheidungsdokumente (Kapitel&nbsp;7); der <strong>Supervisor</strong> (Mensch) beantwortet das Roadmap-Gate und jeden Notfall selbst per <code>gate.sh</code>. Unterhalb davon orchestriert der <em>Chief of Staff</em> — ein Planer-Profil, das per <code>kanban_create</code> selbst Karten anlegt, wie in Story&nbsp;10/11 verifiziert.</p>
   </div>
 
   <figure>
@@ -319,12 +319,12 @@
 
       <!-- CEO -->
       <rect x="360" y="16" width="200" height="58" rx="10" fill="var(--gate-bg)" stroke="var(--gate)" stroke-width="1.6"/>
-      <text x="460" y="40" text-anchor="middle" class="svg-label" font-size="14" font-weight="600" fill="currentColor">CEO — Mensch</text>
-      <text x="460" y="60" text-anchor="middle" class="svg-label" font-size="11" fill="var(--muted)">Richtung · Freigaben · Veto</text>
+      <text x="460" y="40" text-anchor="middle" class="svg-label" font-size="14" font-weight="600" fill="currentColor">Supervisor — Mensch</text>
+      <text x="460" y="60" text-anchor="middle" class="svg-label" font-size="11" fill="var(--muted)">Quartals-Roadmap · Einspruch · Notfall</text>
 
       <!-- Gate boundary -->
       <line x1="30" y1="122" x2="890" y2="122" stroke="var(--gate)" stroke-width="1.4" stroke-dasharray="7 5"/>
-      <text x="30" y="112" class="svg-label" font-size="11" fill="var(--gate)">Freigabegrenze — jede Überquerung ist eine eigene Gate-Karte</text>
+      <text x="30" y="112" class="svg-label" font-size="11" fill="var(--gate)">Freigabegrenze — jede Überquerung ist eine eigene Gate-Karte; unterhalb entscheidet esf-ceo die operativen Gates (Kap. 7)</text>
 
       <!-- CEO <-> CoS arrows -->
       <line x1="440" y1="74" x2="440" y2="160" stroke="var(--gate)" stroke-width="1.4" marker-end="url(#arrg)"/>
@@ -386,13 +386,14 @@
       <text x="760" y="437" text-anchor="middle" class="svg-label" font-size="12.5" fill="currentColor">esf-qa-release</text>
       <text x="760" y="451" text-anchor="middle" class="svg-label" font-size="10.5" fill="var(--muted)">Tests im fremden Worktree, Release-Paket</text>
     </svg>
-    <figcaption><b>Abb. 1 — Das Operating Model.</b> Der CEO berührt das Board nur an Gate-Karten (bernstein). Der Chief of Staff legt alle Arbeitskarten per <code>kanban_create</code> an; die Lanes liefern strukturierte Handoffs zurück. Die Betriebsführung selbst — Gateway, Cron-Tick, Monitor- und Report-Skripte — ist deterministische Infrastruktur ohne eigenes Profil (Kapitel&nbsp;9).</figcaption>
+    <figcaption><b>Abb. 1 — Das Operating Model.</b> Der Mensch berührt das Board nur an Gate-Karten (bernstein) — seit Phase&nbsp;3 als Supervisor nur noch am Roadmap-Gate und im Notfall; die operativen Gates darunter entscheidet <code>esf-ceo</code> über Entscheidungsdokumente, die <code>ceo-tick.sh</code> validiert und über <code>gate.sh</code> ausführt (Kapitel&nbsp;7). Der Chief of Staff legt alle Arbeitskarten per <code>kanban_create</code> an; die Lanes liefern strukturierte Handoffs zurück. Die Betriebsführung selbst — Gateway, Cron-Tick, Monitor-, Eskalations- und Report-Skripte — ist deterministische Infrastruktur ohne eigenes Profil (Kapitel&nbsp;9).</figcaption>
   </figure>
 
   <div class="tablewrap">
     <table>
       <thead><tr><th>Profil</th><th>Auftrag</th><th>Kern der SOUL.md</th><th>Modell-Tier</th></tr></thead>
       <tbody>
+        <tr><td><code>esf-ceo</code></td><td>Entscheidet Release-, Irreversibel- und Budget-Gates: Vorlage lesen, <strong>selbst nachmessen</strong>, Entscheidungsdokument mit Verb schreiben; eskaliert an den Supervisor statt zu raten</td><td>„You do not get credit for deciding — you get credit for being right." Nie <code>kanban_unblock</code>, nie planen, nie bauen; Roadmap-Gates sind tabu</td><td>hoch (eigenes Tier <code>ESF_MODELL_CEO</code>)</td></tr>
         <tr><td><code>esf-chief-of-staff</code></td><td>Sprint-Planung, Kartengraphen anlegen, Gate-Vorlagen schreiben, Sprint-Abschluss</td><td>„Never linger." <code>kanban_create</code> nur nach Plan, jede Kettenkarte mit <code>idempotency_key</code>; nie selbst implementieren</td><td>hoch</td></tr>
         <tr><td><code>esf-market-scout</code></td><td>Signal-Eingang sichten: <code>sources/&lt;datum&gt;/</code> lesen, normalisieren, deduplizieren</td><td>Nur erkennen, nicht bewerten; „wissen wir schon" ist ein gültiges Ergebnis</td><td>günstig</td></tr>
         <tr><td><code>esf-market-analyst</code></td><td>Signale nach Rubrik scoren, Feature-Hypothesen mit Nutzenargument formulieren</td><td>Score ist ein Urteil, Route ist eine Tabelle; Quellen zitieren oder blockieren</td><td>hoch</td></tr>
@@ -698,6 +699,29 @@ autonomie_horizont: release     # release (Default) | quartal — siehe Kapitel 
 
     <h3>Aufmerksamkeits-Deckel und Gate-Report</h3>
     <p>Maximal <strong>drei Gate-Fragen pro Tageslauf</strong>; Überzähliges wird als <code>zurückgestellt</code> markiert und am Folgetag zuerst vorgelegt (Story-11-Konsequenz aus zwölf Gate-Fragen in einem Sweep). Der abendliche <strong>Gate-Report</strong> (<code>report-gates.sh</code>, Kapitel&nbsp;9) listet alle wartenden Gates mit Vorlage und Alter — inklusive der Karten, die still nach <code>triage</code> gekippt sind, denn <em>nichts</em> in Hermes warnt davor; die Prüfung <code>status=="triage"</code> ist handgeschrieben, wie in Story&nbsp;11. Push-Benachrichtigung (Telegram o.&nbsp;ä.) ist wünschenswert, aber in v0.20.0 unverifiziert <span class="tag tag-a">Annahme</span> — der Report ist der verlässliche Weg.</p>
+
+    <h3>Fortschreibung Phase 3: der CEO ist ein Profil, der Mensch ist Supervisor</h3>
+    <p><span class="tag tag-a">gebaut am 18.08.2026, nie gegen ein laufendes Board gefahren — Stufe&nbsp;B in Kapitel&nbsp;12 ist der Nachweis</span></p>
+    <p>Die Messung der Phase&nbsp;2 (Kapitel&nbsp;1) hat die CEO-Rolle in drei Arbeiten zerlegt: entscheiden (selten), retten (häufig), planen (teuer). Ab Phase&nbsp;3 entscheidet das zwölfte Profil <code>esf-ceo</code> die operativen Gates — aber <strong>die Governance-Invariante überlebt wörtlich</strong>: <em>Kein Agent ruft je <code>kanban_unblock</code></em>. Der Lauf hat zweimal belegt, dass ein konkreter Kartentext eine SOUL schlägt; ein CEO-Profil, das Gates direkt öffnete, wäre über den Text der Gate-Vorlage steuerbar, denn die Vorlage schreibt ein Worker. Deshalb läuft jede Entscheidung durch Code:</p>
+    <ol>
+      <li>Die Gate-Karte blockiert sich selbst — unverändert der einzige Mechanismus, der den Dispatcher nachweislich anhält.</li>
+      <li><code>scripts/ceo-tick.sh</code> (Cron, stündlich) legt je blockiertem CEO-Gate <strong>eine eigene Entscheidungskarte</strong> für <code>esf-ceo</code> an (Idempotenzschlüssel <code>ceo-entscheid-&lt;gate-id&gt;</code>; kein Kind der Gate-Karte — ein Kind einer blockierten Karte startet nie). Roadmap-Gates werden nur gemeldet: nicht delegierbar.</li>
+      <li><code>esf-ceo</code> schreibt ein <strong>Entscheidungsdokument</strong> (<code>reports/ceo-entscheid-&lt;gate-id&gt;.html</code>, Metas <code>esf-gate</code>/<code>esf-verb</code>, Pflichtabschnitte <code>vorlage</code> · <code>messung</code> · <code>begruendung</code> · <code>antwort</code>). Pflicht im Messabschnitt: die <strong>selbst ausgeführten</strong> deterministischen Checks mit Befehl und Ausgabe — das unabhängige Nachmessen, der wertvollste Teil der menschlichen CEO-Arbeit in Phase&nbsp;2, wird Formpflicht. Gate-Vorlagen gelten als Behauptung, nicht als Beleg.</li>
+      <li><code>scripts/ceo-lint.py</code> validiert deterministisch (Verb passt zur Gate-Art, Messbeleg vorhanden, Begründung bei <code>modify</code>/<code>shelve</code>/<code>cut</code>/<code>stop</code>/<code>escalate</code>); erst dann führt <code>ceo-tick.sh</code> über <code>gate.sh --von esf-ceo</code> aus. Der Unblock-Kommentar trägt <code>[von:esf-ceo]</code> — daran zählt <code>check-phase3.sh</code>, wer was beantwortet hat.</li>
+      <li>Das Verb <code>escalate</code> öffnet <strong>nichts</strong>: Es übergibt das Gate dem Supervisor. Es ist Pflicht, wenn die Beleglage nicht reicht — ein ehrliches Nein hat sich in Phase&nbsp;2 zweimal als der billigere Weg erwiesen.</li>
+      <li><strong>Einspruchsfrist:</strong> Gültige Entscheidungen an Irreversibel-Gates werden erst nach <code>irreversibel_einspruch_stunden</code> (Default 24) ausgeführt; antwortet der Supervisor vorher selbst, gilt die CEO-Entscheidung als überholt. Der Dispatcher steht ohnehin — die Frist ist in einer Cron-Organisation fast gratis.</li>
+    </ol>
+    <p><strong>Die Notfall-Leiter</strong> (<code>scripts/eskalation.sh</code>) definiert deterministisch, wann der Supervisor gerufen wird — sonst entschiede ein Modell über seine eigene Entmündigung:</p>
+    <div class="tablewrap"><table>
+      <thead><tr><th>Stufe</th><th>Auslöser (am Board erkennbar)</th><th>Reaktion</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Code repariert</strong></td><td>blockierte Nicht-Gate-Karte, Blockgrund passt auf ein bekanntes Betriebsmuster (<code>pid … not alive</code>, <code>APIConnectionError</code>, <code>Iteration budget</code>, <code>worktree add failed</code>, Timeout) — erstes Mal je Karte</td><td>Unblock <code>manuell: betriebsrettung …</code> + Journal; nur bei <code>betriebsrettung: auto</code></td></tr>
+        <tr><td><strong>CEO entscheidet</strong></td><td>blockiertes Release-/Irreversibel-/Budget-Gate</td><td>Entscheidungskarte, siehe oben</td></tr>
+        <tr><td><strong>CEO eskaliert</strong></td><td><code>esf-verb: escalate</code></td><td>Journal, Gate bleibt beim Supervisor</td></tr>
+        <tr><td><strong>NOTFALL</strong></td><td>Karte in <code>triage</code> · <code>respawn_guarded</code> · zweite Betriebsrettung derselben Karte · Blockade ohne bekanntes Muster · Gate zu lange ohne gültiges Dokument · Dokument zweimal abgewiesen</td><td>Journalzeile <code>ledger/eskalationen.jsonl</code>, laute Meldung, Exit&nbsp;≠&nbsp;0 — der Supervisor antwortet über <code>gate.sh</code></td></tr>
+      </tbody>
+    </table></div>
+    <p>Die Betriebsmuster sind exakt die sieben manuellen Rettungs-Unblocks der Phase&nbsp;2 <span class="tag tag-v">belegt: beispiel-lauf-2</span>. Umgeschaltet wird über <code>cadence.yaml</code> (<code>fuehrung:</code>): <code>ceo_modus: schatten</code> lässt <code>esf-ceo</code> jedes Gate in ein Dokument beantworten, ausgeführt wird nichts — der Supervisor antwortet parallel, und die <strong>Übereinstimmungsquote</strong> im Journal ist die Messgröße, an der er die Umstellung auf <code>live</code> entscheidet. Am eigenen Roadmap-Gate, nie ein Modell.</p>
   </div>
 </section>
 
@@ -892,7 +916,7 @@ autonomie_horizont: release     # release (Default) | quartal — siehe Kapitel 
   <span class="chapno">Kapitel 12</span>
   <h2>Umsetzungs-Roadmap</h2>
   <div class="prose">
-    <p>Vier Phasen, jede mit deterministischem Abschluss-Check (Kapitel&nbsp;9). Autonomie wird schrittweise erhöht — erst wenn eine Phase ihre Nachweise erbracht hat, zieht die nächste. Die Schätzungen sind Startwerte mit niedriger Konfidenz <span class="tag tag-a">Annahme</span>; ab Phase&nbsp;2 schätzt das System sich selbst.</p>
+    <p>Vier Phasen, jede mit deterministischem Abschluss-Check (Kapitel&nbsp;9). Autonomie wird schrittweise erhöht — erst wenn eine Phase ihre Nachweise erbracht hat, zieht die nächste. Die Schätzungen sind Startwerte mit niedriger Konfidenz <span class="tag tag-a">Annahme</span>; ab Phase&nbsp;2 schätzt das System sich selbst. Die Phasen 0–2 sind gefahren und dokumentiert (<code>RUN-PROTOKOLL.md</code>, <code>beispiel-lauf-1/</code>, <code>beispiel-lauf-2/</code>); Phase&nbsp;3 ist nach deren Befunden am 18.08.2026 <strong>neu geschnitten</strong> — das alte Kriterium „zwei Wochen ohne manuellen Eingriff" maß den falschen Engpass, denn 7 von 9 menschlichen Eingriffen waren Betriebsrettungen und keine Entscheidungen. Der Plan steht in <code>PHASE-3-PLAN.md</code>.</p>
   </div>
   <div class="tablewrap">
     <table>
@@ -900,7 +924,7 @@ autonomie_horizont: release     # release (Default) | quartal — siehe Kapitel 
       <tbody>
         <tr>
           <td><strong>0 — Gerüst</strong><br>Woche 1</td>
-          <td>Board <code>sw-company</code>, elf Profile mit SOUL/Modell-Tiers (<code>setup.sh</code>, idempotent, <code>ON DISK = yes</code>-Prüfung), Superpowers-Skills profil-lokal verteilt, OpenRouter-Keys je Profil provisioniert (USD-Limits), Firmen-Vault mit <code>AGENTS.md</code> + Linter, <strong>Kadenz-Limits und Autonomie-Horizont in <code>cadence.yaml</code></strong>, Merge-Riegel-Skript, <code>gate.sh</code>, Betriebs-Skripte inkl. Abschluss-Erkennung + <code>install-cron.sh</code>, Ledger-Gerüst</td>
+          <td>Board <code>sw-company</code>, elf Profile mit SOUL/Modell-Tiers (seit Phase&nbsp;3: zwölf, inkl. <code>esf-ceo</code>) (<code>setup.sh</code>, idempotent, <code>ON DISK = yes</code>-Prüfung), Superpowers-Skills profil-lokal verteilt, OpenRouter-Keys je Profil provisioniert (USD-Limits), Firmen-Vault mit <code>AGENTS.md</code> + Linter, <strong>Kadenz-Limits und Autonomie-Horizont in <code>cadence.yaml</code></strong>, Merge-Riegel-Skript, <code>gate.sh</code>, Betriebs-Skripte inkl. Abschluss-Erkennung + <code>install-cron.sh</code>, Ledger-Gerüst</td>
           <td>Probelauf: eine Dummy-Kette Spezifikation→Bau→Review→Riegel läuft durch; ein Probe-Gate hält (<code>dry-run: Spawned 0</code>)</td>
           <td class="num">2–3 Tage<br>&lt; 5 USD</td>
         </tr>
@@ -917,9 +941,21 @@ autonomie_horizont: release     # release (Default) | quartal — siehe Kapitel 
           <td class="num">4 Wochen<br>~20–60 USD/Sprint</td>
         </tr>
         <tr>
-          <td><strong>3 — Dauerbetrieb</strong><br>ab Woche 7</td>
-          <td>Cron-Tick, Monitor- und Report-Skripte übernehmen vollständig; das Fetch-Skript befüllt den Markt-Eingang; CEO nur noch an Gates und beim Wochenreport</td>
-          <td>Zwei Wochen ohne manuellen Eingriff außer Gate-Antworten; Gate-Report täglich vollständig; Kalibrierung verengt die Intervalle messbar</td>
+          <td><strong>3A — Selbstplanung &amp; Betriebsrettung</strong></td>
+          <td>Sprint-Graphen legt der <code>esf-chief-of-staff</code> an (Vorlagen + deterministischer Kartentext-Riegel statt Bash je Sprint); Review→Nacharbeit als Karte vom Board; <code>eskalation.sh</code> auf <code>betriebsrettung: auto</code>. <em>Die Graph-Generierung ist noch nicht gebaut — sie folgt nach der Schatten-Messung (3B).</em></td>
+          <td>Ein Sprint, in dem kein Kartentext von Hand entsteht und jedes <code>unblock</code> ein Verb trägt — am Board gezählt (<code>check-phase3.sh --stufe a</code>)</td>
+          <td class="num">offen; Basis: 73&nbsp;% ungeplante Wanduhr in S2</td>
+        </tr>
+        <tr>
+          <td><strong>3B — Schattenbetrieb</strong></td>
+          <td><code>ceo_modus: schatten</code>: <code>esf-ceo</code> beantwortet jedes Gate in ein validiertes Entscheidungsdokument, ausgeführt wird nichts; der Supervisor antwortet parallel wie bisher (Kapitel&nbsp;7)</td>
+          <td><code>check-phase3.sh --stufe b</code>: ≥&nbsp;3 Gates mit gültigem Dokument <strong>und</strong> Supervisor-Antwort; Übereinstimmungsquote als Zahl im Journal</td>
+          <td class="num">1 Release-Zyklus<br>+ CEO-Key messbar</td>
+        </tr>
+        <tr>
+          <td><strong>3C — Dauerbetrieb unter Supervisor</strong></td>
+          <td><code>ceo_modus: live</code> (stellt der Supervisor am Roadmap-Gate um): <code>ceo-tick.sh</code> führt aus, Cron-Tick/Monitor/Eskalation übernehmen den Betrieb, das Fetch-Skript den Markt-Eingang; der Mensch nur noch am Roadmap-Gate und im Notfall</td>
+          <td><code>check-phase3.sh --stufe c</code>: ein volles Release, in dem jedes CEO-Gate <code>[von:esf-ceo]</code> trägt, kein Roadmap-Gate von <code>esf-ceo</code> beantwortet wurde, das Irreversibel-Journal die Einspruchsfrist belegt und keine Eskalation offen blieb</td>
           <td class="num">laufend<br>Budget je Quartal am Roadmap-Gate</td>
         </tr>
       </tbody>
@@ -952,6 +988,9 @@ autonomie_horizont: release     # release (Default) | quartal — siehe Kapitel 
         <tr><td>Markt-Eingang über deterministisches Fetch-Skript im Cron-Tick</td><td><span class="tag tag-a">Annahme</span></td><td>curl-Skriptseite nicht durchgespielt; das Korpus-Konsum-Muster dagegen ist belegt (Stories 7, 10, 11)</td></tr>
         <tr><td>Browserbasierte E2E-Tests (Playwright) durch Agenten gebaut, im Riegel und Tick ausgeführt</td><td><span class="tag tag-a">Annahme</span></td><td>Playwright selbst ist Standard-Tooling, aber hier nicht durchgespielt (Browser-Abhängigkeiten, Headless im Worker-Kontext); dass Agenten fremde Tests in fremden Worktrees ausführen, ist belegt (Story 9)</td></tr>
         <tr><td>Superpowers-Skills in Hermes (Installation und Wirkung)</td><td><span class="tag tag-a">Annahme</span></td><td>Original-README nennt <code>hermes plugins install obra/superpowers --enable</code>, der Port ein globales <code>~/.hermes/skills/</code> — beides gegen v0.20.0 ungeprüft. Die ESF kopiert deshalb profil-lokal: der belegte Weg (Stories 10, 11)</td></tr>
+        <tr><td>CEO als Profil: Entscheidungskarten je Gate, Entscheidungsdokumente mit Messpflicht, <code>ceo-lint.py</code>-Validierung, Ausführung über <code>gate.sh --von esf-ceo</code>, Einspruchsfrist, Schatten-/Live-Modus</td><td><span class="tag tag-a">Annahme</span></td><td>Gebaut am 18.08.2026, modellfrei selbstgetestet (Fixtures, Roadmap-Sperre, Verb-Vokabular); nie gegen ein laufendes Board gefahren — Stufe&nbsp;3B ist der Nachweis</td></tr>
+        <tr><td>Notfall-Leiter: Betriebsmuster-Erkennung, einmalige Betriebsrettung je Karte, Notfall-Journal</td><td><span class="tag tag-a">Annahme</span></td><td>Die Muster stammen aus den 7 realen Rettungs-Unblocks der Phase 2 (belegt, <code>beispiel-lauf-2/</code>); die Erkennung ist gegen diese Texte selbstgetestet, die Rettung selbst ist nie automatisch gelaufen (<code>betriebsrettung: melden</code> ist Default)</td></tr>
+        <tr><td>Ob ein günstiges Modell die Urteilsarbeit des CEO trägt (die drei CEO-Korrekturen der Phase 2 waren Urteil, nicht Fleiß)</td><td><span class="tag tag-a">Annahme</span></td><td>Offen — genau dafür existiert der Schattenbetrieb mit Übereinstimmungsquote (Stufe&nbsp;3B)</td></tr>
         <tr><td>Bewusst <strong>nicht</strong> benutzt: <code>hermes --goal</code>, <code>review</code>-Spalte/<code>sdlc-review</code>, <code>swarm</code> (kein <code>--workspace</code>), <code>specify</code>, <code>--model</code> je Karte, <code>notify-subscribe</code>, Auto-Decompose</td><td><span class="tag tag-r">gemieden</span></td><td>Alles nur Hilfetext oder nie durchgespielt — für jedes gibt es oben einen verifizierten Ersatzweg</td></tr>
       </tbody>
     </table>

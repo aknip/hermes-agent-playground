@@ -123,7 +123,8 @@ if [ -x "$HERE/assign-keys.sh" ] && [ -f "$ESF/key-zuordnung.txt" ]; then
         # Über `melde` statt per printf: Der Bericht wird gesammelt und am
         # Ende ausgegeben (und mit --json als JSON). Ein direktes printf
         # erschiene vor der eigenen Überschrift.
-        melde INFO "OpenRouter: $gesamt USD über elf Rollen-Keys" ""
+        anzahl_keys="$(printf '%s\n' "$verbrauch" | grep -c . || true)"
+        melde INFO "OpenRouter: $gesamt USD über $anzahl_keys Rollen-Keys" ""
         while read -r profil genutzt _; do
             case "$genutzt" in ''|0|0.0) continue ;; esac
             melde INFO "  $profil: $genutzt USD" ""

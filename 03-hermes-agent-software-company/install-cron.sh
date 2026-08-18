@@ -1,15 +1,17 @@
 #!/usr/bin/env bash
 #
-# ESF — Die vier Betriebs-Skripte takten
-# ======================================
+# ESF — Die sechs Betriebs-Skripte takten
+# ========================================
 #
 #   ./install-cron.sh            einrichten
 #   ./install-cron.sh --remove   zurückbauen
 #   ./install-cron.sh --list     zeigen, was eingetragen ist
 #
 #   tick.sh          07:00 täglich   Herzschlag: Fetch, E2E, fällige Karten
-#   monitor.sh       stündlich       stille Ausfälle + Abschluss-Erkennung
-#   report-gates.sh  18:00 täglich   der Report, über den der CEO erfährt
+#   monitor.sh       stündlich :00   stille Ausfälle + Abschluss-Erkennung
+#   eskalation.sh    stündlich :15   die Notfall-Leiter (Phase 3)
+#   ceo-tick.sh      stündlich :30   Entscheidungskarten + Executor (Phase 3)
+#   report-gates.sh  18:00 täglich   der Report, über den der Supervisor erfährt
 #   ledger-sync.sh   23:30 täglich   Wanduhrzeiten und Kosten ins Ledger
 #
 # ⚠ Erst NACH dem Phase-0-Probelauf ausführen. Ein Cron-Eintrag auf einem
@@ -91,7 +93,11 @@ ${MARKE}tick — Herzschlag, tokenfrei
 0 7 * * *   cd "$HERE" && ./scripts/tick.sh >> "$LOG" 2>&1
 ${MARKE}monitor — stille Ausfälle und Abschluss-Erkennung
 0 * * * *   cd "$HERE" && ./scripts/monitor.sh >> "$LOG" 2>&1
-${MARKE}report-gates — der Weg zum CEO
+${MARKE}eskalation — die Notfall-Leiter: Code entscheidet, was ein Notfall ist
+15 * * * *  cd "$HERE" && ./scripts/eskalation.sh >> "$LOG" 2>&1
+${MARKE}ceo-tick — Entscheidungskarten für esf-ceo, Validierung, Ausführung
+30 * * * *  cd "$HERE" && ./scripts/ceo-tick.sh >> "$LOG" 2>&1
+${MARKE}report-gates — der Weg zum Supervisor
 0 18 * * *  cd "$HERE" && ./scripts/report-gates.sh >> "$LOG" 2>&1
 ${MARKE}ledger-sync — Messwerte ins Ledger
 30 23 * * * cd "$HERE" && ./scripts/ledger-sync.sh >> "$LOG" 2>&1
@@ -108,6 +114,8 @@ $(printf '\033[32m✓ Getaktet.\033[0m')
 Von Hand auslösen, ohne auf die Uhr zu warten:
   ./scripts/tick.sh --dry-run
   ./scripts/monitor.sh
+  ./scripts/eskalation.sh --dry-run
+  ./scripts/ceo-tick.sh --dry-run
   ./scripts/report-gates.sh
   ./scripts/ledger-sync.sh --dry-run
 

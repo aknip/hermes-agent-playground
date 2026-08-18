@@ -5,7 +5,7 @@
 #
 # Legt genau das an, was die ESF zum Laufen braucht:
 #   1. das Board "sw-company"
-#   2. die elf Profile mit esf--Präfix und Markerdatei
+#   2. die zwölf Profile mit esf--Präfix und Markerdatei
 #   3. je Profil config.yaml, SOUL.md und Beschreibung
 #   4. die profil-lokalen Superpowers-Skills
 #   5. die Arbeitskopie des Firmen-Vaults aus seed/
@@ -22,10 +22,14 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BOARD="sw-company"
 MARKER=".esf"
 
+# esf-ceo steht bewusst am ENDE: scripts/assign-keys.sh ordnet Keys nach
+# Reihenfolge zu, und die elf Keys der Phasen 0–2 sollen dieselben Rollen
+# behalten — sonst sind die Verbrauchszahlen über den Rundlauf nicht mehr
+# vergleichbar. Ein zwölfter Key ist optional (siehe assign-keys.sh).
 PROFILE_NAMES=(
     esf-chief-of-staff esf-market-scout esf-market-analyst esf-product-manager
     esf-architect esf-estimator esf-dev-a esf-dev-b esf-reviewer
-    esf-qa-release esf-controller
+    esf-qa-release esf-controller esf-ceo
 )
 
 # --- Modell-Tiers ----------------------------------------------------------
@@ -37,9 +41,15 @@ PROFILE_NAMES=(
 MODELL_HOCH="${ESF_MODELL_HOCH:-deepseek/deepseek-v4-flash-0731}"
 MODELL_MITTEL="${ESF_MODELL_MITTEL:-deepseek/deepseek-v4-flash-0731}"
 MODELL_GUENSTIG="${ESF_MODELL_GUENSTIG:-deepseek/deepseek-v4-flash-0731}"
+# Das CEO-Profil bekommt ein eigenes Tier (Default: hoch). Der Befund aus
+# Phase 2: Der teuerste Kopf saß AUSSERHALB der Organisation und ihrer
+# Kostenrechnung. Ab Phase 3 sitzt er drin — und wer ihm ein stärkeres Modell
+# geben will, setzt ESF_MODELL_CEO, ohne die drei Arbeits-Tiers anzufassen.
+MODELL_CEO="${ESF_MODELL_CEO:-$MODELL_HOCH}"
 
 tier_von() {
     case "$1" in
+        esf-ceo)                                         echo "$MODELL_CEO" ;;
         esf-market-scout)                                echo "$MODELL_GUENSTIG" ;;
         esf-estimator|esf-qa-release|esf-controller)     echo "$MODELL_MITTEL" ;;
         *)                                               echo "$MODELL_HOCH" ;;
@@ -130,6 +140,7 @@ done
     exit 1
 }
 printf '  %-18s = %s / %s / %s\n' "Tiers (h/m/g)" "$MODELL_HOCH" "$MODELL_MITTEL" "$MODELL_GUENSTIG"
+printf '  %-18s = %s\n' "Tier CEO" "$MODELL_CEO"
 
 # ---------------------------------------------------------------------------
 say "4/7  Profile"
@@ -288,12 +299,27 @@ if [ "$keys_pruefung" -ne 0 ]; then
     fi
 fi
 
+# (e) Der CEO-Dokument-Riegel muss die gültige Fixture passieren lassen und
+#     auf den drei defekten GENAU 5 ERROR finden — dieselbe Bauart wie der
+#     Vault-Linter-Test: weniger heisst, eine Regel greift nicht mehr; mehr
+#     heisst, die Fixtures sind verstellt. ceo-tick.sh --selbsttest prüft
+#     zusätzlich die Roadmap-Sperre und das Budget-Vokabular, hermes-frei.
+say "CEO-Dokument-Riegel gegen die Fixtures"
+set +e
+"$HERE/scripts/ceo-tick.sh" --selbsttest | sed 's/^/  /'
+ceo_rc=${PIPESTATUS[0]}
+set -e
+if [ "$ceo_rc" -ne 0 ]; then
+    echo "FEHLER: der CEO-Selbsttest ist rot (Exit $ceo_rc)."
+    fehler=1
+fi
+
 if [ "$fehler" -eq 0 ]; then
     cat <<EOF
 
 $(printf '\033[32m✓ Phase 0: Gerüst steht.\033[0m')
 
-  Board:    $BOARD  (11 Profile, alle dispatchbar)
+  Board:    $BOARD  (12 Profile, alle dispatchbar)
   Vault:    workspace/company/  (Git-Repo, Linter grün)
   Produkt:  $PRODUKT_REPO
 

@@ -27,10 +27,18 @@ Umgesetzt sind **Phase 0 (Gerüst)**, **Phase 1 (Onboarding)** und **Phase 2
 [`PHASE-0-1-PLAN.md`](PHASE-0-1-PLAN.md) und
 [`PHASE-2-PLAN.md`](PHASE-2-PLAN.md).
 
+**Phase 3 (Dauerbetrieb unter einem CEO-Profil)** ist nach den Befunden der
+Phase 2 neu geschnitten und seit dem 18.08.2026 **gebaut, aber nie gegen ein
+laufendes Board gefahren**: Das zwölfte Profil `esf-ceo` entscheidet die
+operativen Gates über validierte Entscheidungsdokumente, der Mensch führt als
+**Supervisor** nur noch am Roadmap-Gate und im Notfall — was ein Notfall ist,
+entscheidet Code (`scripts/eskalation.sh`). Plan und Mechanik stehen in
+[`PHASE-3-PLAN.md`](PHASE-3-PLAN.md).
+
 ## In fünf Minuten
 
 ```bash
-./setup.sh                      # Board, elf Profile, Skills, Vault  (idempotent)
+./setup.sh                      # Board, zwölf Profile, Skills, Vault  (idempotent)
 ./probelauf.sh                  # Phase-0-Nachweis: die Dummy-Kette anlegen
 ./pump.sh                       # takten und zusehen
 ./gate.sh                       # wenn ein Gate steht: Vorlage lesen, antworten
@@ -49,6 +57,12 @@ Umgesetzt sind **Phase 0 (Gerüst)**, **Phase 1 (Onboarding)** und **Phase 2
 ./gate.sh approve <id>          # das Release freigeben
 ./scripts/check-phase2.sh       # Phase-2-Nachweis
 
+# Phase 3 (gebaut, ungelaufen): erst Schatten, dann live
+./scripts/ceo-tick.sh --dry-run # zeigt, welche Entscheidungskarten entstünden
+./scripts/eskalation.sh --dry-run
+./scripts/check-phase3.sh --stufe b   # der Schatten-Nachweis
+# ceo_modus: live setzt NUR der Supervisor, am Roadmap-Gate (cadence.yaml)
+
 ./install-cron.sh --remove      # immer VOR dem Teardown
 ./teardown.sh                   # zurückbauen; löscht nur .esf-markierte Profile
 ```
@@ -66,7 +80,8 @@ Hermes-Root-Konfiguration.
 ### Die Schlüsseldatei
 
 `openrouter-keys.txt` in diesem Verzeichnis — Name und Key im Wechsel, elf
-Paare:
+Paare (optional ein zwölftes für `esf-ceo`; fehlt es, läuft die Führungsrolle
+auf dem Root-Key und `assign-keys.sh` sagt das gelb):
 
 ```
 esf-hermes-agent-1
@@ -105,13 +120,15 @@ Drei Dinge dazu:
 | `create-sprint.sh` | Der Sprint-Graph von Release 1. `1` = R1-F5, `2` = R1-F1 ∥ R1-F2 — und `2` **verweigert**, bis `Kalibrierung S1` fertig ist: die CEO-Auflage der freigegebenen Roadmap bindet die Reihenfolge |
 | `create-release.sh` | Release-Abschluss + `GATE Release`. Verweigert, solange ein Sprint offen ist |
 | `pump.sh` | Manueller Dispatch-Takt (Ersatz fürs Gateway im Testbetrieb) |
-| `gate.sh` | **Die CEO-Hülle.** Der einzige legitime Weg, ein Gate zu öffnen |
+| `gate.sh` | **Die Supervisor-Hülle.** Der einzige legitime Weg, ein Gate zu öffnen — für den Menschen direkt, für `esf-ceo` nur über den validierenden Executor (`--von esf-ceo`; Roadmap-Gates verweigert sie ihm) |
+| `PHASE-3-PLAN.md` | Der Phase-3-Plan: CEO als Profil, Supervisor-Modell, Notfall-Leiter, Stufen A–C mit Nachweisen |
 | `install-cron.sh` | Taktet die vier Betriebs-Skripte. `--remove` vor jedem Teardown |
 | `vendor-superpowers.sh` | Wartungswerkzeug: holt die rollenspezifischen Skill-Teilmengen ins Repo |
 | `profiles/<name>/` | `SOUL.md` (Modell-Prompt, englisch wie in allen Stories) und `description.txt` (der Decomposer routet darüber) |
 | `skills/<profil>/` | Die profil-lokalen Superpowers-Teilmengen, MIT-lizenziert, plus `HERMES-TOOLS.md` |
 | `seed/company/` | Der Vault-Master: `AGENTS.md`, `cadence.yaml`, Struktur, Start-Korpus |
 | `seed/lint-selbsttest/` | Fixture mit genau neun bekannten Linter-Befunden |
+| `seed/ceo-selbsttest/` | Vier Fixtures des CEO-Dokument-Riegels: eine gültige, drei defekte mit zusammen genau fünf bekannten Befunden |
 | `seed/quellen.txt` | Die Markt-Quellen, die `fetch-sources.sh` täglich holt |
 | `workspace/` | Die Wegwerfkopie — gitignored |
 | `beispiel-lauf-1/` | **Die Akte von Phase 0/1 (17.08.2026)**: Board mit voller Karten-Historie, Vault, Laufzeiten, beide Git-Historien. Erzeugt von `scripts/dump-lauf.sh` |
@@ -127,17 +144,21 @@ Drei Dinge dazu:
 | `report-gates.sh` | Cron 18:00 | Der Gate-Report als HTML — der verlässliche Weg zum CEO |
 | `ledger-sync.sh` | Cron 23:30 | Wanduhrzeiten aus dem Board, Kosten aus OpenRouter, jedes (Schätzung, Ist)-Paar ins Ledger |
 | `merge-riegel.sh` | je Merge | Sechs Prüfungen; merged oder verweigert. **Kein Modell merged** |
+| `ceo-tick.sh` | stündlich :30 | Legt je blockiertem CEO-Gate eine Entscheidungskarte für `esf-ceo` an, validiert dessen Entscheidungsdokument (`ceo-lint.py`) und führt es über `gate.sh --von esf-ceo` aus — Schatten-/Live-Modus und Einspruchsfrist aus `cadence.yaml` |
+| `ceo-lint.py` | je Dokument | Der Riegel vor jeder CEO-Entscheidung: Verb passt zur Gate-Art, Messbeleg (`<pre>` mit selbst gefahrenem Check) vorhanden, Begründungspflicht. Fixtures in `seed/ceo-selbsttest/` |
+| `eskalation.sh` | stündlich :15 | **Die Notfall-Leiter.** Code entscheidet, was ein Notfall ist: bekannte Betriebsmuster werden (bei `betriebsrettung: auto`) einmal je Karte selbst repariert, alles andere geht laut und journaliert an den Supervisor |
+| `check-phase3.sh` | je Stufe | Die Nachweise der Stufen A/B/C: Verben an jedem Unblock, Schatten-Übereinstimmungsquote, `[von:esf-ceo]` an jedem CEO-Gate, Einspruchsfrist belegt |
 | `vault-lint.py` | je Schreibvorgang | Setzt `company/AGENTS.md` durch und zitiert bei jedem Befund den Abschnitt |
 | `fetch-sources.sh` | vom Tick | Holt die Quellen und **normalisiert deterministisch**, bevor sie im Korpus landen |
 | `check-onboarding.sh`<br>`check-daily.sh`<br>`check-sprint.sh`<br>`check-release.sh`<br>`check-phase2.sh` | je Ebene | Deterministische Endzustands-Checks — Code entscheidet, ob etwas fertig ist. `check-sprint.sh` trägt den Riegel, an dem Phase 2 hängt: ein Istwert **ohne** bezifferte Schätzung ist rot, denn dann ist das (Schätzung, Ist)-Paar zerrissen |
 | `watchdog.sh` | nach Bedarf | Findet Worker, die laufen, aber nicht arbeiten: keine CPU, keine lebende Verbindung, nur tote Sockets. Der Zustand ist vom Board aus **nicht** von echter Arbeit zu unterscheiden |
 | `install-repo-hooks.sh` | einmalig | Schlanker Pre-Commit-Hook im Produkt-Repo (lintet nur Gestagetes). `--remove` stellt den Ausgangszustand her |
 | `dump-lauf.sh` | nach jedem Lauf | Sichert Board, Vault, Historien und Laufzeiten nach `beispiel-lauf-1/`. Ohne das ist der Lauf nach dem Rückbau spurlos weg |
-| `assign-keys.sh` | nach jedem `setup.sh` | Ordnet elf vorhandene OpenRouter-Keys den elf Profilen zu (`--pruefen`, `--verbrauch`, `--entfernen`). Läuft automatisch aus `setup.sh`; liest `openrouter-keys.txt` — siehe unten |
+| `assign-keys.sh` | nach jedem `setup.sh` | Ordnet die vorhandenen OpenRouter-Keys den Profilen zu — elf oder zwölf; bei elf läuft `esf-ceo` gelb gemeldet auf dem Root-Key (`--pruefen`, `--verbrauch`, `--entfernen`). Läuft automatisch aus `setup.sh`; liest `openrouter-keys.txt` — siehe unten |
 | `check-keys.sh` | nach der Zuordnung | Der Nachweis, dass die Trennung wirkt: misst den Verbrauch aller elf Keys, lässt Probekarten laufen, misst erneut. `config get` beweist hier **nichts** |
 | `provision-keys.sh` | nur für den Deckel | Erzeugt Keys mit USD-Limit über die Provisioning-API. Für die Zurechnung **nicht** nötig — siehe `VERIFIKATION.md` |
 
-## Die elf Profile
+## Die zwölf Profile
 
 Alle tragen das Präfix `esf-`; Profile liegen global in `~/.hermes/profiles/`,
 und das Präfix plus die `.esf`-Markerdatei hält den Namensraum sauber und
@@ -145,6 +166,7 @@ schützt fremde Profile vor dem Teardown.
 
 | Profil | Auftrag | Tier | Skills |
 |--------|---------|------|--------|
+| `esf-ceo` | Entscheidet Release-, Irreversibel- und Budget-Gates: selbst nachmessen, Entscheidungsdokument mit Verb, `escalate` statt raten. Nie planen, nie bauen, nie `kanban_unblock` | hoch (eigenes Tier `ESF_MODELL_CEO`) | — |
 | `esf-chief-of-staff` | Sprint-Planung, Kartengraphen, Gate-Vorlagen, Sprint-Abschluss | hoch | writing-plans · dispatching-parallel-agents · brainstorming |
 | `esf-market-scout` | Den Tages-Korpus sichten, normalisieren, deduplizieren | günstig | — |
 | `esf-market-analyst` | Signale scoren, Feature-Hypothesen, Subtraktions-Sichtung | hoch | — |
@@ -156,8 +178,8 @@ schützt fremde Profile vor dem Teardown.
 | `esf-qa-release` | Eigner der E2E-Suite, Merge-Gate, Release-Paket | mittel | verification-before-completion · systematic-debugging · finishing-a-development-branch |
 | `esf-controller` | Schätzgüte, Kosten, Velocity, CEO-Report | mittel | — |
 
-Die vier ohne Skills sind Absicht: Ihre Arbeit ist Erkennen, Bewerten und
-Messen, nicht Bauen. Ihre Präzision wohnt in der `SOUL.md`.
+Die fünf ohne Skills sind Absicht: Ihre Arbeit ist Erkennen, Bewerten,
+Messen und Entscheiden, nicht Bauen. Ihre Präzision wohnt in der `SOUL.md`.
 
 **In diesem Lauf zeigen alle drei Tiers auf `deepseek/deepseek-v4-flash-0731`.**
 Die Struktur bleibt: `ESF_MODELL_HOCH=… ./setup.sh` differenziert sie ohne
@@ -165,8 +187,14 @@ Umbau.
 
 ## Die vier Gates
 
-Nur hier ist der Mensch gefragt. Ein Gate ist eine **blockierte Karte** — der
-einzige Mechanismus in v0.20.0, der den Dispatcher nachweislich anhält.
+Ein Gate ist eine **blockierte Karte** — der einzige Mechanismus in v0.20.0,
+der den Dispatcher nachweislich anhält. Seit Phase 3 ist die Zuständigkeit
+zweistufig: Das **Roadmap-Gate gehört dem Supervisor** (Mensch, nicht
+delegierbar); Release, Irreversibel und Budget entscheidet `esf-ceo` über ein
+Entscheidungsdokument, das `ceo-lint.py` validiert und `ceo-tick.sh` über
+`gate.sh` ausführt — im `ceo_modus: schatten` (Default) wird nichts
+ausgeführt, sondern nur mit der Supervisor-Antwort verglichen. Irreversible
+Entscheidungen warten zusätzlich die Einspruchsfrist ab.
 
 | Gate | Wann | Verben |
 |------|------|--------|
@@ -187,10 +215,10 @@ Drei Regeln, die aus der Mechanik folgen und nicht aus Geschmack:
   `cadence.yaml`). Ein Gate mit zwölf wartenden Karten wird nicht sorgfältiger
   beantwortet, sondern durchgewinkt.
 
-Und: **kein Agent öffnet je ein Gate.** Das Worker-Werkzeug `kanban_unblock`
-ist per SOUL verboten, `gate.sh` setzt vor jede Antwort ein validiertes Verb,
-und `monitor.sh` meldet jedes Unblock-Ereignis ohne dieses Muster als
-Governance-Verstoss.
+Und: **kein Agent ruft je `kanban_unblock`** — auch `esf-ceo` nicht: Der CEO
+entscheidet, Code validiert und führt aus. `gate.sh` setzt vor jede Antwort
+ein validiertes Verb, und `monitor.sh` meldet jedes Unblock-Ereignis ohne
+dieses Muster als Governance-Verstoss.
 
 ## Auf ein anderes Repo aufsetzen
 

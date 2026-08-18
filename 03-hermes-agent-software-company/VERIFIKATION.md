@@ -270,6 +270,25 @@ unabhängig danach ebenfalls Exit 0.
 | **Kaltstart-Fix gegen einen echten Rechner-Kaltstart** | **nicht geprüft** | Geprüft ist der Kaltstart von API und Vite bei gelöschtem DB-Volume. Nicht geprüft ist der Fall nach einem Neustart des Rechners oder nach Standby — genau die Lage, die Kapitel 8 als Kontamination der Wanduhrmessung nennt. |
 | **Der Riegel-Wächter gegen fremde Dev-Server** | **synthetisch geprüft** | Nachgewiesen mit einem `python -m http.server` aus `.worktrees/t_6c366810` auf einem Testport: korrekt als WORKTREE erkannt, die echten Server des Hauptbaums als in Ordnung. **Nicht** erlebt hat der Wächter den Ernstfall — einen echten stalen Vite-Server aus einem Feature-Worktree während eines Riegel-Laufs. Der Befund, der ihn auslöste, wurde von einem Worker gemeldet, nicht von ihm gefangen. |
 
+## Phase 3 — gebaut am 18.08.2026, nicht gelaufen
+
+Nach Phase 2 wurde die ESF aus der Hermes-Instanz deinstalliert und das
+Ziel-Repo auf den Ausgangszustand zurückgesetzt. Die Phase-3-Bausteine
+(CEO-Profil, Executor, Notfall-Leiter — `PHASE-3-PLAN.md`) sind deshalb
+**gebaut und modellfrei selbstgetestet, aber nie gegen ein laufendes Board
+gefahren**. Sie stehen hier und nicht unter „Real gemessen", bis Stufe 3B den
+ersten Lauf liefert.
+
+| Baustein | Status | Warum |
+|----------|--------|-------|
+| **`ceo-lint.py`, der Dokument-Riegel** | **modellfrei selbstgetestet** | Vier Fixtures in `seed/ceo-selbsttest/`: die gültige passiert (Verb parsebar), die drei defekten liefern zusammen genau 5 ERROR, die Roadmap-Sperre und das Budget-Vokabular greifen. Teil von `setup.sh` und `ceo-tick.sh --selbsttest`. |
+| **`ceo-tick.sh`, der Executor** | **nur Syntax und Selbsttest** | Die board-seitigen Pfade (Entscheidungskarte anlegen, Journal, Schatten-Vergleich, Einspruchsfrist, `gate.sh --von`) haben nie gegen ein echtes Board gearbeitet. Die Karten-Anlage folgt den in Phase 0–2 verifizierten Mustern (`--idempotency-key`, absolute Pfade, kein Kind einer blockierten Karte), aber Muster sind kein Lauf. |
+| **`eskalation.sh`, die Notfall-Leiter** | **Muster-Erkennung selbstgetestet, Rettung nie ausgeführt** | Die Betriebsmuster stammen wörtlich aus den 7 manuellen Rettungs-Unblocks der Phase 2 (`beispiel-lauf-2/board.json`) und werden gegen genau diese Texte positiv, gegen drei Sachgründe negativ getestet. Der automatische Unblock (`betriebsrettung: auto`) ist nie gelaufen; Default ist `melden`. |
+| **`gate.sh --von` und der Roadmap-Riegel** | **nur Syntax** | Der Verweigerungspfad (Roadmap-Gate mit `--von esf-ceo`) ist nicht am Board ausgelöst worden. |
+| **Ob ein günstiges Modell die CEO-Urteilsarbeit trägt** | **offen, per Bauart** | Die drei CEO-Korrekturen der Phase 2 waren Urteil, nicht Fleiß. Der Schattenbetrieb (Stufe 3B) mit Übereinstimmungsquote im Journal ist genau die Messung dieser Frage — vor ihr gibt es keinen Live-Modus. |
+| **Einspruchsfrist am Irreversibel-Gate** | **nicht geprüft** | Frist-Arithmetik über `validiert`-Journalzeilen; nie mit echten Zeitstempeln durchlaufen. |
+| **Zwölfter Key für `esf-ceo`** | **Datei geprüft, Zuordnung nicht gelaufen** | `openrouter-keys.txt` trägt seit dem 18.08.2026 zwölf Paare (`esf-hermes-agent-12` als letztes). Mit der Einlese-Logik von `assign-keys.sh` nachgemessen: 12 Keys, 12 verschiedene, und die elf Fingerabdrücke der Phase-2-Zuordnung sind unverändert — der neue Key verschiebt keine Rolle. Die Zuordnung selbst (`config set` auf ein existierendes Profil) und der Verbrauchsnachweis stehen aus, bis die ESF wieder installiert ist; `config get` bewiese auch dann nichts. |
+
 ## Bewusst nicht benutzt
 
 Übernommen aus Kapitel 13 des Konzepts — für jedes gibt es einen verifizierten

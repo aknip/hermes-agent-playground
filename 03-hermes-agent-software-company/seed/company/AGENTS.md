@@ -128,6 +128,13 @@ dürfen Messreihen liegen, deren Schema das schreibende Skript festlegt — heut
     ledger/kosten-je-rolle.jsonl   {at, profile, usage_total, usage_delta}
                                    von scripts/ledger-sync.sh, kumulativer
                                    OpenRouter-Verbrauch je Profil-Key
+    ledger/ceo-entscheidungen.jsonl {at, gate, dokument, verb, status,
+                                   uebereinstimmung?} von scripts/ceo-tick.sh —
+                                   jede Validierung, Ausführung, Eskalation
+                                   oder Überholung einer CEO-Entscheidung
+    ledger/eskalationen.jsonl      {at, karte, klasse, text, aktion}
+                                   von scripts/eskalation.sh — die
+                                   Notfall-Leiter, nur angehängt
 
 Für sie gilt nur die **Form**: eine Zeile, ein JSON-Objekt, nur angehängt. Auf
 diese Eigenschaft verlässt sich jedes lesende Skript. `vault-lint.py` prüft
@@ -140,9 +147,33 @@ erzeugen Befunde, die niemand mehr liest.
 Wer eine neue Messreihe anlegt, nennt sie hier — mit Schema und schreibendem
 Skript. Eine Datei im Ledger, deren Herkunft niemand kennt, ist keine Messung.
 
-## 7 Gates öffnet nur der Mensch
+## 7 Gates öffnet nie ein Worker — die drei Autoritätsebenen
 
 Das Worker-Werkzeug `kanban_unblock` ist für jedes Profil tabu — auf jeder
-Karte, aus jedem Grund. Der einzige legitime Weg ist `gate.sh` in Menschenhand.
-`monitor.sh` meldet jedes Unblock-Ereignis ohne gültiges Verb-Präfix als
-Verstoß.
+Karte, aus jedem Grund. Auch für `esf-ceo`. `monitor.sh` meldet jedes
+Unblock-Ereignis ohne gültiges Verb-Präfix als Verstoß.
+
+Seit Phase 3 ist die Führung zweistufig; wer welches Gate öffnet, steht in
+`cadence.yaml` unter `fuehrung:`:
+
+- **Supervisor (Mensch).** Beantwortet das Roadmap-Gate (nicht delegierbar)
+  und jeden Notfall, den `scripts/eskalation.sh` meldet. Sein Werkzeug ist
+  `gate.sh` — direkt, wie in den Phasen 0–2.
+- **`esf-ceo` (Profil).** Entscheidet Release-, Irreversibel- und
+  Budget-Gates — aber nie durch einen Unblock: Er schreibt ein
+  **Entscheidungsdokument** (`reports/ceo-entscheid-<gate-id>.html`, Metas
+  `esf-gate` und `esf-verb`, vier Pflichtabschnitte `vorlage` · `messung` ·
+  `begruendung` · `antwort`). `scripts/ceo-lint.py` validiert es, und erst
+  `scripts/ceo-tick.sh` führt es über `gate.sh --von esf-ceo` aus.
+  Irreversibel-Entscheidungen warten zusätzlich die Einspruchsfrist
+  (`irreversibel_einspruch_stunden`) ab. Das Verb `escalate` öffnet nichts —
+  es übergibt das Gate dem Supervisor.
+- **Code.** Validiert, führt aus, journaliert (`ledger/ceo-entscheidungen.jsonl`,
+  `ledger/eskalationen.jsonl`) und definiert den Notfall
+  (`scripts/eskalation.sh`). Kein Modell öffnet ein Gate; kein Mensch muss
+  eines öffnen, das kein Roadmap-Gate und kein Notfall ist.
+
+Im Modus `ceo_modus: schatten` schreibt `esf-ceo` seine Dokumente, aber
+ausgeführt wird nichts — der Supervisor antwortet wie bisher, und der
+Vergleich der beiden Antworten ist die Messgröße, an der die Umstellung auf
+`live` hängt.
