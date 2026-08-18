@@ -1,0 +1,366 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <title>Spezifikation R1-F1 — Sichtbarer globaler Sucheinstieg — ESF</title>
+  <meta name="esf-typ" content="spec">
+  <meta name="esf-karte" content="t_21eb98bf">
+  <meta name="esf-datum" content="2026-08-17">
+  <style>
+    body{font:16px/1.65 -apple-system,system-ui,sans-serif;max-width:58rem;margin:2rem auto;padding:0 1rem}
+    h1{border-bottom:3px solid #111;padding-bottom:.4rem}
+    h2{margin-top:2.4rem;border-bottom:1px solid #ddd;padding-bottom:.2rem}
+    h3{margin-top:1.8rem}
+    code{background:#f3f3f3;padding:.1rem .3rem;border-radius:3px;font-size:14px}
+    .meta{color:#666;font-size:14px}
+    .beleg{color:#444;font-size:14px}
+    table{border-collapse:collapse;width:100%;margin:1rem 0}
+    td,th{border-bottom:1px solid #ddd;padding:.45rem .5rem;text-align:left;vertical-align:top}
+    th{background:#fafafa}
+    .akzeptanz{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:4px;padding:.6rem 1.1rem .6rem 1.1rem;margin:.6rem 0}
+    .invariante{border-left:4px solid #b91c1c;padding:.4rem 0 .4rem 1rem;margin:.6rem 0}
+    .widerspruch{border-left:4px solid #d97706;padding:.4rem 0 .4rem 1rem;margin:.6rem 0}
+    ul{margin:.3rem 0 .8rem 0}
+  </style>
+</head>
+<body>
+<h1>Spezifikation R1-F1 — Sichtbarer globaler Sucheinstieg</h1>
+<p class="meta">Karte <code>t_21eb98bf</code> · 2026-08-17 · Bau-Karte: <b>S2 F1 1/4</b> (Spec) ·
+Repo <code>…/04-hermes-agent-software-company-test-kaneo</code> · Bezug
+<a href="../roadmap/q1-freigegeben.html">roadmap/q1-freigegeben.html</a> (R1-F1) ·
+E2E-Katalog <a href="../analysis/journeys.html">analysis/journeys.html</a> (J-07).</p>
+
+<p>Diese Spezifikation ist die ausführbare Anweisung für die <b>eine</b> Bau-Karte von R1-F1.
+Der Entwickler sieht nur diese Datei; er entscheidet nichts — wo der Griff sitzt, wie er heißt, was
+er tut und was er <b>nicht</b> tut, steht unten konkret. Der Schnitt ist bewusst klein und
+<b>frontend-only</b>: Er nutzt die vorhandene Such-Substanz (Kommandomenü, Such-Endpunkt im API)
+und fügt nur den fehlenden sichtbaren Griff hinzu.</p>
+
+<h2>1. Kontext</h2>
+<p>Nutzeraufgabe <b>K9</b> — „eine bestimmte Aufgabe in einem von mehreren Projekten finden“ — ist in
+der Oberfläche <b>tastaturgebunden</b>: der Einstieg läuft über die Kommando-Palette (Kurzbefehl
+<code>/</code>) und über eine eigene Such-Route; ein neuer Anwender sieht keinen zuverlässig
+sichtbaren globalen Suchknopf (<code>analysis/product.html</code> §4 K9, §5). Das ist der größte Bruch
+mit dem Markenversprechen „find tasks across projects“. Ziel dieses Features: <b>ein sichtbarer
+Header-Griff</b>, der die Aufgabe von tastaturgebunden auf einen sichtbaren, dauerhaft vorhandenen
+Einstieg senkt (<code>roadmap/q1-freigegeben.html</code> R1-F1, H1, Score 22,5).</p>
+<p class="beleg">Reihenfolge: R1-F1 wird <b>nach</b> R1-F5 (API-Modularisierung) und
+<b>parallel</b> zu R1-F2 (2FA) gebaut (<code>roadmap/q1-freigegeben.html</code> R1-F1 „Reihenfolge“,
+R1-F2). Die Berührungspunkte unten (§6) trennen die beiden Features sauber.</p>
+
+<h2>2. Vorhandene Substanz zuerst — was es schon gibt (Beleg je Datei)</h2>
+<p>Alle Aussagen beziehen sich auf den Stand <code>main</code> (Baseline
+<code>e714f87</code>, Kaneo v2.19.1). Die Such-Maschinerie ist bereits vollständig da; sie
+wird <b>wiederverwendet</b>, nicht dupliziert. Ein zweiter Suchpfad neben dem bestehenden wäre genau
+die Flächenvergrößerung, gegen die Kaneos Versprechen baut (<code>roadmap/q1-freigegeben.html</code>
+„Was wir NICHT machen“).</p>
+
+<table>
+  <thead><tr><th>Substanz</th><th>Beleg (datei.ts:zeile)</th><th>Rolle für dieses Feature</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><b>Globales Such-Kommandomenü</b> (Such-Dialog über alle Typen: task/project/workspace/
+          comment/activity, gruppiert)</td>
+      <td><code>apps/web/src/components/search-command-menu/index.tsx</code> — Gruppen-Dialog
+          (<code>index.tsx:193–256</code>), sucht <code>type: "all"</code>, Limit 20
+          (<code>index.tsx:63–70</code>), öffnet pro Treffer die richtige Route
+          (<code>index.tsx:86–138</code>), &gt;=3 Zeichen <code>searchEnabled</code>
+          (<code>index.tsx:63</code>)</td>
+      <td><b>Wird geöffnet</b> — das ist der Dialog, den der neue Header-Griff aufmacht.</td>
+    </tr>
+    <tr>
+      <td><b>Kurzbefehl <code>/</code></b> (öffnet das Such-Menü)</td>
+      <td><code>apps/web/src/constants/shortcuts.ts</code> <code>search.prefix: "/"</code>;
+          registriert in <code>search-command-menu/index.tsx:72–78</code> und
+          <code>components/search.tsx:15–21</code></td>
+      <td><b>Bleibt unverändert.</b> Nicht entfernbar, nicht umbenennen.</td>
+    </tr>
+    <tr>
+      <td><b>Sidebar-Sucheinstieg</b> (sichtbarer Button in der Sidebar)</td>
+      <td><code>apps/web/src/components/search.tsx</code> — Button mit Lupe + Label
+          <code>navigation:commandPalette.search</code> + <code>/</code>-Kbd
+          (<code>search.tsx:24–45</code>), öffnet das Menü (<code>search.tsx:45</code>); eingehängt in
+          <code>apps/web/src/components/app-sidebar.tsx:42</code> (<code>&lt;Search /&gt;</code>)</td>
+      <td><b>Bleibt bestehen.</b> Dieser Einstieg ist aber an den Zustand der klappbaren Sidebar
+          gebunden (offcanvas, <code>app-sidebar.tsx:33</code>,
+          <code>ui/sidebar.tsx:180–258</code>) — er ist nicht im persistenten Header.</td>
+    </tr>
+    <tr>
+      <td><b>Kommando-Palette</b> (Cmd+K, mit „Search“-Aktion)</td>
+      <td><code>apps/web/src/components/command-palette/index.tsx</code> — Aktion „Search“
+          (<code>index.tsx:118–121</code>) öffnet das Such-Menü (<code>index.tsx:318</code>)</td>
+      <td><b>Bleibt.</b> Tastaturpfad wird nicht angetastet.</td>
+    </tr>
+    <tr>
+      <td><b>Eigene Such-Route</b> (Arbeitsbereichs-Suchseite, nur Aufgaben)</td>
+      <td><code>apps/web/src/routes/_layout/_authenticated/dashboard/workspace/\$workspaceId/search.tsx</code>
+          — Debounce 300&nbsp;ms (<code>search.tsx:44–54</code>), <code>type: "tasks"</code>,
+          Schnellsuchen (<code>search.tsx:103–113</code>)</td>
+      <td><b>Bleibt unangetastet.</b> Eigene Route, keine Änderung.</td>
+    </tr>
+    <tr>
+      <td><b>Such-Endpunkt im API</b></td>
+      <td><code>GET /api/search</code> — Montage <code>apps/api/src/app.ts:334</code>
+          (<code>api.route("/search", search)</code>), Route <code>apps/api/src/search/index.ts</code>
+          (Query-Validierung <code>index.ts:41–75</code>, Typ-Filter all/tasks/…, Limit 1–50),
+          Handler <code>apps/api/src/search/controllers/global-search.ts</code> (491&nbsp;Z., ILIKE über
+          Drizzle <code>global-search.ts:1–12</code>); Client
+          <code>apps/web/src/fetchers/search/global-search.ts:17–35</code></td>
+      <td><b>Unverändert.</b> F1 fügt <b>keine</b> API-Route hinzu und ändert den Endpunkt nicht.</td>
+    </tr>
+    <tr>
+      <td><b>App-Shell mit globalem Such-Dialog</b></td>
+      <td><code>apps/web/src/routes/_layout.tsx:17</code> — <code>&lt;SearchCommandMenu
+          open={searchOpen} setOpen={setSearchOpen} /&gt;</code> (eine Instanz im Layout)</td>
+      <td><b>Ankerpunkt:</b> Der neue Header-Griff treibt diesen globalen Zustand an, sodass genau
+          <b>ein</b> Dialog im DOM liegt.</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3>Beleg-Index für die Kürzel</h3>
+<p class="beleg"><code>navigation:commandPalette.search</code> = „Search“,
+<code>navigation:search.inputPlaceholder</code> = „Search tasks, projects, comments…“,
+<code>navigation:search.minCharsHint</code> = „Type at least 3 characters to search“,
+<code>navigation:search.groups.task</code> = „Tasks“ (<code>…/i18n/en-US.json</code>).</p>
+
+<div class="widerspruch"><b>Widerspruch Analyse ↔ Code (AGENTS.md 3.3, nicht geglättet):</b>
+<code>analysis/product.html</code> §4 K9 behauptet, „ein neuer Anwender sieht keinen sichtbaren
+globalen Suchknopf“ (<code>product.html:176–178</code>, §5 <code>:227–229</code>). Das ist auf dem
+Baseline-Stand <b>nicht wörtlich richtig</b>: <code>app-sidebar.tsx:42</code> hängt bereits einen
+sichtbaren Sidebar-Suchbutton ein (<code>components/search.tsx:24–45</code>). Beide Aussagen stehen
+nebeneinander. Die Bewertung, dass die <b>Auffindbarkeit</b> schwach ist, bleibt gleichwohl triftig:
+Der vorhandene Griff lebt in der klappbaren Offcanvas-Sidebar (<code>app-sidebar.tsx:33</code>,
+<code>ui/sidebar.tsx:180–258</code>, <code>layout.tsx:54–72</code>) und verschwindet, sobald die
+Sidebar eingeklappt ist; im persistenten Header-Chrome gibt es ihn nicht. Dieses Feature schließt
+genau diese Lücke — ohne den bestehenden Sidebar-Griff zu entfernen.</div>
+
+<h2>3. Nutzeraufgabe &amp; Schrittzahl (die UX-Metrik, vorher → Ziel)</h2>
+<p>Schritt = sichtbare Nutzerhandlung (Klick, Tippen, Ziehen), die Metrik der Organisation
+(<code>analysis/product.html</code> Kap. 4; <code>analysis/journeys.html</code> Kopf).</p>
+<table>
+  <thead><tr><th></th><th>Vorher (Ist)</th><th>Ziel (nachher)</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><b>Weg</b></td>
+      <td>tastaturgebunden (Kommando-Palette/<code>/</code>) oder Sidebar-Button bei offener Sidebar</td>
+      <td>sichtbarer Header-Griff auf jeder authentifizierten Seite, unabhängig vom Sidebar-Zustand</td>
+    </tr>
+    <tr>
+      <td><b>Schritte</b></td>
+      <td><b>3</b> (Einstieg öffnen → ≥3 Zeichen → Treffer klicken) — aber der Einstieg ist
+          <b>nicht zuverlässig auffindbar</b>: bei eingeklappter Sidebar gibt es keinen sichtbaren Griff,
+          ohne Vorwissen des Kurzbefehls findet ein neuer Anwender den Weg nicht
+          (<code>product.html:173–178</code>)</td>
+      <td><b>3</b> — jetzt <b>stabil messbar</b>: (1) Header-Griff anklicken, (2) ≥3 Zeichen tippen,
+          (3) Treffer anklicken. Der Griff ist auf jeder Seite dauerhaft sichtbar.</td>
+    </tr>
+  </tbody>
+</table>
+<p class="beleg">Die Schrittzahl <em>des Kernflusses</em> bleibt 3; was R1-F1 verändert, ist die
+<b>Zuverlässigkeit der Auffindbarkeit</b>: Vorher ist der kürzeste Weg für einen neuen Anwender ohne
+Vorwissen faktisch nicht begehbar (der Einstieg verschwindet oder ist unsichtbar), nachher ist er
+garantiert vorhanden. Die UX-Messgröße für das Feature ist daher „Schritte auf dem
+<b>garantiert sichtbaren</b> Weg“: <b>vorher nicht zuverlässig messbar / faktisch tastaturgebunden,
+Ziel 3.</b> Die Messung legt die E2E-Journey J-07 (§7) als belegbare Zahl frei.</p>
+
+<h2>4. Der sichtbare Griff — wo, wie beschriftet, was er tut</h2>
+<h3>4.1 Ort</h3>
+<p>Ein <b>Header-Sucheinstieg</b> wird in den persistenten Header-Chrome der App gesetzt — die
+<code>Layout.Header</code>-Leiste (<code>apps/web/src/components/common/layout.tsx:26–37</code>), die
+auf jeder authentifizierten Seite oben liegt. Die vier Seiten-Layouts, die diesen Header rendern,
+sind: <code>workspace-layout.tsx:40</code>, <code>project-layout.tsx:94</code>,
+<code>task-layout.tsx:58</code>, <code>settings-layout.tsx:58</code>. Der Griff sitzt in der
+rechten Aktion-Zone des Headers (neben <code>headerActions</code>,
+<code>workspace-layout.tsx:80–82</code>), rechtsbündig, dauerhaft sichtbar — auch bei
+eingeklappter Sidebar.</p>
+<p class="beleg">Eine gemeinsame, wiederverwendbare Komponente (z.&#8201;B. <code>&lt;HeaderSearch /&gt;</code>)
+in <code>apps/web/src/components/</code>, die in die vier Header eingehängt wird. Der Griff muss als
+<em>sichtbares Eingabefeld</em> (Input-Optik mit Lupe), nicht als bloßes Icon daherkommen — das
+Icon allein ist der gefundene Schwachpunkt der Auffindbarkeit.</p>
+<h3>4.2 Beschriftung</h3>
+<ul>
+  <li><b>Text:</b> der vorhandene Platzhalter <code>navigation:search.inputPlaceholder</code> =
+      „Search tasks, projects, comments…“ (i18n-Key existiert bereits, §2 Beleg-Index).</li>
+  <li><b>Kurzbefehl-Hinweis:</b> ein <code>/</code>-Kbd im Griff, wie es der Sidebar-Button bereits
+      zeigt (<code>components/search.tsx:40–42</code>).</li>
+  <li><b>Keine neuen UI-Strings nötig</b>; falls doch, über die vorhandenen Locale-Dateien
+      (<code>…/i18n/*.json</code>) und die i18n-Prüfung — keine hartkodierten englischen Texte.</li>
+</ul>
+<h3>4.3 Verhalten bei Klick</h3>
+<ul>
+  <li>Klick öffnet das <b>vorhandene</b> globale Such-Kommandomenü
+      (<code>search-command-menu/index.tsx</code>) mit Fokus im Abfragefeld — <b>keine</b>
+      Navigation, die URL ändert sich nicht.</li>
+  <li>Der Griff treibt die bereits im Layout existierende Dialog-Instanz
+      (<code>routes/_layout.tsx:17</code>) an, sodass im DOM genau <b>ein</b> Such-Dialog liegt
+      (kein zweiter Dialog aus dem Header neben dem Sidebar-Dialog).</li>
+  <li>Eingabe &amp; Treffer-Verhalten bleiben exakt wie heute: ≥3 Zeichen, gruppierte Treffer,
+      Klick navigiert SPA-seitig zur Aufgabe/dem Projekt (<code>search-command-menu/index.tsx:63,86–138</code>).</li>
+</ul>
+<h3>4.4 Tastaturkurzbefehl</h3>
+<p><b><code>/</code> bleibt unverändert</b> (<code>shortcuts.ts</code> <code>search.prefix: "/"</code>;
+registriert <code>search-command-menu/index.tsx:72–78</code>). Das Feature fügt keinen neuen
+Kurzbefehl hinzu und ändert keinen bestehenden.</p>
+
+<h2>5. Was das Feature NICHT tut</h2>
+<ul>
+  <li><b>Kein zweiter Suchpfad/kein neuer Such-Backend:</b> kein neuer API-Endpunkt, keine Änderung an
+      <code>GET /api/search</code> (<code>app.ts:334</code>, <code>global-search.ts</code>). Der Header
+      öffnet dasselbe Kommandomenü über dieselbe Query.</li>
+  <li><b>Kein Filter-Baukasten, keine gespeicherten Suchen, keine Volltext-Indizierung.</b> Die
+      bestehende ILIKE-Suche (<code>global-search.ts:1–12</code>) bleibt die Suchmaschine; nichts wird
+      daran gebaut, weil es ohne Indizierung geht.</li>
+  <li><b>Keine neue Route und keine Änderung an der bestehenden Such-Route</b>
+      (<code>…/workspace/\$workspaceId/search.tsx</code>).</li>
+  <li><b>Kein Entfernen</b> des Sidebar-Griffs, des <code>/</code>-Kurzbefehls oder der
+      Kommando-Palette-„Search“-Aktion.</li>
+  <li><b>Keine Änderung an Auth:</b> nichts unter <code>apps/api/src/auth*</code>,
+      <code>routes/auth.ts</code>, der besseren-auth-Integration oder den Sign-in/Sign-up-Routen
+      (§6, R1-F2-Parallelität).</li>
+</ul>
+
+<h2>6. Zuschnitt — was NICHT in diesem Feature ist</h2>
+<p>Eine Bau-Karte, ein Entwickler. Der Umfang oben (Header-Griff + Dialog-Anbindung) ist klein und
+passt in eine Karte. Bewusst <b>hierher gehört das nicht</b>:</p>
+<ul>
+  <li><b>Such-Vorschläge/Typ-Ahead im Griff selbst</b> (z.&#8201;B. Trefferliste direkt unter dem Feld)
+      — das ist eine Erweiterung des Dialogs, später.</li>
+  <li><b>Fuzzy-Suche, Ranking-Optimierung, Volltext</b> — neuer Such-Backend, explizit NICHT
+      (roadmap „Was wir NICHT machen“).</li>
+  <li><b>Projekt-/Arbeitsbereichs-übergreifender Scope-Umschalter</b> („nur in Projekt X suchen“) —
+      ein Filter-Baukasten, bewusst draußen.</li>
+  <li><b>Entfernen des Sidebar-Griffs</b> — Entfernen ist ein eigenes Feature mit eigener
+      Begründung; hier wird nichts entfernt.</li>
+</ul>
+
+<h2>7. Berührungspunkte — Parallelität mit R1-F2 (2FA)</h2>
+<p>R1-F2 (2FA) wird <b>gleichzeitig</b> von <b>esf-dev-b</b> gebaut. R1-F1 ist, wie diese
+Spezifikation festlegt, <b>rein frontend</b>: Sie berührt die API-Schicht <b>gar nicht</b>. Das
+entkoppelt die beiden Features auf der API-Seite vollständig. Erwartete Dateien:</p>
+<table>
+  <thead><tr><th>Datei</th><th>Wer schreibt</th><th>Kollisionslage</th></tr></thead>
+  <tbody>
+    <tr><td><code>apps/web/src/components/common/layout.tsx</code> + neue Header-Such-Komponente</td>
+        <td><b>R1-F1</b></td>
+        <td>R1-F2 berührt das Web nicht in diesem Bereich.</td></tr>
+    <tr><td><code>apps/web/src/components/common/workspace-layout.tsx</code>,
+        <code>project-layout.tsx</code>, <code>task-layout.tsx</code>, <code>settings-layout.tsx</code></td>
+        <td><b>R1-F1</b></td>
+        <td>Header-Bereiche; R1-F2 schreibt andere Dateien.</td></tr>
+    <tr><td><code>apps/web/src/routes/_layout.tsx</code></td>
+        <td><b>R1-F1</b> (Dialog-Zustand/Anbindung, <code>_layout.tsx:17</code>)</td>
+        <td>Keine Überschneidung mit R1-F2.</td></tr>
+    <tr><td><code>apps/web/src/components/search-command-menu/index.tsx</code></td>
+        <td><b>R1-F1</b> (höchstens Fokus-/Expose-Verhalten; Menü wird sonst unverändert wiederverwendet)</td>
+        <td>Keine Überschneidung.</td></tr>
+    <tr><td><code>tests/e2e/journeys/aufgabe-ueber-suche-wiederfinden.spec.ts</code> (J-07, neu)</td>
+        <td><b>R1-F1</b></td>
+        <td>R1-F2 führt eine <b>eigene</b> Datei (<code>auth-haertung-2fa.spec.ts</code>); gemeinsamer
+            Helfer <code>tests/e2e/support/journey.ts</code> nur lesend genutzt
+            (<code>specs/r1-f2-zwei-faktor.html</code> §Berührungspunkte).</td></tr>
+    <tr><td><code>apps/api/src/auth.ts</code>, <code>apps/api/src/routes/auth.ts</code>,
+        <code>apps/api/src/database/schema.ts</code> + <code>drizzle/*</code></td>
+        <td><b>R1-F2</b> (2FA-Plugin, Migration)</td>
+        <td><b>R1-F1 fasst diese Dateien NICHT an.</b> F1 ist frontend-only und berührt
+            <code>apps/api/</code> gar nicht.</td></tr>
+  </tbody>
+</table>
+<p class="beleg">Anmerkung: <code>specs/r1-f2-zwei-faktor.html</code> nimmt an, F1 füge eine
+additive Registrierungszeile für die Such-Route in <code>apps/api/src/app.ts</code> hinzu. Diese
+Annahme ist <b>veraltet</b>: Der Such-Endpunkt existiert bereits (<code>app.ts:334</code>). R1-F1
+ändert <b>keine</b> Zeile in <code>apps/api/</code>. Der Reviewer von R1-F2 kann diese Annahme
+korrigieren; für R1-F1 ist sie ohne Konsequenz, weil der F1-Diff unter <code>apps/api/</code> leer
+bleibt.</p>
+
+<h2>8. E2E-Journey J-07 — „Aufgabe über die Suche wiederfinden“</h2>
+<p>J-07 ist im Katalog bewusst offen (<code>analysis/journeys.html</code>, „Bewusst offen“:
+J-07) und wird mit diesem Feature geschrieben. Spec-Datei (Namenskonvention der Suite, deutsch wie
+<code>projekt-anlegen.spec.ts</code>):
+<b><code>tests/e2e/journeys/aufgabe-ueber-suche-wiederfinden.spec.ts</code></b>. Der Entwickler
+schreibt den Playwright-Spec; <b>diese Spezifikation legt fest, was er beweisen muss.</b></p>
+<p>Grundlage der Schritte: Vorbereitung über die vorhandenen Helfer
+(<code>tests/e2e/support/journey.ts</code>: <code>kontoAnlegen</code>,
+<code>arbeitsbereichAnlegen</code>, <code>projektAnlegen</code>); Vorbedingung Postgres
+(<code>cadence.yaml:63</code>).</p>
+<ol>
+  <li><b>Vorbereitung:</b> frisches Konto + Arbeitsbereich (Helfer).</li>
+  <li><b>Zwei Projekte anlegen</b> („Projekt A“, „Projekt B“) via <code>projektAnlegen</code>.</li>
+  <li><b>Suchbare Aufgabe anlegen:</b> in Projekt A eine Aufgabe mit einem <b>eindeutigen Token</b>
+      im Titel (≥3 Zeichen, z.&#8201;B. <code>Rechnung Q3 QBE-4711</code>), damit der Treffer
+      eindeutig ist.</li>
+  <li><b>Zur Arbeitsbereichs-Übersicht</b> (<code>/dashboard/workspace</code>) navigieren — weg vom
+      Projekt-Board, damit die Suche wirklich <em>projektübergreifend</em> sein muss (K9).</li>
+  <li><b>Sichtbarkeit des Header-Griffs beweisen:</b> die Header-Suchsteuerung (Text
+      „Search tasks, projects, comments…“) ist <b>ohne Sidebar-Ausklappen</b> sichtbar.</li>
+  <li><b>Griff anklicken:</b> das globale Such-Dialog erscheint, das Eingabefeld ist fokussiert,
+      die URL ist unverändert (keine Navigation).</li>
+  <li><b>Token eintippen</b> (≥3 Zeichen).</li>
+  <li><b>Erwartung:</b> die Aufgabe aus Projekt A erscheint in der Treffer-Gruppe „Tasks“
+      (<code>navigation:search.groups.task</code>).</li>
+  <li><b>Treffer anklicken:</b> Navigation zum Board von Projekt A mit geöffneter Aufgabe
+      (URL <code>/project/&lt;A&gt;/board</code> + taskId), <b>ohne Seiten-Reload</b>.</li>
+  <li><b>Gegenprobe Kurzbefehl:</b> <code>/</code> drücken → derselbe Dialog öffnet sich
+      (beweist: der Kurzbefehl bleibt unverändert).</li>
+</ol>
+<p class="beleg">Was der Spec als Zahl freilegen muss: die drei Schritte des Kernflusses
+(§3) als belegbare Messung — die Journey <em>ist</em> die Messung der Auffindbarkeit, die
+<code>product.html</code> §5 als Schwachpunkt dokumentiert.</p>
+
+<h2>9. Invarianten — was sich NICHT ändern darf</h2>
+<div class="invariante"><b>Kein neuer API-Endpunkt und keine Änderung an
+<code>GET /api/search</code>.</b> Der Diff dieses Features unter <code>apps/api/</code> ist leer.</div>
+<div class="invariante"><b>Der Kurzbefehl <code>/</code> und der Sidebar-Sucheinstieg bleiben
+verhaltensgleich.</b> Kein Entfernen, kein Umbenennen.</div>
+<div class="invariante"><b>Genau ein Such-Dialog im DOM.</b> Header-Griff und Sidebar-Griff öffnen
+dieselbe Instanz (<code>routes/_layout.tsx:17</code>); es entsteht kein zweiter Dialog.</div>
+<div class="invariante"><b>Keine Änderung an Auth-Dateien</b> (<code>apps/api/src/auth*</code>,
+<code>routes/auth.ts</code>, <code>apps/api/src/database/</code>). Diese gehören R1-F2
+(<code>specs/r1-f2-zwei-faktor.html</code>).</div>
+<div class="invariante"><b>Keine neue Dependency.</b> Die Komponente kommt mit den vorhandenen
+UI-Bausteinen (Button/Input aus <code>components/ui/</code>, Lucide-Icons) aus.</div>
+
+<h2>10. Akzeptanzkriterien (einzeln abhakbar, von außen prüfbar)</h2>
+<ol class="akzeptanz">
+  <li><b>E2E J-07 grün (das Pflicht-Szenario):</b> <code>tests/e2e/journeys/aufgabe-ueber-suche-wiederfinden.spec.ts</code>
+      ist grün in <code>pnpm exec playwright test</code> (<code>cadence.yaml:64</code>) und beweist die
+      Schritte aus §8 — insbesondere: Aufgabe in Projekt A über den <b>sichtbaren Header-Griff</b> von
+      der Arbeitsbereichs-Übersicht aus gefunden und geöffnet, ohne Tastatur.</li>
+  <li><b>Header-Griff auf jeder authentifizierten Seite sichtbar:</b> auf Arbeitsbereichs-Übersicht,
+      Projekt-Board, Task-Detail und Einstellungen ist der Header-Sucheinstieg (Text
+      „Search tasks, projects, comments…“) ohne Sidebar-Ausklappen sichtbar.</li>
+  <li><b>Klick öffnet den Dialog ohne Navigation:</b> Klick auf den Header-Griff öffnet das globale
+      Such-Dialog mit fokussiertem Eingabefeld; die URL bleibt unverändert.</li>
+  <li><b>Treffer &amp; Navigation unverändert:</b> ≥3 Zeichen liefern gruppierte Treffer (u.&#8201;a.
+      „Tasks“); Klick auf einen Task-Treffer navigiert SPA-seitig ohne Reload zur Aufgabe.</li>
+  <li><b>Kurzbefehl bleibt:</b> <code>/</code> öffnet von jeder authentifizierten Seite dasselbe
+      Such-Dialog wie der Header-Griff (eine Instanz).</li>
+  <li><b>Genau ein Dialog:</b> nach Nutzung von Header-Griff <em>und</em> Sidebar-Griff liegt im DOM
+      genau ein Such-Dialog-Knoten (kein Duplikat).</li>
+  <li><b>Kein API-Diff:</b> <code>git diff main…&lt;Branch&gt; -- apps/api/</code> ist leer — F1 ist
+      frontend-only; der Such-Endpunkt wird nicht angefasst.</li>
+  <li><b>Kein Auth-Diff:</b> kein Commit unter <code>apps/api/src/auth*</code>,
+      <code>apps/api/src/routes/auth.ts</code>, <code>apps/api/src/database/</code> und an den
+      Web-Auth-Routen (<code>apps/web/src/routes/auth/*</code>).</li>
+  <li><b>Bestehende Einstiege intakt:</b> Sidebar-Suchbutton und Kommando-Palette-„Search“ öffnen
+      weiterhin den Dialog (Regression, in J-07-Gegenprobe mit abgedeckt).</li>
+  <li><b>i18n grün &amp; keine hartkodierten Strings:</b> <code>pnpm i18n:check</code> (bzw. das
+      i18n-Prüfskript) läuft ohne Befund; neue Texte liegen in allen Locale-Dateien, nicht als
+      Literal im Code.</li>
+  <li><b>Typecheck &amp; Lint grün auf den geänderten Dateien:</b> die geänderten
+      <code>apps/web/src</code>-Dateien bestehen <code>tsc</code>/Typecheck und
+      <code>biome check</code> ohne neue Fehler.</li>
+</ol>
+
+<hr style="border:none;border-top:3px solid #111;margin:2.4rem 0">
+<h2>Nicht-Ziele</h2>
+<ul>
+  <li>Kein neuer Such-Backend, keine Volltext-Indexierung, kein Filter-Baukasten, keine
+      gespeicherten Suchen (§5).</li>
+  <li>Keine Änderung an der bestehenden Such-Route und am Such-Endpunkt (§5, §9).</li>
+  <li>Keine Entfernung bestehender Einstiege (§5, §9).</li>
+  <li>Keine Auth-Änderung (§6, §9 — R1-F2).</li>
+</ul>
+
+</body>
+</html>

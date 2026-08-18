@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <title>Release R1 — Kaneo — ESF</title>
+  <meta name="esf-typ" content="report">
+  <meta name="esf-karte" content="t_5bf50786">
+  <meta name="esf-datum" content="2026-08-18">
+  <style>
+    body{font:16px/1.65 -apple-system,system-ui,sans-serif;max-width:60rem;margin:2rem auto;padding:0 1rem}
+    h1{border-bottom:3px solid #111;padding-bottom:.4rem}
+    h2{margin-top:2.4rem;border-bottom:1px solid #ddd;padding-bottom:.2rem}
+    h3{margin-top:1.6rem}
+    table{border-collapse:collapse;width:100%;margin:1rem 0}
+    td,th{border-bottom:1px solid #ddd;padding:.45rem .5rem;text-align:left;vertical-align:top}
+    th{background:#fafafa}
+    .meta{color:#666;font-size:14px}
+    .beleg{color:#444;font-size:14px}
+    .feature{border-left:4px solid #111;padding:.2rem 0 .2rem 1rem;margin:1rem 0}
+    .warn{border-left:4px solid #d97706;padding:.5rem 0 .5rem 1rem;margin:.8rem 0}
+    .ok{border-left:4px solid #0a7d33;padding:.5rem 0 .5rem 1rem;margin:.8rem 0}
+    .schritt{background:#f6f6f3;border:1px solid #e2e2da;padding:.6rem .8rem;border-radius:4px;font-size:15px;margin:.8rem 0}
+    ul{margin:.3rem 0 .8rem 0}
+    .klein{font-size:13px;color:#666}
+    .gate{border:1px solid #111;background:#fafaf5;padding:.8rem 1rem;border-radius:4px;margin:1rem 0}
+    .zitat{border-left:4px solid #555;background:#f4f4f4;padding:.6rem .9rem;margin:.8rem 0;font-size:14.5px;white-space:pre-wrap}
+  </style>
+</head>
+<body>
+  <h1>Release R1 — „Auffindbar &amp; vertrauenswürdig“</h1>
+  <p class="meta">Karte <code>t_5bf50786</code> (Release-Abschluss R1) · 2026-08-18 · Produkt-Repo
+  <code>04-hermes-agent-software-company-test-kaneo</code> auf <code>main</code> (<code>56e0b8f</code>).</p>
+
+  <div class="ok"><b>Status:</b> R1 trägt alle <b>drei</b> freigegebenen Features (R1-F5, R1-F1, R1-F2) auf
+  <code>main</code>. Der volle E2E-Regressionslauf ist grün (11/11), Typecheck grün, 613 Unit-Tests grün,
+  Build 7/7 grün. <b>Enthaltene irreversible Datenmigration (0043) — das ist die wichtigste Zeile dieses
+  Dokuments, siehe unten.</b></div>
+
+  <h2>Das Wichtigste in drei Minuten</h2>
+  <ul>
+    <li><b>Geändert:</b> Kaneo ist ab jetzt auffindbarer und vertrauenswürdiger. Es gibt einen sichtbaren
+        Suchzugriff im Header — man muss Aufgaben nicht mehr über die Tastatur-Kommando-Palette suchen.
+        Und man kann das eigene Konto mit Zwei-Faktor-Auth (2FA, TOTP über eine Authenticator-App)
+        absichern. Dazu wurde die API-Interna modularisiert; für Anwender selbst keine direkte Änderung,
+        aber die Voraussetzung dafür, dass parallele Zuschnitte risikarm nebeneinander laufen.</li>
+    <li><b>Kosten &amp; Schätzgüte:</b> siehe <a href="sprint-s1-report.html">sprint-s1-report.html</a> und
+        <a href="sprint-s2-report.html">sprint-s2-report.html</a> — 7 vollständige (Schätzung, Ist)-Paare, der
+        Abschluss-Check des Sprints ist auf dem Riegel GRÜN.</li>
+    <li><b>Entscheidung nötig (der CEO):</b> R1 freigeben oder zurückweisen. Diese Datei ist die
+        Entscheidungsvorlage; die GATE-Karte legt sie vor.</li>
+  </ul>
+
+  <h2>Was die Anwender jetzt können</h2>
+
+  <div class="feature">
+    <h3>R1-F1 · Sichtbarer globaler Sucheinstieg</h3>
+    <p><b>Vorher:</b> Die Suche nach einer Aufgabe, die in einem von mehreren Projekten liegt, war
+    tastaturgebunden (Kommando-Palette mit <code>/</code>, eigene Such-Route) und nicht sichtbar — der größte
+    Bruch mit dem Versprechen „find tasks across projects“. <b>Nachher:</b> Ein Suchfeld mit Lupen-Icon und
+    <code>/</code>-Kurzbefehl steht im persistenten Header auf allen vier Seiten (Arbeitsbereichs-Übersicht,
+    Projekt, Aufgabe, Einstellungen). Ein Klick öffnet den Such-Dialog ohne Seitenwechsel; ≥3 Zeichen finden
+    eine Aufgabe über Projekte hinweg, ein Klick auf den Treffer navigiert ohne Reload. Die bestehenden
+    Einstiege (Sidebar, <code>/</code>) bleiben intakt.</p>
+    <p class="schritt">Aufwand für den Anwender: <b>12 Schritte</b> für den kompletten Fluss „Aufgabe in einem
+    <em>anderen</em> Projekt über den sichtbaren Header-Griff wiederfinden“ (Journey J-07,
+    <code>aufgabe-ueber-suche-wiederfinden.spec.ts</code>).</p>
+    <p class="beleg">Rein frontend, kein Diff unter <code>apps/api</code>. Beleg: Umsetzungskarte
+    <code>t_e4473bf4</code>, Commit <code>ba5eb81</code>, Merge <code>efb1e7c</code>, Journey grün.</p>
+  </div>
+
+  <div class="feature">
+    <h3>R1-F2 · Zwei-Faktor-Authentifizierung (2FA)</h3>
+    <p><b>Vorher:</b> Das Konto war nur durch ein Passwort geschützt; wer das Passwort hat, ist drin.
+    <b>Nachher:</b> Selbst-Hoster und Nutzer können ihr Konto per TOTP (Authenticator-App, RFC 6238) absichern:
+    In den Konto-Einstellungen unter „Sicherheit“ 2FA aktivieren, den berechneten Code verifizieren, beim
+    nächsten Login zusätzlich den 6-stelligen Code eingeben. <em>Opt-in</em> — wer 2FA nicht aktiviert, loggt
+    sich unverändert ein. Enthält die aussperr-feste Entlastung: 10 einmalige Backup-Codes beim Aktivieren,
+    und E-Mail-OTP/Magic-Link/Social-OAuth sind für 2FA-Konten serverseitig gesperrt (verständliche Abweisung,
+    keine stille Hintertür).</p>
+    <p class="schritt">Aufwand für den Anwender: <b>11 Schritte</b> für den kompletten Roundtrip
+    „aktivieren → verifizieren → abmelden → mit 2FA anmelden → deaktivieren“ (Journey J-08,
+    <code>auth-haertung-2fa.spec.ts</code>).</p>
+    <p class="beleg">Commit <code>5d2dabc</code> + Nacharbeiten <code>f1f93eb</code>, <code>89fee04</code>,
+    <code>ae7cbe4</code>, <code>ef957f4</code>, <code>09ba5ac</code>; Merge <code>56e0b8f</code>. Umsetzungskarte
+    <code>t_0fccb8ce</code>; die drei Umgehungspfade wurden durch die Nacharbeit <code>t_18e04ddf</code> geschlossen
+    und das Sicherheits-Review <code>t_6300d0d4</code> + <code>t_b6357b34</code> hat das abgesichert.</p>
+  </div>
+
+  <div class="feature">
+    <h3>R1-F5 · Technische Härtung / API-Modularisierung</h3>
+    <p><b>Vorher:</b> Der Einstiegspunkt <code>apps/api/src/index.ts</code> (968 Zeilen) war der Kollisions-Hotspot
+    für parallele Feature-Arbeit. <b>Nachher:</b> Der Lebenszyklus und die Routen sind ausgelagert
+    (<code>app.ts</code>, <code>startup.ts</code>, <code>routes/{assets,auth,health}.ts</code>). <b>Für den Anwender
+    keine direkte Funktionsänderung</b> — der Nutzen ist organisatorisch: die Features R1-F1 und R1-F2 konnten
+    risikarm parallel laufen. Abgesichert über den vollen Regressionslauf statt einer eigenen Journey.</p>
+    <p class="beleg">Commits <code>89b9462</code>, <code>b419251</code>, <code>03d939b</code>; Merge <code>0e4e165</code>;
+    ADR-<a href="../../decisions/ADR-001-api-modularisierung.html">001</a>. Karte <code>t_6c366810</code>.</p>
+  </div>
+
+  <h2>Was NICHT drin ist, obwohl es geplant war</h2>
+  <p>(aus den <code>deliberately_not_done</code>-Einträgen der Karten-metadata, mit Grund)</p>
+  <ul>
+    <li><b>2FA ohne Umgehungspfad als „verstandene UX“:</b> Der Magic-Link-Eingang der Umgehungspfade ist
+        serverseitig geschlossen und als bekannte Einschränkung im Code dokumentiert (<code>09ba5ac</code>),
+        aber <em>nicht</em> mit einer für den Nutzer abwendbaren UX gelöst — der beschlossene Weg war
+        <em>descope</em>, nicht <em>beheben</em> (CEO-Entscheid, Karte <code>t_801cb487</code>, <code>t_b6357b34</code>).</li>
+    <li><b>QR-Renderer für 2FA-Setup:</b> nicht gebaut — die <code>otpauth://</code>-URI als Text reicht laut
+        Spezifikation; der QR wäre Komfort, kein Funktionslücken-Defizit.</li>
+    <li><b>Erzwungenes 2FA, <code>trustDeviceMaxAge</code>, E-Mail/SMS-OTP, WebAuthn:</b> alle bewusst
+        herausgeschnitten — Nicht-Ziele der Spezifikation (R1-F2-Karte <code>t_0fccb8ce</code>).</li>
+    <li><b>Header-Suche auf der Einladungs-Seite:</b> nicht gebaut — diese Seite stand weder im AK2 noch in den
+        Berührungspunkten; AK2 nennt explizit die vier Seiten (R1-F1-Karte <code>t_e4473bf4</code>).</li>
+    <li><b>Unit-/Component-Tests für den HeaderSearch:</b> keine — bei einem UI-Feature ist laut
+        Arbeitsauftrag der E2E-Spec der Test (J-07 grün).</li>
+  </ul>
+
+  <h2>Reihenfolge-Hinweis und Ehrlichkeit</h2>
+  <p>Die Roadmap-Begründung von R1-F1 (Score 22,5, „größter Bruch“) ist an der Codebasis <em>nicht
+  getragen</em>: Die Baseline hatte bereits einen sichtbaren Sidebar-Suchbutton
+  (<code>app-sidebar.tsx:42</code>) und den Such-Endpunkt; die verbliebene Lücke war der Header-Griff, nicht
+  ein fehlender Einstieg. So steht es in <a href="sprint-s2-report.html">sprint-s2-report.html</a> §9 als
+  Widerspruch nebeneinander; die CEO-Entscheidung, R1-F1 zum verkleinerten Zuschnitt weiterlaufen zu lassen,
+  bleibt gültig. Die <strong>offene Frage</strong> daraus: Wie viele der übrigen R2-Begründungen tragen am Code? —
+  nicht beantwortet, das ist Arbeit für die R2-Spezifikation.</p>
+
+  <h2>Was sich für Selbst-Hoster ändert</h2>
+  <div class="warn">
+    <p><b>Datenmigration — JA, und sie ist irreversibel:</b> R1 enthält Drizzle-Migration
+    <code>0043_ancient_squadron_supreme</code>. Sie legt die Tabelle <code>two_factor</code> und die Spalte
+    <code>user.two_factor_enabled</code> an und wird <b>beim Boot der API automatisch angewendet</b>
+    (<code>migrate(getDatabase(), …)</code>) — kein manueller Befehl.</p>
+    <p><b>Was das für dein Update bedeutet:</b></p>
+    <ul>
+      <li><b>Vor dem Update ein DB-Backup ziehen.</b> Es gibt kein In-place-Downgrade; Tabelle und Spalte
+          bleiben nach Anwendung bestehen. Ein Backup ist der einzige Rückweg.</li>
+      <li><b>Wenn der Boot-Migrate-Lauf scheitert</b> (z.B. die <code>user</code>-Tabelle trägt eigene,
+          außerhalb von Drizzle gepflegte Zusätze oder einen gleichnamigen Bestand): die API startet dann
+          <em>nicht</em>. Das ist ein <b>Betriebsausfall ohne Datenverlust</b>; die Fehlermeldung steht im
+          API-Startlog, und der Weg zurück ist das vorgezogene Backup.</li>
+    </ul>
+    <p class="beleg">Vermerk und Operator-Pfad in <code>apps/docs/core/functional/manage-your-account.mdx</code>
+    (mit Ausgabe der zwei-Spalten-Auflagen aus dem Irreversibel-Gate); Entscheidung in
+    ADR-<a href="../../decisions/ADR-002-migration-zwei-faktor.html">002</a>; Gate-Karte
+    <code>t_3bb0cf65</code>. Die Migration wurde auf einer bestehenden Installations-DB mit 79 Nutzern
+    verifiziert.</p>
+  </div>
+  <p><b>Config:</b> keine neuen Pflicht-Variablen. 2FA nutzt die bestehende Auth-Session; das Setup zeigt die
+  <code>otpauth://</code>-URI als Text (kein QR nötig, App importiert per Text).</p>
+
+  <h2>Der Prüfstand (alles auf <code>main</code> = <code>56e0b8f</code> gemessen)</h2>
+  <table>
+    <tr><th>Prüfung</th><th>Ergebnis</th><th>Beleg</th></tr>
+    <tr><td>E2E-Regressionslauf (voll)</td><td><b>11 passed</b> (2,8 min, ohne --retries)</td>
+        <td><a href="e2e-2026-08-18/SUMMARY.txt">e2e-2026-08-18/SUMMARY.txt</a>,
+        <a href="e2e-2026-08-18/results.json">results.json</a></td></tr>
+    <tr><td>Typecheck</td><td>6/6 Pakete grün (Turbo, 188 ms)</td><td>Turbo-Lauf 11:42</td></tr>
+    <tr><td>Unit-Tests</td><td><b>613 passed</b> (7 Pakete: api 393, web 111, mcp 33, planka-import 54,
+        email 9, permissions 10, libs 3)</td><td>Turbo-Lauf 11:42</td></tr>
+    <tr><td>Build</td><td>7/7 Pakete grün</td><td><code>pnpm run build</code></td></tr>
+    <tr><td>Riegel je Feature (Merge)</td><td>F5 <code>0e4e165</code>, F1 <code>efb1e7c</code>,
+        F2 <code>56e0b8f</code> — je alle 6 Prüfungen grün</td>
+        <td><a href="riegel-r1-f5.txt">riegel-r1-f5.txt</a>,
+        <a href="riegel-r1-f5-zweiter-anlauf.txt">riegel-r1-f5-zweiter-anlauf.txt</a>,
+        <a href="riegel-r1-f1.txt">riegel-r1-f1.txt</a>,
+        <a href="riegel-r1-f2.txt">riegel-r1-f2.txt</a></td></tr>
+    <tr><td>Sprint-Abschluss-Check</td><td>GRÜN, 7 (Schätzung, Ist)-Paare</td>
+        <td><a href="sprint-s1-report.html">sprint-s1-report.html</a>,
+        <a href="sprint-s2-report.html">sprint-s2-report.html</a>,
+        <a href="controller-s1.html">controller-s1.html</a>,
+        <a href="controller-s2.html">controller-s2.html</a></td></tr>
+  </table>
+  <p class="beleg">Alle Journeys des Katalogs (<a href="../analysis/journeys.html">analysis/journeys.html</a>)
+  laufen: J-00, J-01, J-02, J-03, J-04, J-06, plus die neuen J-07 (Suche) und J-08 (2FA). Kein Spec wurde
+  übersprungen, wiederholt oder mit --retries nachgezogen. Der bekannte lastempfindliche
+  <code>mcp-internal-api-url.test.ts</code> ist in diesem Lauf stabil (API-Unit grün).</p>
+
+  <h2>Bekannte Einschränkungen (freigaberelevant)</h2>
+  <ul>
+    <li><b>Magic-Link-Umgehungspfad bei 2FA:</b> serverseitig geschlossen und im Code dokumentiert, aber nicht
+        nutzer-seitig lösbar gemacht (descope-Entscheid). Ein Nutzer, der auf genau diesem Weg eingeloggt wurde,
+        sieht die 2FA-Abweisung — kein Sicherheitsdefizit mehr, aber UX-Einschränkung.</li>
+    <li><b>R1-F1-Roadmap-Begründung überzeichnet</b> — siehe Abschnitt „Ehrlichkeit“. Kein Funktionsdefizit;
+        die Lücke (Header-Griff) ist geliefert.</li>
+    <li><b>Migration ohne In-place-Rückweg</b> — siehe „Was sich für Selbst-Hoster ändert“. Backup vor Update.</li>
+    <li>Kein selbst-erklärender QR beim 2FA-Setup (Text reicht); keine erzwungene 2FA für Teams.</li>
+  </ul>
+
+  <h2>Arbeitsbaum &amp; Hauptbaum</h2>
+  <p><code>git status</code> auf <code>main</code> ist sauber; kein ungesicherter Stand. Die drei
+  Feature-Branches (<code>feat/esf-r1-f5-…</code>, <code>feat/esf-r1-f1-globale-suche</code>,
+  <code>feat/esf-r1-f2-zwei-faktor</code>) sind in <code>main</code> enthalten (Merge-Commits oben).</p>
+
+  <p class="beleg"><em>Release-Abschluss R1 — esf-qa-release, 2026-08-18.</em> Jede Aussage mit Beleg
+  (Commit / Datei / Lauf); offene Fragen sind als solche benannt, keine geglättet (AGENTS.md 3.3).</p>
+
+  <h2>Freigabebeschluss — CEO-Urteil vom 2026-08-18</h2>
+  <div class="gate">
+    <p><b>Wie geantwortet:</b> <code>approve</code> — Freigabe, mit zwei Auflagen und drei Punkten für den
+    Roadmap-Fortschritt (Karte <code>t_0ea0c680</code>, Kommentar 2026-08-18 11:55). <b>Freigabedatum:</b>
+    2026-08-18. <b>Konsequenz:</b> R1 ist freigegeben — ein Beschluss im Vault, kein Tag, kein Deploy, kein
+    Push. Die Auflagen und Punkte sind verbindlich in
+    <a href="../roadmap/q1-fortschritt.html">roadmap/q1-fortschritt.html</a> festschrieben. Der Wortlaut der
+    CEO-Antwort, unverändert (AGENTS.md 3.3):</p>
+    <div class="zitat">UNBLOCK: approve: Freigegeben. Ich habe jede Zahl der Vorlage selbst nachgemessen, statt sie zu glauben: E2E 11/11 kalt ohne --retries in 2,7 min (eigener Lauf, keine Server vorher aktiv), Unit 613 passed, Typecheck gruen, main sauber auf 56e0b8f, alle drei Feature-Branches als in main enthalten bestaetigt. Die Vorlage haelt.
+
+Zwei AUFLAGEN fuer den Roadmap-Fortschritt, die du in roadmap/q1-fortschritt.html festschreibst. Sie sind der Grund, warum dieses Release ueberhaupt so schlank geschnitten wurde — das Messinstrument hat gemessen, und jetzt muss die Messung binden.
+
+AUFLAGE 1 — der Korrekturfaktor wird angewendet, nicht erwaehnt.
+Deine Zeile 5 sagt: alles ueberschaetzt, Faktor je Klasse rund 0,5 bis 0,75, Korrektur etwa 0,6 auf p50. Diese Zahl ist die Ausbeute von zwei Sprints, und sie ist wertlos, wenn die naechste Schaetzung wieder bei null anfaengt. Schreib deshalb verbindlich fest: Jede R2-Schaetzung wendet den gemessenen Klassenfaktor auf p50 an und NENNT ihn mitsamt dem n, auf dem er beruht (heute impl-worktree-M n=3, merge-repo-S n=4, review-repo-M n=3, estimate-vault-S n=3). Wo n unter 5 liegt, bleibt die Konfidenz unter 0,4 — so steht es in der SOUL des esf-estimator, und drei Paare machen daraus keine Gewissheit.
+
+Und die unbequeme Beobachtung dazu, die in den Fortschritt gehoert: In S2 hat DERSELBE Estimator dieselbe Klasse zweimal unterschiedlich behandelt — bei R1-F1 mit der bereinigten Basis (traf 0,97), bei R1-F2 mit der rohen (ueberschaetzte um Faktor 2). Die Kalibrierung wirkt nur, wenn die naechste Rolle die Entscheidung der vorherigen auch anwendet. Das ist eine Prozessluecke, keine Rechenluecke.
+
+AUFLAGE 2 — R2 wird gegen die GEMESSENE Kapazitaet geplant, nicht gegen die nominelle.
+73 Prozent der S2-Wanduhr war ungeplante Arbeit: 555 Minuten gegen 203 geplante. Das waren keine Ausfaelle, sondern Review-Befunde, Betriebsdefekte und CEO-Auflagen — also genau das, was diese Organisation gut macht. Aber wer R2 mit fuenf Features zum Nominalaufwand plant, plant an drei Vierteln der Wirklichkeit vorbei.
+
+Nimm dazu ausdruecklich Stellung: Entweder R2 traegt weniger Features, oder der Plan sagt hin, dass die Mehrheit der Kapazitaet in ungeplante Arbeit geht, und beziffert es. Was NICHT geht, ist fuenf Features am Kadenz-Deckel ohne ein Wort dazu. Eine Entscheidung dazu ist Sache des Roadmap-Gates, nicht deine — leg sie vor, entscheide sie nicht.
+
+DREI PUNKTE, die im Fortschritt nicht verlorengehen duerfen:
+1. Die Magic-Link-Einschraenkung (rohe 401 auf der API-Origin fuer 2FA-Konten, nur serverseitig behebbar, dokumentiert in apps/api/src/auth.ts:660) gehoert als benannter Posten in den R2-Backlog. Sie ist per CEO-Entscheid descopet, nicht erledigt.
+2. Die R1-F1-Erfahrung bindet jede R2-Spezifikation: Die Roadmap begruendete F1 mit Score 22,5 als groessten Bruch mit dem Markenversprechen, und die Codebasis widerlegte das teilweise (der sichtbare Sucheinstieg existierte schon, app-sidebar.tsx:42). R2 traegt fuenf Features aus derselben Analyse. Schreib fest, dass jede R2-Spezifikation ihre Roadmap-Begruendung ZUERST am Code prueft und den Befund hinschreibt, bevor sie den Zuschnitt festlegt.
+3. Der Autonomie-Horizont bleibt 'release'. Kein Quartals-Mandat: Diese Organisation hat ihr erstes Release geliefert, und zwar gut — aber sie hat dafuer vier Pruefzyklen an einem Feature, drei Zeitueberschreitungen und sieben ungeplante Karten gebraucht. Das ist gesund fuer eine begleitete Phase und zu unruhig fuer drei unbeaufsichtigte Releases.
+
+Kein Tag, kein Deploy, kein Push. Die Freigabe ist ein Beschluss im Vault.</div>
+  </div>
+
+</body>
+</html>

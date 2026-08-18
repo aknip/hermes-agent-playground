@@ -1,0 +1,36 @@
+KARTE        PROFIL                  MINUTEN LAEUFE  TITEL
+t_6146cf22   esf-architect                30      1  S1 F5 1/5 — Konzept & ADR: apps/api/src/index.ts zerlegen
+t_0965b04b   esf-estimator                 4      1  S1 F5 2/5 — Schätzung R1-F5
+t_6c366810   esf-dev-a                   114      5  S1 F5 3/5 — Umsetzung R1-F5
+t_83b0c34a   esf-reviewer                 25      1  S1 F5 4/5 — Review R1-F5
+t_4f601104   esf-qa-release                6      1  S1 F5 5/5 — Merge R1-F5 am Riegel
+t_2a3a8499   esf-controller                7      1  Kalibrierung S1
+t_566746f8   esf-chief-of-staff           10      1  Sprint-Abschluss S1
+t_62d7827c   esf-qa-release               45      1  S1 QA — E2E-Kaltstart: J-03 scheitert beim ersten Arbeitsbereich
+t_cd747924   esf-architect                 4      1  S1 Spec-Nachtrag — AK8: das 450-Zeilen-Limit fuer app.ts
+t_4221fe1f   esf-dev-a                     6      1  S1 F5 4b/5 — Nacharbeit R1-F5: Linter auf den geaenderten Dateien
+t_22dedbdf   esf-dev-a                    26      1  S1 F5 5b/5 — Nacharbeit R1-F5: mcp-internal-api-url.test.ts unter Riegel-Last gruen bekommen
+t_aa39ea8d   esf-qa-release                4      1  S1 F5 5c/5 — Merge R1-F5 am Riegel, zweiter Anlauf
+t_21eb98bf   esf-product-manager          14      1  S2 F1 1/4 — Spezifikation R1-F1 globaler Sucheinstieg
+t_77a13161   esf-estimator                 3      1  S2 F1 2/4 — Schätzung R1-F1
+t_e4473bf4   esf-dev-a                    34      1  S2 F1 3/4 — Umsetzung R1-F1 globaler Sucheinstieg
+t_30a4e2e6   esf-reviewer                  9      1  S2 F1 4/4 — Review R1-F1
+t_560fc80a   esf-product-manager          12      1  S2 F2 1/4 — Spezifikation R1-F2 Zwei-Faktor-Authentifizierung
+t_5b5209ea   esf-estimator                 3      1  S2 F2 2/4 — Schätzung R1-F2
+t_6300d0d4   esf-reviewer                 39      4  S2 F2 4/4 — Review R1-F2
+t_defe6e49   esf-qa-release                4      1  S2 Merge F1 — R1-F1 am Riegel
+t_d2da004a   esf-qa-release                5      1  S2 Merge F2 — R1-F2 am Riegel
+t_fbc9fd83   esf-controller               38      2  Kalibrierung S2
+t_eab76c96   esf-chief-of-staff           13      1  Sprint-Abschluss S2
+t_3bb0cf65   esf-chief-of-staff            8      2  GATE Irreversibel — R1-F2 Datenmigration two_factor
+t_0fccb8ce   esf-dev-b                    80      3  S2 F2 3/4 — Umsetzung R1-F2 Zwei-Faktor-Authentifizierung
+t_18e04ddf   esf-dev-b                   175      2  S2 F2 4b/4 — Nacharbeit R1-F2: die drei Umgehungspfade schliessen
+t_369240f2   esf-dev-b                     5      1  R1-F2 Auflage 2 — Backup-vor-Update-Hinweis in der Betriebsdoku schreiben
+t_b6357b34   esf-reviewer                113      2  S2 F2 4c/4 — Nachpruefung R1-F2: sind die drei Umgehungspfade wirklich zu?
+t_801cb487   esf-dev-b                   188      8  S2 F2 Nacharbeit — 2FA-Abweisung passwortlos verständlich machen (Frage 4)
+t_288738fa   esf-qa-release               61      1  S2 QA — E2E-Flakiness in arbeitsbereichAnlegen: 'Workspace name is required'
+t_21b71850   esf-qa-release                5      1  S2 Merge F2b — R1-F2 am Riegel, zweiter Anlauf
+t_5bf50786   esf-qa-release               13      1  Release-Abschluss R1
+t_0ea0c680   esf-chief-of-staff           11      2  GATE Release — R1
+
+Summe Kartenzeit: 1131 Minuten

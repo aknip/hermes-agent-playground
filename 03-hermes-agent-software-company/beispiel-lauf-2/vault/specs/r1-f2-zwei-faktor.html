@@ -1,0 +1,457 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <title>Spezifikation R1-F2 — Zwei-Faktor-Authentifizierung (TOTP, opt-in) — ESF</title>
+  <meta name="esf-typ" content="spec">
+  <meta name="esf-karte" content="t_560fc80a">
+  <meta name="esf-datum" content="2026-08-17">
+  <style>
+    body{font:16px/1.65 -apple-system,system-ui,sans-serif;max-width:56rem;margin:2rem auto;padding:0 1rem}
+    h1{border-bottom:3px solid #111;padding-bottom:.4rem}
+    h2{margin-top:2.4rem;border-bottom:1px solid #ddd;padding-bottom:.2rem}
+    h3{margin-top:1.8rem}
+    code{background:#f3f3f3;padding:.1rem .3rem;border-radius:3px;font-size:14px}
+    pre{background:#f6f6f6;border:1px solid #e5e5e5;border-radius:4px;padding:.8rem 1rem;overflow-x:auto;font-size:13.5px}
+    .meta{color:#666;font-size:14px}
+    .beleg{color:#444;font-size:14px}
+    table{border-collapse:collapse;width:100%;margin:1rem 0}
+    td,th{border-bottom:1px solid #ddd;padding:.45rem .5rem;text-align:left;vertical-align:top}
+    th{background:#fafafa}
+    .invariante{border-left:4px solid #b91c1c;padding:.4rem 0 .4rem 1rem;margin:.6rem 0}
+    .akzeptanz{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:4px;padding:.6rem 1rem;margin:.6rem 0}
+    .entscheid{border-left:4px solid #0a7d33;padding:.4rem 0 .4rem 1rem;margin:.6rem 0}
+    ul{margin:.3rem 0 .8rem 0}
+  </style>
+</head>
+<body>
+<h1>Spezifikation R1-F2 — Zwei-Faktor-Authentifizierung (TOTP, opt-in)</h1>
+<p class="meta">Karte <code>t_560fc80a</code> · 2026-08-17 · Bau-Karte: <b>S2 F2 3/4</b> ·
+Roadmap: <code>roadmap/q1-freigegeben.html</code> R1-F2 (H4, Score 17,0)</p>
+
+<p>Diese Spezifikation ist die ausführbare Anweisung für die <b>eine</b> Bau-Karte von R1-F2.
+Der Entwickler sieht nur diese Datei und <b>entscheidet nichts</b> — der Zuschnitt, die Datenhaltung,
+die Flussgrenzen und die Akzeptanzkriterien stehen unten konkret. R1-F2 nutzt das im Bestand bereits
+vorhandene <code>two-factor</code>-Plugin von better-auth (Version 1.6.25): Es liefert TOTP
+(Authenticator-App) und Bonus-Wiederherstellungscodes mit verschlüsseltem Secret — die Server-Fläche
+ist damit fast komplett gegeben. Was bleibt, ist die Verdrahtung des Plugins, eine Datenmigration und
+die Nutzeroberfläche.</p>
+
+<h2>Kontext</h2>
+<p>Im Selbst-Hosting-Segment ist Security die Einlasskarte, kein USP: Huly liefert „Two-Factor
+Authentication (2FA)“, Kanboard über alle Versionen fast nur Härtung, Plane v1.3.1 drei
+GHSA-Security-Fixes, Vikunja „Ten security fixes“ (<code>analysis/market.html</code> H4,
+<code>analysis/codebase.html</code> §2 Auth/Accounts). Der selbsthostende Administrator sichert den
+Zugang — und tut das über eine Authenticator-App auf einem Gerät, nicht über Mail- oder SMS-Codes
+(das wäre selbstverschuldete Angriffsfläche; siehe „Was das Feature NICHT tut“).</p>
+<p class="beleg"><b>Risiko (übernommen aus der Roadmap):</b> Auth ist sicherheitskritisch, ein
+Fehl-Update sperrt Nutzer aus — Review-Pflicht (<code>roadmap/q1-freigegeben.html</code> R1-F2;
+<code>analysis/codebase.html</code> §6.3). Zielrepo:
+<code>…/04-hermes-agent-software-company-test-kaneo</code> (<code>cadence.yaml:59</code>),
+Kaneo <code>2.19.1</code> (Baseline-Commit <code>e714f87</code>, <code>analysis/codebase.html</code>).</p>
+
+<h2>Der Zuschnitt — drei Entscheidungen, mit Begründung am Bestand</h2>
+<p>„2FA“ ist ein Wort für sehr unterschiedlich grosse Vorhaben. Der Schnitt unten ist der kleinste
+tragfähige Zuschnitt, der in <b>eine</b> Bau-Karte passt. Wäre er überdehnt, fiele er erst am Riegel
+auf — teuer. Deshalb ist der Zuschnitt hier die primäre Entscheidung:</p>
+
+<div class="entscheid">
+<b>1. TOTP (Authenticator-App) — ja, der kleinste Umfang.</b>
+Das <code>two-factor</code>-Plugin von better-auth 1.6.25 ist im Bestand bereits geliefert
+(<code>dist/plugins/two-factor/</code>; Server-Plugin <code>twoFactor</code>,
+Client-Plugin <code>twoFactorClient</code>). Post <code>/two-factor/enable</code> liefert
+<code>totpURI</code> (otpauth://, RFC 6238: SHA-1, 6 Ziffern, 30 s — <code>@better-auth/utils/dist/otp.mjs</code>)
+sowie <code>backupCodes</code>; <code>/two-factor/verify-totp</code>, <code>…/disable</code>,
+<code>…/verify-backup-code</code>, <code>…/generate-backup-codes</code> vervollständigen den Fluss
+(<code>…/dist/plugins/two-factor/index.d.mts:35–610</code>). TOTP braucht <b>keinen</b> Mail- oder
+SMS-Versand und keine neue Integrationsfläche. Alles andere (siehe unten) ist bewusst herausgeschnitten.
+</div>
+
+<div class="entscheid">
+<b>2. Opt-in je Nutzer — NICHT erzwungen für alle.</b>
+Erzwungenes 2FA wäre für jedes Konto ein erzwungener Inhaberwechsel der Zugangslogik — ein Breaking
+Change gegen Bestandsnutzer und damit gate-pflichtig (AGENTS.md 7). Ohne erzwungenes 2FA ist es eine
+rein additive, nutzer-initiiert eingerichtete Fähigkeit: Bestandsnutzer <em>können</em> unverändert
+weitermeiden. Für dieses Release: <b>opt-in</b>. Die Möglichkeit, es später global zu erzwingen, bleibt
+als Server-Pluginschalter vorhanden, wird aber <b>nicht</b> angefasst (<code>auth.ts:186–221</code>
+konfiguriert das Plugin nicht mit <code>requireSecondFactor</code>; das bleibt Future Work).
+</div>
+
+<div class="entscheid">
+<b>3. Wiederherstellungs-Codes — ja, sie kommen mit dem Plugin; plus ein dokumentierter
+Operator-Pfad als bewusste Einschränkung.</b>
+Das Plugin erzeugt beim Aktivieren standardmäßig 10 Backup-Codes, die <b>einmalig</b> angezeigt
+(<code>…/backup-codes/index.mjs</code>, Default <code>amount: 10</code>) und verschlüsselt gespeichert
+werden. Das deckt den Fall „Gerät weg, aber Codes aufbewahrt“ ab — ohne Zusatzarbeit, weil Teil des
+Plugins. Der Fall „Gerät weg <em>und</em> Backup-Codes verloren“ ist <b>nicht</b> automatisch lösbar:
+dafür spezifiziert diese Karte einen dokumentierten <b>Operator-/Admin-Pfad</b> — einen
+SQL-Absetzpunkt, der die <code>two_factor</code>-Zeile des betroffenen Kontos löscht und das
+<code>two_factor_enabled</code>-Flag auf <code>false</code> setzt (für selbstgehostete Instanzen, die
+DB-Kontrolle besitzen). Das ist eine <b>bewusste Einschränkung</b>: Remote-Reset über einen
+Dienstleister gibt es in diesem Schnitt nicht. Die Wiederherstellbarkeit aus dem Locked-out-Zustand ist
+damit gegeben — durch den Inhaber der Datenbank, und genau an dieser Stelle dokumentiert.
+</div>
+
+<div class="entscheid">
+<b>4. Für welche Auth-Wege gilt das Feature.</b>
+<b>Gilt:</b> alle session-basierten Anmeldewege über den <code>/auth/*</code>-Passthrough — lokales
+Passwort, E-Mail-OTP, Magic-Link, Social-Login (GitHub/Google/Discord) und Custom-OAuth. Das Plugin
+hängt seinen Prüfschritt an den session-bildenden Sign-in (<code>…/two-factor/index.mjs</code>, Hook
+<code>after</code>, <code>twoFactorRedirect</code>) und ist damit provider-agnostisch.
+<b>Gilt nicht:</b> API-Key/Bearer-Kopfzeilen (nicht-interaktive Automatisierung; eigene
+Credential-Fläche, <code>routes/auth.ts:98–126</code>) und Gäste-/Anonymous-Zugang
+(<code>DISABLE_GUEST_ACCESS</code>, <code>auth.ts:266–273</code> — anonyme Nutzer haben kein
+Passwort und keinen Einrichtungsfluss).<br>
+<b>Wichtig für die Umsetzung:</b> Die 2FA-Endpunkte liegen alle unter <code>/api/auth/*</code> und
+werden bereits vom Fangpfad <code>api.on([POST,GET,PUT,DELETE], "/auth/*", …)</code> an
+<code>auth.handler</code> durchgereicht (<code>routes/auth.ts:98–126</code>) — <b>R1-F2 ergänzt damit
+keine neue Route in <code>app.ts</code></b>. Das ist der entscheidende Kollisionsvorteil gegenüber
+R1-F1 (Suche), siehe Berührungspunkte.
+</div>
+
+<h2>Was diese Karte NICHT beinhaltet (Herausgeschnittenes)</h2>
+<p>Diese Liste ist der Vertrag gegen den Zuschnitt-Wurf. Wer eines dieser Stücke binnenkarte, sprengt
+die Bau-Karte:</p>
+<ul>
+  <li><b>Erzwungenes 2FA für alle Nutzer / <code>requireSecondFactor</code></b> — gate-pflichtiger
+  Breaking Change; bewusst auf Future Work verschoben.</li>
+  <li><b>2FA per E-Mail-OTP oder SMS</b> — eigene Versand-/Angriffsfläche, widerspricht dem
+  kleinsten Umfang (TOTP reicht; das Plugin kann OTP, wir nutzen es nicht).</li>
+  <li><b>Trust-Device / „dieses Gerät 30 Tage merken“</b> — das Plugin kann es
+  (<code>trustDeviceMaxAge</code>), wir schalten es <b>nicht</b> ein; jede Session fordert den Code.
+  Bewusst: weniger UX, deutlich kleinere Testfläche. Future Work, falls der Nutzerschmerz belegt wird.</li>
+  <li><b>WebAuthn / Passkeys</b> — eigene Hardwar- und Browserfläche, keine Korpusbelege im Segment
+  als Pflicht.</li>
+  <li><b>Admin-verwalteter Reset im UI</b> — nur der dokumentierte SQL-Pfad (Entscheidung 3).</li>
+  <li><b>2FA-Kennzeichnung für API-Keys / Bearer-Clients</b> — nicht-interaktive Fläche, eigene
+  Credentials.</li>
+</ul>
+<p class="beleg"><b>Ehrlichkeitsvermerk:</b> Der minimale Schnitt trägt in eine Karte — die
+Serverlogik ist Plugin-Arbeit, die Migration ist klein (eine Spalte + eine Tabelle), die UI folgt dem
+Bestandsmuster der OTP-Verify-Seite (<code>apps/web/src/routes/auth/verify-otp.tsx</code>). Nichts am
+Bestand zwingt zu einer grösseren Karte. <code>zu_gross_fuer_eine_karte</code> wird deshalb
+<b>nicht</b> gemeldet; die Herausschneide-Liste oben dokumentiert trotzdem jede bewusste Deckelung.</p>
+
+<h2>Datenhaltung — Feld, Tabelle, Verschlüsselung, Migration</h2>
+<p>Das Plugin deklariert sein Schema selbst
+(<code>…/two-factor/schema.d.mts</code>) und speichert wie folgt:</p>
+<table>
+  <thead><tr><th>Ort</th><th>Inhalt</th><th>Verschlüsselung</th><th>Beleg</th></tr></thead>
+  <tbody>
+    <tr><td><code>user.two_factor_enabled</code> (bool)</td><td>opt-in-Zustand je Konto</td>
+        <td>— (nur Flag)</td>
+        <td><code>…/two-factor/schema.d.mts:5–11</code> · <code>apps/api/src/database/schema.ts:23</code> (userTable)</td></tr>
+    <tr><td><code>two_factor.secret</code> (text)</td><td>TOTP-Secret (32 Zeichen)</td>
+        <td><b>symmetricEncrypt</b> mit <code>AUTH_SECRET</code></td>
+        <td><code>…/two-factor/index.mjs:104–108</code> · Feld <code>returned: false</code> <code>schema.d.mts:15–20</code></td></tr>
+    <tr><td><code>two_factor.backup_codes</code> (text)</td><td>10 Backup-Codes, verkettet</td>
+        <td><b>verschlüsselt</b> (Default <code>storeBackupCodes: "encrypted"</code>)</td>
+        <td><code>…/index.mjs:25–28,109,139</code> · <code>schema.d.mts:21–25</code></td></tr>
+    <tr><td><code>two_factor.user_id</code>, <code>…verified</code>, <code>…failed_verification_count</code>, <code>…locked_until</code></td>
+        <td>Zuordnung, Verify-Status, Sperrzähler</td>
+        <td>—</td>
+        <td><code>schema.d.mts:26–55</code></td></tr>
+  </tbody>
+</table>
+<p class="beleg">Detail zu <code>schema.ts</code>: Das Feld <code>twoFactorEnabled</code> kommt auf die
+bestehende <code>userTable</code> (<code>apps/api/src/database/schema.ts:23–44</code>); die Tabelle
+<code>two_factor</code> wird neu angelegt (Referenz <code>user_id → user.id</code>, <code>onDelete: cascade</code>,
+Foreign-Key-Muster analog <code>sessionTable.userId → userTable.id</code>, <code>schema.ts:58–60</code>).
+Beide sind über den Drizzle-Adapter zu registrieren — der Adapter-Schema-Map in <code>auth.ts:194–207</code>
+wird <code>twoFactor: schema.twoFactorTable</code> ergänzt, neben <code>user/session/account/…</code>.
+Dann wird <code>twoFactor({})</code> in die <code>plugins</code>-Liste aufgenommen
+(<code>auth.ts:265–521</code>, dicht beim bestehenden <code>openAPI()</code>).</p>
+<div class="invariante">
+<b>Migration — JA, und sie ist irreversibel:</b> Dieses Feature enthält eine Datenmigration
+(neue <code>two_factor</code>-Tabelle + neue Spalte <code>user.two_factor_enabled</code>), erzeugt per
+<code>drizzle-kit generate</code> (<code>apps/api/drizzle.config.ts</code>, Output nach <code>./drizzle</code>)
+und beim Boot via <code>migrate(getDatabase(), …)</code> (Boot-Migrationen
+<code>apps/api/src/index.ts:828</code>, <code>apps/api/src/startup.ts</code> nach dem R1-F5-Schnitt)
+angewendet. Das ist <b>irreversibel gegen Bestandsinstallationen</b>: Die Migration addiert Kolumnen
+und eine Tabelle; ein Downgrade in-place gibt es nicht. Im Abschluss-metadata wird
+<code>migration_enthalten: true</code> gemeldet — das entscheidet später, ob ein Irreversibel-Gate
+nötig wird. Die Migration ist additiv und destruiert keine Bestandsdaten (kein Spalten-Drop, kein
+Umschreiben bestehender Zeilen).</div>
+
+<h2>Gate-Vermerk — Irreversibel-Freigabe der Migration (CEO, 2026-08-18)</h2>
+<p class="meta">Karte <code>t_3bb0cf65</code> · Entscheid <b>modify</b> · ADR <a href="../decisions/ADR-002-migration-zwei-faktor.html">ADR-002</a> · 2026-08-18</p>
+<p>Die Datenmigration (<code>two_factor</code>-Tabelle + <code>user.two_factor_enabled</code>)
+wurde dem CEO am 18.08.2026 zur Freigabe vorgelegt (Irreversibel-Gate
+<code>t_3bb0cf65</code>, Kapitel 7). Die Antwort war ein <b>modify</b> — Freigabe
+mit zwei Auflagen. Beide Auflagen sind verbindlicher Bestandteil der Freigabe;
+die Migration gilt <em>nur</em> damit als freigegeben. Der ursprüngliche
+Spezifikationsstand (Datenhaltungs-Abschnitt oben, Ablauf Fluss A–C) bleibt
+gültig und steht unverändert daneben (AGENTS.md 3.3).</p>
+
+<h3>Auflage 1 — die Migration geht NICHT vor dem geschlossenen zweiten Faktor nach main</h3>
+<div class="invariante">
+<p>Das Review von R1-F2 (Karte <code>t_6300d0d4</code>) lautet <b>rejected</b>: Der
+2FA-Challenge-Hook feuert nur auf den Passwort-Anmeldewegen
+(<code>plugins/two-factor/index.mjs:222</code>); Magic-Link, E-Mail-OTP und
+Social/Custom-OAuth bauen Sessions ohne zweiten Faktor (<code>auth.ts:252–306</code>).
+Eine irreversible Migration für ein Feature freizugeben, das in seiner heutigen Form
+falsche Sicherheit verkauft, wäre die Reihenfolge falschherum: Das Schema bliebe
+in jeder Bestandsinstallation stehen, auch wenn das Feature nie sicher wird.</p>
+<p>Die Freigabe gilt deshalb für die Migration <b>als Teil eines 2FA ohne
+Umgehungspfad</b>. Die Nacharbeitskarte <code>t_18e04ddf</code> schließt sie.
+Meldet sie <code>strukturell_nicht_loesbar</code>, ist diese Freigabe hinfällig
+und 2FA wandert samt Migration nach R2 — das ist dann eine neue Entscheidung auf
+einer neuen Karte, nicht diese hier.</p>
+</div>
+
+<h3>Auflage 2 — der Backup-Hinweis wird geschrieben, nicht empfohlen</h3>
+<p>Der einzige Rückweg der Migration ist ein DB-Backup vor dem Update; es gibt kein
+In-place-Downgrade (siehe Punkt 5 der Gate-Vorlage). Dass dieser Hinweis fehlt, ist eine
+Erkenntnis aus der Gate-Vorlage selbst. Auflage 2 verlangt deshalb, dass der
+Backup-vor-Update-Hinweis <b>geschrieben</b> wird — im Repo, dort wo der
+Operator-SQL-Pfad bereits steht (<code>apps/docs/core/functional/manage-your-account.mdx</code>
+oder die passende Betriebsseite), mit beidem:</p>
+<ul>
+  <li><b>(a)</b> Vor dem Update auf diese Version ein DB-Backup ziehen. Es gibt kein
+  In-place-Downgrade; Tabelle und Spalte bleiben.</li>
+  <li><b>(b)</b> Was der Selbst-Hoster tut, wenn der Boot-Migrate scheitert (die API
+  startet dann nicht): dass es ein Betriebsausfall ohne Datenverlust ist, wo die
+  Fehlermeldung steht, und dass das Backup der Weg zurück ist.</li>
+</ul>
+<p>Ausführen wird sie eine eigene Doku-Karte (Nachfolgekarte dieser Gate-Karte),
+nicht das Gate selbst. Der Vermerk darüber steht in der Revisions-Sektion von
+ADR-002.</p>
+
+<p class="beleg">Wortlaut der CEO-Antwort und die vollständige Begründung des
+modify-Entscheids stehen in der Kommentar-Sektion der Gate-Karte
+<code>t_3bb0cf65</code> und in ADR-002, Abschnitt Entscheidung.</p>
+
+<h2>Ablauf aus Nutzersicht — was sichtbar passiert</h2>
+<p>Einstiegspunkt der UI ist der bestehende Konto-Bereich der Einstellungen. In
+<code>apps/web/src/routes/_layout/_authenticated/dashboard/settings/account/</code> liegen heute
+<code>information / notifications / preferences / developer</code> (Settings-Navigation
+<code>settings.tsx:119–128</code>). R1-F2 ergänzt dort eine <b>Sicherheits-Sektion</b> (eigene
+Unteransicht <code>…/settings/account/security/</code> oder ein Abschnitt auf <code>information</code>
+— die Route folgt dem Bestandsmuster; ausschlaggebend sind die drei Flüsse unten, nicht der genaue Pfad).</p>
+
+<h3>Fluss A — Einrichten (opt-in)</h3>
+<ol>
+  <li>Nutzer öffnet Konto-Einstellungen → Sicherheit / Zwei-Faktor. Status-Zeile „Deaktiviert“.</li>
+  <li>Klick „Aktivieren“ → <b>aktuelles Passwort wird abgefragt</b> (das Plugin verlangt es:
+      <code>…/index.mjs:97–102</code>, <code>enableTwoFactorBodySchema</code> verlangt <code>password</code>
+      solange ein Passwortkonto existiert).</li>
+  <li>Server: <code>authClient.twoFactor.enable({password})</code> → POST <code>/api/auth/two-factor/enable</code>.
+      Antwort bringt <code>totpURI</code> und die 10 <code>backupCodes</code>.</li>
+  <li>UI zeigt die <code>totpURI</code> aus der Antwort (als otpauth://-Text und als QR, falls ein
+      QR-Renderer verfügbar ist; der otpauth://-Text reicht aus). Nutzer übernimmt das Secret in eine
+      Authenticator-App.</li>
+  <li>UI zeigt <b>einmalig</b> die 10 Backup-Codes mit dem Hinweis, sie sicher zu verwahren
+      („einmalig sichtbar — gespeichert werden sie verschlüsselt“).</li>
+  <li>Nutzer trägt einen 6-stelligen Code aus seiner App ein → <code>authClient.twoFactor.verifyTotp({code})</code>
+      → POST <code>/api/auth/two-factor/verify-totp</code>. Bei Erfolg wird das Konto
+      <code>two_factor_enabled = true</code> und der Sitzungszustand im Client aktualisiert; die
+      Status-Zeile zeigt „Aktiviert“.</li>
+  <li>Fehlerfall: falscher Code → sichtbare Fehlermeldung, Kontrollzähler
+      <code>failedVerificationCount</code> steigt, ab Schwelle sperrt das Plugin zeitweise
+      (<code>lockedUntil</code>, <code>…/index.mjs</code> + <code>error-code.d.mts</code>:
+      <code>TOO_MANY_ATTEMPTS…</code>, <code>ACCOUNT_TEMPORARILY_LOCKED</code>).</li>
+</ol>
+
+<h3>Fluss B — Anmelden mit zweitem Faktor</h3>
+<ol>
+  <li>Nutzer meldet sich wie gewohnt an (Passwort, OTP, Magic-Link oder Social-Login). Das Plugin
+      erkennt den opted-in Nutzer und setzt den 2FA-Schritt vor der fertigen Session
+      (<code>twoFactorRedirect</code>, <code>…/index.mjs</code> Hook <code>after</code>).</li>
+  <li>Statt der App-Landing landet der Nutzer auf einem 2FA-Code-Bildschirm (Muster:
+      <code>apps/web/src/routes/auth/verify-otp.tsx</code> — gleiche Code-Eingabe-UX).</li>
+  <li>Nutzer trägt den 6-stelligen Code aus der Authenticator-App ein → Verifikation → Session wird
+      ausgestellt, Nutzer ist eingeloggt.</li>
+  <li>Alternativ kann der Nutzer einen der 10 Backup-Codes eingeben
+      (<code>/two-factor/verify-backup-code</code>) — deckt den Fall „Gerät gerade nicht greifbar“.</li>
+  <li>Falscher Code → sichtbare Fehlermeldung; beim wiederholten Fehlversuch greift der
+      Plugin-Sperrmechanismus (siehe Fluss A, Schritt 7).</li>
+</ol>
+
+<h3>Fluss C — Abschalten</h3>
+<ol>
+  <li>Nutzer öffnet dieselbe Sicherheits-Sektion (Status „Aktiviert“) → „Deaktivieren“.</li>
+  <li><b>Passwort wird abgefragt</b> (<code>…/index.mjs:186–192</code>).</li>
+  <li>Server: <code>authClient.twoFactor.disable({password})</code> → POST
+      <code>/api/auth/two-factor/disable</code>. Das Plugin setzt <code>two_factor_enabled = false</code>
+      und löscht die <code>two_factor</code>-Zeile (<code>…/index.mjs:193–200</code>).</li>
+  <li>Status-Zeile zeigt wieder „Deaktiviert“; Fortan ist keine 2FA-Code-Abfrage mehr nötig.</li>
+</ol>
+
+<h3>Operator-Pfad (Lockout)</h3>
+<pre>-- dokumentiert in docs/ (oder README "2FA recovery"): ausgesperrte Nutzerin
+--   entlasten, die weder Authenticator noch Backup-Codes hat.
+--   Gegen DB der Instanz ausführen; DB-Kontrolle ist Voraussetzung im Selbst-Hosting.
+DELETE FROM two_factor WHERE user_id = '&lt;user-id&gt;';
+UPDATE "user" SET two_factor_enabled = false WHERE id = '&lt;user-id&gt;';</pre>
+<p class="beleg">Der SQL-Pfad ist die <b>bewusste Einschränkung</b> aus Entscheidung 3. Er gehört als
+readme-Kurzabschnitt in <code>apps/api/README.md</code> oder das API-Doku-Verzeichnis, damit ein
+Admin ihn findet, ohne den Code zu lesen. Die Spaltennamen folgen der Drizzle-Spaltendefinition der
+neuen Tabelle; exakte Namen gehören in die Bau-Umsetzung (das Plugin speichert über den Drizzle-Adapter
+in den Spalten der <code>two_factor</code>-Tabelle).</p>
+
+<h2>Was das Feature NICHT tut</h2>
+<ul>
+  <li>Sperrt keine Bestandsnutzer aus, erzwingt nichts, ändert den Zugang ohne Opt-in nicht.</li>
+  <li>Versendet nichts (keine Mail, kein SMS), speichert kein Klartext-Secret außerhalb der
+      verschlüsselten Zeile, gibt Codes nach der einmaligen Anzeige nicht wieder aus.</li>
+  <li>Gilt nicht für API-Key-/Bearer-Clients, nicht für Anonymous/Gäste.</li>
+  <li>Bietet keinen UI-Reset durch Admins und keine Geräte-Vertrauensliste.</li>
+</ul>
+
+<h2>Berührungspunkte — Parallelität mit R1-F1 (Suche)</h2>
+<p>R1-F1 (Suche) wird <b>gleichzeitig</b> von <b>esf-dev-a</b> gebaut. Erwartete gemeinsame Fläche
+und wie R1-F2 kollisionsarm bleibt:</p>
+<table>
+  <thead><tr><th>Datei</th><th>Wer schreibt</th><th>Kollisionslage</th></tr></thead>
+  <tbody>
+    <tr><td><code>apps/api/src/index.ts</code> / <code>app.ts</code> (Montageliste)</td>
+        <td>F1 (eine additive Registrierungszeile für die Such-Route, nach <code>ADR-001</code>/AK8)</td>
+        <td><b>R1-F2 fügt hier <em>nichts</em> an</b> — die 2FA-Endpunkte laufen durch den
+        bestehenden <code>/auth/*</code>-Fangpfad (<code>routes/auth.ts:98</code>). Kein Konflikt.</td></tr>
+    <tr><td><code>apps/api/src/auth.ts</code> (Plugins-Liste)</td><td>R1-F2 (ergänzt <code>twoFactor({})</code>)</td>
+        <td>F1 berührt auth.ts nicht. Additiv am Listenende.</td></tr>
+    <tr><td><code>apps/api/src/database/schema.ts</code> + <code>apps/api/drizzle/*</code> + <code>migrations</code></td>
+        <td><b>R1-F2 zuerst</b> (Migration), F1 berührt den Datenpfad nicht
+        (<code>analysis/codebase.html</code> §6.2 ist für F3/F4/6 reserviert)</td>
+        <td>Keine Überschneidung; die Migration wird von R1-F2 als Erste erzeugt.</td></tr>
+    <tr><td><code>tests/e2e/journeys/*.spec.ts</code></td>
+        <td>F1 ergänzt <b>J-07</b> (Suche), F2 erweitert <b>J-01</b> + neue Auth-Härtungs-Journey</td>
+        <td>Verschiedene Spec-Dateien; gemeinsamer Helfer <code>tests/e2e/support/journey.ts</code>
+        nur lesend genutzt. Fairerweise wird die neue 2FA-Journey in einer eigenen Datei geführt
+        (<code>auth-haertung-2fa.spec.ts</code>).</td></tr>
+  </tbody>
+</table>
+<p class="beleg">Erwarteter gemeinsamer Hotspot ist nur der <code>.worktrees</code>-Bereich (Biome-Nesting;
+<code>analysis/codebase.html</code> §5.1) — kein Code. Falls ein Merge-Konflikt in <code>auth.ts</code>/
+<code>schema.ts</code> entsteht, trägt R1-F2 nur additive Erweiterungen bei; die Logik bleibt
+reversibel zusammenführbar. Hotspot-Hinweis erfolgt zusätzlich im Abschluss-metadata.</p>
+
+<h2>E2E-Journey — Auth-Härtung (erweitert J-01)</h2>
+<p>Die neue Journey wird als eigene Spec-Datei <code>tests/e2e/journeys/auth-haertung-2fa.spec.ts</code>
+geführt und <b>erweitert J-01</b>: Sie beginnt mit derselben Eingangsaufgabe (Konto anlegen
+<code>konto-anlegen.spec.ts</code> nutzt <code>kontoAnlegen</code>/<code>arbeitsbereichAnlegen</code>
+aus <code>tests/e2e/support/journey.ts</code>) und schließt den 2FA-Roundtrip daran an. Beleg für
+Choreografie-Neuabdruck: Der Journey-Katalog erwartet, dass Auth-Härtung als neue Journey
+J-01 erweitert (<code>roadmap/q1-freigegeben.html</code> R1-F2; <code>analysis/journeys.html</code>).</p>
+<h3>Schritte (sichtbar, von außen prüfbar)</h3>
+<ol>
+  <li><b>Vorbereitung:</b> <code>docker compose -f compose.yml up -d postgres</code>
+      (<code>cadence.yaml:63</code>) und Jungfern-Konto anlegen (Wiederverwendung von
+      <code>kontoAnlegen</code> aus <code>support/journey.ts</code>).</li>
+  <li><b>2FA aktivieren:</b> Konto-Einstellungen → Sicherheit → „Aktivieren“, Passwort eingeben.</li>
+  <li><b>Secret erfassen:</b> Der Spec liest die <code>totpURI</code>/den otpauth://-Text aus der
+      Antwort (der Client-Aufruf wird im Test direkt gefahren oder der visible Text aus der UI
+      extrahiert). Aus dem <code>secret</code>-Parameter der URI wird der aktuelle Code <b>berechnet</b>.</li>
+  <li><b>Code erzeugen (TOTP im Test):</b> jede der Bibliotheken ist zulässig, muss aber
+      RFC-6238-konform (SHA-1, 6 Ziffern, 30 s) mit dem aus der URI entnommenen base32-Secret sein:
+      <ul>
+        <li><b>Empfohlen: <code>otpauth</code></b> als <code>devDependency</code> im E2E-Scope
+        (<code>new TOTP({ secret: &lt;base32-Secret&gt; }).generate()</code>) — klein, keinen
+        Zusatzstate, deckt das erwartete Krypto-Format exakt.</li>
+        <li>Alternativ reicht jeder RFC-6238-TOTP-Rechner (z.&#8201;B. eigener HMAC-SHA-1-Ansatz); die
+        Parametermenge ist fest: Secret = <code>base32.decode(secret-Parameter der URI)</code>,
+        Digits 6, Period 30 (<code>@better-auth/utils/dist/otp.mjs:7–8,34–40</code>) — genau das Format,
+        das der Server mit <code>verifyTOTP</code> prüft (<code>…/two-factor/index.mjs</code>,
+        <code>createOTP(secret, {digits, period})</code>).</li>
+      </ul></li>
+  <li><b>Verifizieren:</b> berechneten Code eintragen → „Aktiviert“ wird sichtbar; die 10 Backup-Codes
+      werden einmalig angezeigt (der Spec erhebt sie aus der Antwort/UI für Schritt 8).</li>
+  <li><b>Abmelden:</b> Session beenden.</li>
+  <li><b>Anmelden mit 2FA:</b> erneut anmelden → 2FA-Code-Bildschirm → berechneten Code eingeben →
+      eingeloggt (gelandet im Dashboard, nicht mehr auf dem Code-Bildschirm).</li>
+  <li><b>Aussperr-Abdeckung (Backup-Code-Pfad):</b> abmelden → mit einem der Backup-Codes aus Schritt 5
+      anmelden → eingeloggt. <i>(Der Fall „weder App noch Codes“ bliebe auf dem SQL-Operator-Pfad und
+      ist kein Klick-Flow — bewusste Einschränkung aus Entscheidung 3.)</i></li>
+  <li><b>Falscher Code wird abgewiesen:</b> ein absichtlich falscher 6-Steller wird mit sichtbarer
+      Fehlermeldung abgewiesen und erzeugt <b>keine</b> Session.</li>
+  <li><b>Abschalten:</b> Sicherheits-Sektion → „Deaktivieren“ (+ Passwort) → Status „Deaktiviert“ →
+      erneute Anmeldung kommt <b>ohne</b> 2FA-Code durch.</li>
+  <li><b>Regressions-Schutz:</b> Die bestehende Suite J-00..J-06 (8 Tests, <code>analysis/journeys.html</code>)
+      bleibt grün — insbesondere, dass ein Konto <em>ohne</em> 2FA unverändert direkt einloggt
+      (Opt-in-Nicht-Regression).</li>
+</ol>
+<p class="beleg">Der Code muss also <b>im Test berechnet</b> werden, weil kein echter
+Authenticator zur Verfügung steht. „<code>otpauth</code>“ wird als konkrete, getestete RFC-6238-Bibliothek
+vorgeschlagen; falls sie sich im E2E-Scope nicht sauber installieren lässt (Monorepo-Trennung), ist der
+eigene HMAC-SHA-1-/base32-Pfad mit denselben Parametern gleichwertig. Eine Berechnung mit falschen
+Parametern (z.&#8201;B. base32-Secret vorsätzlich falsch dekodiert) würde den Test rot machen — genau das
+ist die Absicherung.</p>
+
+<h2>Ausführungshinweise</h2>
+<ul>
+  <li>Arbeite in einem eigenen Git-Worktree auf Branch <code>feat/…</code>. Ändere ausschließlich:
+      <code>apps/api/src/auth.ts</code> (Plugin + Schema-Map), <code>apps/api/src/database/schema.ts</code>
+      (zwei_factor-Tabelle, Feld auf userTable) + neue Drizzle-Migration,
+      <code>apps/web/src/lib/auth-client.ts</code> (Client-Plugin <code>twoFactorClient</code> von
+      <code>better-auth/client/plugins</code>), die neue Sicherheits-Sektion in
+      <code>apps/web/src/routes/_layout/_authenticated/dashboard/settings/account/</code>, der neue
+      2FA-Code-Bildschirm (Muster <code>apps/web/src/routes/auth/verify-otp.tsx</code>), der
+      Operator-Pfad (README-Notiz), die neue E2E-Spec.</li>
+  <li><b>Keine</b> direkte Änderung an <code>apps/api/src/routes/auth.ts</code> (der Passthrough reicht)
+      und <b>keine</b> Registrierungszeile in <code>app.ts</code>.</li>
+  <li>Prüfe nach jedem Schritt <code>pnpm --filter @kaneo/api typecheck</code> und
+      <code>pnpm --filter @kaneo/api test</code>; den vollen E2E-Lauf erst am Ende.</li>
+</ol>
+
+<h2>Akzeptanzkriterien</h2>
+<p>Jedes Kriterium ist einzeln abhakbar; der Entwickler prüft alle vor dem Review, der Reviewer prüft
+gegen genau diese Liste. Mindestens AK7 ist ein E2E-Szenario; AK8 deckt den Aussperr-Fall ab.</p>
+<ol class="akzeptanz">
+  <li><b>Plugin verdrahtet:</b> <code>apps/api/src/auth.ts</code> registriert <code>twoFactor({})</code> in
+      der <code>plugins</code>-Liste und die <code>two_factor</code>-Tabelle in der Adapter-Schema-Map
+      (<code>auth.ts:194–207</code>); <code>apps/web/src/lib/auth-client.ts</code> ergänzt
+      <code>twoFactorClient()</code>. Beide Typecheck-Suiten grün (<code>tsc --noEmit</code>,
+      <code>pnpm --filter @kaneo/api typecheck</code>).</li>
+  <li><b>Migration vorhanden &amp; anwendbar:</b> eine neue Drizzle-Migration erzeugt
+      <code>user.two_factor_enabled</code> und die <code>two_factor</code>-Tabelle; ein Boot gegen ein
+      frisches Postgres (<code>compose.yml:3</code>) wendet sie fehlerfrei an und die bestehenden
+      Integrationstests <code>tests/api-integration/</code> laufen grün — belegt, dass die Migration die
+      Bestandsdaten nicht bricht.</li>
+  <li><b>Opt-in erhalten (Nicht-Regression):</b> ein bestehendes / frisch angelegtes Konto <em>ohne</em>
+      2FA loggt sich direkt ein — kein 2FA-Schritt, kein Zurückweisung. (E2E-Schritt 11.)</li>
+  <li><b>Einrichten abgeschlossen (Server-Fluss):</b> <code>authClient.twoFactor.enable</code> liefert
+      <code>totpURI</code> (otpauth://, secret base32, Parameter entsprechend RFC 6238) und genau 10
+      <code>backupCodes</code>; nach <code>verifyTotp</code> mit dem berechneten Code ist
+      <code>user.two_factor_enabled=true</code> in der DB.</li>
+  <li><b>Passwortpflicht bei Enable/Disable:</b> Sowohl <code>enable</code> als auch <code>disable</code>
+      verlangen das aktuelle Passwort (Plugin-Verhalten, <code>…/index.mjs:97–102,186–192</code>); ein
+      falsches Passwort wird mit <code>BAD_REQUEST</code>/<code>INVALID_PASSWORD</code> abgewiesen,
+      ohne dass sich der 2FA-Zustand ändert.</li>
+  <li><b>Secret &amp; Codes liegen niemals im Klartext zurück:</b> <code>secret</code> und
+      <code>backupCodes</code> sind in der DB als <b>verschlüsselte</b> Strings gespeichert und werden
+      von keinem Lese-Endpunkt erneut ausgegeben (<code>returned: false</code>, <code>schema.d.mts:18,24,29,33,47,54</code>).</li>
+  <li><b>E2E-Auth-Härtung grün (Kern-Szenario):</b> die neue
+      <code>auth-haertung-2fa.spec.ts</code> durchläuft Schritte 1–7 <em>und</em> 10–11: Konto anlegen →
+      2FA aktivieren → Code im Test (via <code>otpauth</code> oder gleichwertigem RFC-6238-Rechner)
+      berechnet → verifizieren → abmelden → mit 2FA anmelden → deaktivieren → erneut ohne Code anmelden.
+      Kompletter Playwright-Lauf grün (<code>pnpm exec playwright test</code>, <code>cadence.yaml:64</code>).</li>
+  <li><b>Aussperr-Fall abgedeckt (E2E, Backup-Code):</b> Schritt 8: Nach dem Abmelden gelingt der
+      Login über <em>einen der Backup-Codes</em> statt des App-Codes. Schritt 9: Ein absichtlich falscher
+      6-Steller wird sichtbar abgewiesen und erzeugt <b>keine</b> Session. Beides in
+      <code>auth-haertung-2fa.spec.ts</code> belegt.</li>
+  <li><b>Kein Behauptungs-Rest im UI-Text:</b> Der Reviewer prüft in &lt; 1 Minute, dass die
+      Backup-Codes in Fluss A mit dem Einmalig-Hinweis angezeigt und nach der Anzeige nirgends als
+      lesbarer Wert erneut aus der API geholt werden; der dokumentierte SQL-Operator-Pfad steht als
+      README-Notiz im Repo (Entscheidung 3).</li>
+  <li><b>Voller Regressionslauf grün:</b> die bestehende E2E-Suite J-00..J-06 (8 Tests,
+      <code>analysis/journeys.html</code>) bleibt unverändert grün; kein bestehender Journey-Spec wurde
+      umgeschrieben.</li>
+  <li><b>Kein Verhaltens-/Konfigurationswandel außerhalb des Schnitts:</b> keine Änderung an
+      <code>routes/auth.ts</code>, kein <code>requireSecondFactor</code>, kein
+      <code>trustDeviceMaxAge</code>, kein neuer Versandweg, keine neue Route in <code>app.ts</code> /
+      <code>index.ts</code>.</li>
+</ol>
+
+<h2>Nicht-Ziele</h2>
+<ul>
+  <li>Kein erzwungenes 2FA, kein E-Mail-/SMS-OTP als Zweitfaktor, kein Trust-Device, kein
+      WebAuthn, kein Admin-UI-Reset.</li>
+  <li>Keine Änderung an API-Key-/Bearer-/Anonymous-Auth (<code>routes/auth.ts:98–126</code>,
+      <code>auth.ts:266–273</code>).</li>
+  <li>Kein neuer Endpoint in <code>app.ts</code>; der 2FA-Fluss nutzt ausschließlich die
+      Plugin-/Passthrough-Endpunkte unter <code>/api/auth/*</code>.</li>
+  <li>Kein „dieses Gerät merken“-UX und keine abgestufte Vertrauenslogik pro Gerät.</li>
+</ul>
+
+</body>
+</html>

@@ -1,0 +1,334 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <title>Controller-Report S2 — ESF</title>
+  <meta name="esf-typ" content="report">
+  <meta name="esf-karte" content="t_fbc9fd83">
+  <meta name="esf-datum" content="2026-08-18">
+</head>
+<body>
+  <h1>Controller-Report Sprint S2 — Kalibrierung</h1>
+  <p class="lead">Karte <code>t_fbc9fd83</code>, Ledger-Abgleich vom 2026-08-18 (Commit
+  <code>7b5043f</code>), alle Wanduhrzeiten aus Board-Zeitstempeln
+  (<code>hermes kanban runs</code>), nie aus Modelltext (AGENTS.md 3.2). Der entscheidende
+  Check-Lauf unten (Prüfung 6 war beim ersten Lauf zwangsläufig rot: <code>controller-s2.html</code>
+  schreibt erst dieser Report, <code>sprint-s2-report.html</code> danach der esf-chief-of-staff —
+  Reihenfolge, kein Befund).</p>
+
+  <h2>Das Wichtigste in drei Minuten</h2>
+  <ul>
+    <li><strong>Der Riegel (check-sprint.sh Prüfung 3) ist GRÜN.</strong> 7 vollständige
+        (Schätzung, Ist)-Paare auf den Umsetzungs-, Review- und Merge-Karten. Anders als S1, wo die
+        Merge-Karte <code>t_4f601104</code> ein zerrissenes Paar trug, hat die S2-Kette den Handoff
+        diesmal gehalten (die Schätzung lag im metadata der Umsetzungs-Reihe, nicht nur der
+        Estimator-Karte). Das ist der Phase-2-Nachweis, der in S1 noch fehlte.</li>
+    <li><strong>Schätzgüte vorsichtig besser, aber die zwei Basen von <code>impl-worktree-M</code>
+        sind der Kern.</strong> Dieselbe Klasse, zwei Schätzungen, zwei Trefferquoten: R1-F1
+        (bereinigte S1-Basis, Faktor 0,47) traf fast exakt (Ist/Schätzung 0,97), R1-F2 (rohe
+        S1-Basis 114 min) überschätzte um Faktor ~2 (0,53). <strong>Die nächste Schätzung nimmt die
+        bereinigte Basis — sie ist die Zahling, die einmal gemessen hat.</strong> Siehe Kap. 2.</li>
+    <li><strong>Die ungeplanten Karten sind der größere Teil der Sprintkosten.</strong> 555
+        Wanduhrminuten ungeplant gegen 203 geplante (Key-Zahl: 12,6 h gesamt, davon 73 % ungeplant).
+        Ausgelöst von Review-Befunden (drei F2-Nacharbeiten), einem Betriebsbefund (E2E-Flakiness)
+        und CEO-Auflagen (GATE-Migration, Doku-Auflage). Eine Kalibrierung nur über die geplanten
+        Karten sagt dem CEO die halbe Wahrheit — Kap. 7.</li>
+    <li><strong>Kontamination benannt:</strong> zwei Läufe liefen in ihren <code>--max-runtime</code>-
+        Deckel (<code>timed_out</code>, t_18e04ddf 120 min, t_b6357b34 60 min) und mehrere in
+        Netzausfälle (<code>pid not alive</code> / <code>APIConnectionError</code>, v.a. t_801cb487).
+        Dasselbe Muster wie die Wachhund-Fehlkills in S1 — Kap. 5.</li>
+    <li><strong>Es braucht eine Entscheidung nur zur Schätzbasis</strong> — Empfehlung in Kap. 2.1.</li>
+  </ul>
+
+  <h2>1. Was hat der Sprint umgesetzt</h2>
+  <p>S2 ist inhaltlich vollständig: alle drei R1-Features liegen auf <code>main</code> — R1-F1
+  (globaler Sucheinstieg), R1-F2 (Zwei-Faktor-Authentifizierung) und R1-F5 (API-Modularisierung,
+  aus S1). Die Merge-Riegel liefen und bestanden:
+  <code>0e4e165</code> (F5), <code>efb1e7c</code> (F1), <code>56e0b8f</code> (F2).
+  R1-F2 lief nicht geradeaus: Die erste Merge-Karte <code>t_d2da004a</code> fand das Review-Urteil
+  <code>rejected</code> (Blocker Frage 4: die 2FA-Abweisung erreicht den Nutzer auf passwortlosen
+  Wegen nicht verständlich) und führte zur Nacharbeitskarte <code>t_801cb487</code>; erst der
+  zweite Anlauf <code>t_21b71850</code> mergte. Diese Abzweigung ist keine Schlamperei, sondern der
+  größte Kostenfaktor des Sprints — siehe Kap. 7.</p>
+
+  <h2>2. Schätzgüte-Baseline (der Kern)</h2>
+  <p>Je Referenzklasse die Paare aus <code>ledger/estimates.jsonl</code>. Quotient = Ist-Wanduhrminuten
+  ÷ p50-Schätzung. „bereingt“ = die bei Kap. 5 genannten kontaminierten Läufe (crash/timeout, keine
+  Arbeit) sind aus dem Ist herausgerechnet.</p>
+  <table>
+    <thead>
+      <tr><th>Referenzklasse</th><th>Feature</th><th>Karte</th><th>Schätzung p50/p90</th><th>Ist (min)</th><th>Ist/Schätzung</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td rowspan="2"><code>impl-worktree-M</code></td>
+        <td>R1-F1</td><td><a href="#karte-t_e4473bf4">t_e4473bf4</a></td>
+        <td>35 / 60</td><td>34</td><td><strong>0,97</strong></td>
+      </tr>
+      <tr>
+        <td>R1-F2</td><td><a href="#karte-t_0fccb8ce">t_0fccb8ce</a></td>
+        <td>150 / 230</td><td>80</td><td><strong>0,53</strong></td>
+      </tr>
+      <tr>
+        <td rowspan="2"><code>review-repo-M</code></td>
+        <td>R1-F1</td><td><a href="#karte-t_30a4e2e6">t_30a4e2e6</a></td>
+        <td>25 / 45</td><td>9</td><td>0,36</td>
+      </tr>
+      <tr>
+        <td>R1-F2</td><td><a href="#karte-t_6300d0d4">t_6300d0d4</a></td>
+        <td>40 / 75</td><td>39 · <strong>20 bereinigt</strong></td>
+        <td>0,97 roh · <strong>0,50 bereinigt</strong></td>
+      </tr>
+      <tr>
+        <td rowspan="3"><code>merge-repo-S</code></td>
+        <td>R1-F1</td><td><a href="#karte-t_defe6e49">t_defe6e49</a></td>
+        <td>8 / 30</td><td>4</td><td>0,50</td>
+      </tr>
+      <tr>
+        <td>R1-F2 (1. Versuch)</td><td><a href="#karte-t_d2da004a">t_d2da004a</a></td>
+        <td>8 / 30</td><td>5</td><td>0,62</td>
+      </tr>
+      <tr>
+        <td>R1-F2 (2. Versuch)</td><td><a href="#karte-t_21b71850">t_21b71850</a></td>
+        <td>8 / 30</td><td>5</td><td>0,62</td>
+      </tr>
+    </tbody>
+  </table>
+  <p>Klassenmittel S2: <code>impl-worktree-M</code> 0,75 · <code>review-repo-M</code> 0,67
+  (roh) bzw. 0,43 (bereingt) · <code>merge-repo-S</code> 0,58. <strong>Alle drei Klassen liegen
+  unter 1 — nichts wird systematisch unterschätzt, alles überschätzt</strong>; der zu nennende
+  FAKTOR gegenüber p50 ist ≈ 0,5–0,75 statt 1. Anders formuliert: Die Schätzungen sind im Mittel
+  ~40–50 % zu hoch; die naheliegende Korrektur ist ein Faktor ~0,6 auf p50.</p>
+
+  <h3 id="baseline-entscheidung">2.1 Welche Basis nimmt die nächste Schätzung (Kernaussage)</h3>
+  <p><strong>Die bereinigte S1-Basis für <code>impl-worktree-M</code> (S1 bereinigt 32–33 min,
+  Faktor 0,47) — denn sie hat in S2 gemessen, die rohe nicht.</strong></p>
+  <ul>
+    <li>R1-F1 (est p50=35) nutzte die bereinigte Basis und traf mit Ist 34 bei
+        <strong>0,97</strong> — die einzige Trefferquote nahe 1 im ganzen Sprint.</li>
+    <li>R1-F2 (est p50=150) rechnete mit dem ROH-Ist aus S1 (114 min) plus +32 %-Aufschlag für die
+        Auth-Komplexität und überschätzte damit um Faktor ~2 (Ist 80, <strong>0,53</strong>).</li>
+  </ul>
+  <p>Ein Modell, das seinen Schätz-Handoff aus derselben Ledger-Zeile zieht, aber zwei verschiedene
+  Basen benutzt, ist nicht deterministisch — genau die Zwei-Basen-Ambivalenz, die die S1-Bereinigung
+  (controller-s1.html §2.1) eigentlich auflösen sollte. Die S1-Entscheidung „bereinigt ist die
+  Schätz-Basis“ wird durch R1-F1 bestätigt und sollte jetzt verbindlich im Ledger notiert werden
+  (siehe Kap. 8): <strong>impl-worktree-M ↔ Faktor 0,47 (bereinigt), nicht 1,63 (roh).</strong></p>
+  <p><strong>Verengen sich die Intervalle messbar?</strong> Ja, vorsichtig: Die p50-Spreizung bei
+  <code>impl-worktree-M</code> ging von 35 (S2 F1, fast exakt) statt eines Faktors >>1 auf einen
+  Treffer nahe 1; <code>merge-repo-S</code> konvergiert eng auf Ist/Schätzung 0,5–0,62 über drei
+  Karten. Aber n ist weiterhin klein (2–3 je Klasse), und <code>review-repo-M</code> zeigt nach
+  Bereinigung einen deutlich niedrigeren ist-Wert als die Rohzahl vermutete. Intervalle messbar
+  verengt: bei <code>merge-repo-S</code> (drei Paare, konsistent 0,5–0,6). Noch nicht tragfähig:
+  <code>impl-worktree-M</code> (zwei Paare, 0,97 vs. 0,53 — die Zwei-Basen-Streuung).</p>
+
+  <h2>3. Wanduhrminuten je Karte (Board-Zeitstempel)</h2>
+  <table>
+    <thead>
+      <tr><th>Karte</th><th>Titel</th><th>Rolle</th><th>Läufe</th><th>Wanduhr (min)</th><th>Ausgang</th></tr>
+    </thead>
+    <tbody>
+      <tr id="karte-t_21eb98bf"><td>t_21eb98bf</td><td>S2 F1 1/4 Spezifikation</td><td>esf-product-manager</td><td>1</td><td>14</td><td>completed</td></tr>
+      <tr id="karte-t_77a13161"><td>t_77a13161</td><td>S2 F1 2/4 Schätzung</td><td>esf-estimator</td><td>1</td><td>3</td><td>completed</td></tr>
+      <tr id="karte-t_e4473bf4"><td>t_e4473bf4</td><td>S2 F1 3/4 Umsetzung</td><td>esf-dev-a</td><td>1</td><td>34</td><td>completed</td></tr>
+      <tr id="karte-t_30a4e2e6"><td>t_30a4e2e6</td><td>S2 F1 4/4 Review</td><td>esf-reviewer</td><td>1</td><td>9</td><td>completed</td></tr>
+      <tr id="karte-t_560fc80a"><td>t_560fc80a</td><td>S2 F2 1/4 Spezifikation</td><td>esf-product-manager</td><td>1</td><td>12</td><td>completed</td></tr>
+      <tr id="karte-t_5b5209ea"><td>t_5b5209ea</td><td>S2 F2 2/4 Schätzung</td><td>esf-estimator</td><td>1</td><td>3</td><td>completed</td></tr>
+      <tr id="karte-t_0fccb8ce"><td>t_0fccb8ce</td><td>S2 F2 3/4 Umsetzung</td><td>esf-dev-b</td><td>3</td><td>80</td><td>2 spawn_failed + 1 completed</td></tr>
+      <tr id="karte-t_6300d0d4"><td>t_6300d0d4</td><td>S2 F2 4/4 Review</td><td>esf-reviewer</td><td>4</td><td>39 · 20 bereinigt</td><td>1 reclaimed · 1 scheduled · 1 crashed · 1 completed</td></tr>
+      <tr id="karte-t_defe6e49"><td>t_defe6e49</td><td>S2 Merge F1</td><td>esf-qa-release</td><td>1</td><td>4</td><td>completed (Riegel bestanden)</td></tr>
+      <tr id="karte-t_d2da004a"><td>t_d2da004a</td><td>S2 Merge F2 (1. Versuch)</td><td>esf-qa-release</td><td>1</td><td>5</td><td>Riegel nicht gelaufen (Review rejected)</td></tr>
+      <tr id="karte-t_21b71850"><td>t_21b71850</td><td>S2 Merge F2b (2. Versuch)</td><td>esf-qa-release</td><td>1</td><td>5</td><td>completed (Riegel bestanden)</td></tr>
+      <tr id="karte-t_3bb0cf65"><td>t_3bb0cf65</td><td>GATE — R1-F2 Datenmigration</td><td>esf-chief-of-staff</td><td>2</td><td>8</td><td>1 blocked + 1 completed</td></tr>
+      <tr id="karte-t_801cb487"><td>t_801cb487</td><td>F2 Nacharbeit Frage 4</td><td>esf-dev-b</td><td>8</td><td>188</td><td>6 crashed + 1 review + 1 completed</td></tr>
+      <tr id="karte-t_18e04ddf"><td>t_18e04ddf</td><td>F2 Nacharbeit Umgehungspfade</td><td>esf-dev-b</td><td>2</td><td>175</td><td>1 timed_out + 1 completed</td></tr>
+      <tr id="karte-t_b6357b34"><td>t_b6357b34</td><td>F2 Nachprüfung (4c)</td><td>esf-reviewer</td><td>2</td><td>113</td><td>1 timed_out + 1 completed</td></tr>
+      <tr id="karte-t_288738fa"><td>t_288738fa</td><td>S2 QA — E2E-Flakiness</td><td>esf-qa-release</td><td>1</td><td>61</td><td>completed</td></tr>
+      <tr id="karte-t_369240f2"><td>t_369240f2</td><td>R1-F2 Auflage 2 — Backuphinweis</td><td>esf-dev-b</td><td>1</td><td>5</td><td>completed</td></tr>
+    </tbody>
+  </table>
+
+  <h2>4. Kosten</h2>
+  <p>Aus <code>ledger/kosten-je-rolle.jsonl</code>. Der OpenRouter-Key misst <strong>kumulativ je
+  Rolle</strong>, nicht je Karte; die Summe hier ist die Differenz zwischen dem letzten Snapshot
+  (2026-08-17) und heute (2026-08-18) — das Fenster, in dem S2 gearbeitet wurde. Trotzdem ist eine
+  saubere „nur-S2“-Ziffer nicht hart: Der 17.08.-Snapshot deckt die S1-Nacht, und der Key läuft dem
+  Lauf leicht nach. Per Karte: <em>nicht gemessen</em> — eine Division wäre eine erfundene Zahl.</p>
+  <table>
+    <thead><tr><th>Rolle</th><th>Delta seit 17.08. (USD)</th><th>kumulativ (USD)</th></tr></thead>
+    <tbody>
+      <tr><td>esf-product-manager</td><td>0,206118</td><td>0,206118</td></tr>
+      <tr><td>esf-estimator</td><td>0,052660</td><td>0,081674</td></tr>
+      <tr><td>esf-dev-a</td><td>0,248831</td><td>1,194447</td></tr>
+      <tr><td>esf-dev-b</td><td>5,847671</td><td>5,847671</td></tr>
+      <tr><td>esf-reviewer</td><td>0,622635</td><td>0,751847</td></tr>
+      <tr><td>esf-qa-release</td><td>0,455837</td><td>0,896924</td></tr>
+      <tr><td>esf-architect</td><td>0,000000</td><td>0,123285</td></tr>
+      <tr><td>esf-chief-of-staff</td><td>0,069081</td><td>0,173473</td></tr>
+      <tr><td>esf-controller</td><td>0,015686</td><td>0,077298</td></tr>
+      <tr><td><strong>Summe</strong></td><td><strong>7,518521 USD</strong></td><td><strong>9,357128 USD</strong></td></tr>
+    </tbody>
+  </table>
+  <p><strong>esf-dev-b dominiert mit 5,85 USD des Deltas</strong> — die Rolle, die R1-F2-Umsetzung
+  (t_0fccb8ce) und beide große Nacharbeiten (t_801cb487, t_18e04ddf) samt der Dach- und
+  Nachprüfungsläufe getragen hat. Das ist konsistent mit „die ungeplanten Karten sind der größere
+  Teil der Kosten“: Die Dev-b-Zeit steckt zum größten Teil in den Umgehungspfad- und Frage-4-
+  Nacharbeiten und deren crashes, nicht in der geplanten Umsetzung.</p>
+
+  <h2>5. Kontaminationen (benannt, nicht geglättet)</h2>
+  <h3>5.1 Rechner-Standby</h3>
+  <p>Keine Karte überschreitet die 240-min-Schwelle; <code>standby_overlap</code> ist in allen 17
+  S2-Ledger-Zeilen <code>false</code>. Anders als S1 (kein Standby) gibt es auch hier kein Standby —
+  aber t_18e04ddf (175) und t_801cb487 (188) kommen nahe; sieh Kap. 5.3.</p>
+  <h3>5.2 Gate-Wartezeit — ist sie in die Wanduhr anderer Karten gelaufen?</h3>
+  <p><strong>Nein.</strong> Das GATE (t_3bb0cf65) war eine eigene Karte und buchte nur 8 min.
+  Die F2-Abzweigung (Review rejected → Nacharbeit → zweiter Merge) wartete NICHT auf einer
+  Umsetzungs-/Review-/Merge-Karte: Die Merge-Karte t_d2da004a meldet sich mit 5 min als „done“ ab,
+  obwohl der Riegel nicht lief (Review rejected). Die tatsächliche Wartezeit bis zum zweiten Anlauf
+  ist nirgendwo als Karten-Wanduhr gebucht — sie ist eine Lücke, kein Leck. In S1 war derselbe
+  Befund (t_4f601104): Eine Karte, die nichts aktives tat, trägt ihre Wartezeit nicht als Wanduhr.
+  Das Design „Gates sind eigene Karten“ hat gehalten; die *Wartezeit auf ein Review-Urteil* ist aber
+  weiterhin nicht messbar, weil die Merge-Karte als done mit Ist-Buchung wegbucht statt auf
+  „wartend“ zu bleiben.</p>
+  <h3>5.3 Timeouts und Netzausfälle — dieselbe Klasse wie S1-Fehlkills</h3>
+  <p>Zwei Läufe liefen in ihren <code>--max-runtime</code>-Deckel:
+  t_18e04ddf #37 (<code>elapsed 7214s &gt; 7200s</code>, 120 min) und t_b6357b34 #41
+  (<code>elapsed 3626s &gt; 3600s</code>, 60 min). Dazu mehrere Netzausfälle
+  (<code>pid not alive</code>): t_801cb487 mit sechs crashed-Läufen (85 min + fünf × 0),
+  t_6300d0d4 mit einem crashed-Lauf (18 min) und t_0fccb8ce mit zwei <code>spawn_failed</code>
+  (0 min, Worktree-Fehler). Dies ist dasselbe Muster wie die S1-Wachhund-Fehlkills: Werkzeug-/
+  Netz-Zeit, keine Arbeit.</p>
+  <p><strong>Welche Läufe nehme ich aus der Kalibrierung?</strong> Genau diese: Die 18 min des
+  crashed-Laufs aus t_6300d0d4 (Review F2) — bereinigtes Ist 20 statt 39, Quotient 0,50 statt 0,97.
+  Die timed_out-Läufe (t_18e04ddf 120, t_b6357b34 60) stecken in Karten ohne Schätzung (ungeplante
+  Nacharbeiten), verzerren also die <em>Paar</em>-Kalibrierung nicht, wohl aber den Kosten-Blick —
+  Kap. 7 führt sie roh. Ein unkontaminierter Durchschnitt kontaminierter Daten wäre die
+  selbstsicherste Form von falsch; deshalb stehen die Roh- und die bereinigten Zahlen in Kap. 2
+  nebeneinander.</p>
+  <p>Anmerkung CEO: Der Freigabe-Kommentar nannte „drei Karten im <code>--max-runtime</code>-Deckel
+  (timed_out)“. Gemessen sind laut Board nur ZWEI <code>timed_out</code>-Läufe (t_18e04ddf,
+  t_b6357b34); die dritte Karte im Kommentar (t_801cb487) lief in <em>netzwerk</em>-crashes
+  (pid not alive), nicht in einen Zeilendeckel. Der Unterschied ist sachlich: Nummer 3 ist ein
+  Netzausfall, kein Laufzeit-Überlauf. Beide Wahrheiten stehen nebeneinander (AGENTS.md 3.3); das
+  Board gewinnt: zwei timed_out.</p>
+
+  <h2>6. Retries und Abbrüche — welche Karte lief wie oft</h2>
+  <table>
+    <thead><tr><th>Karte</th><th>Läufe</th><th>Zerlegt</th></tr></thead>
+    <tbody>
+      <tr><td>t_801cb487</td><td>8</td><td>6 crashed – 1 review-request – 1 completed (0 min); 188 min Wanduhr, davon 85 min ein einziger crashed-Lauf</td></tr>
+      <tr><td>t_6300d0d4</td><td>4</td><td>1 reclaimed – 1 scheduled – 1 crashed (18) – 1 completed (20)</td></tr>
+      <tr><td>t_0fccb8ce</td><td>3</td><td>2 spawn_failed (0) – 1 completed (80)</td></tr>
+      <tr><td>t_3bb0cf65</td><td>2</td><td>1 blocked (1) – 1 completed (7)</td></tr>
+      <tr><td>t_18e04ddf</td><td>2</td><td>1 timed_out (120) – 1 completed (55)</td></tr>
+      <tr><td>t_b6357b34</td><td>2</td><td>1 timed_out (60) – 1 completed (53)</td></tr>
+      <tr><td>übrige 11</td><td>je 1</td><td>completed</td></tr>
+    </tbody>
+  </table>
+  <p>Kostenwahrheit: t_18e04ddf bucht 175 min, aber nur 55 davon sind der erfolgreiche Lauf;
+  t_b6357b34 113 min, nur 53 Arbeit; t_801cb487 188 min, deren einziger 0-min-completed-Lauf gar
+  keine abgegrenzte Arbeit zeigt. Diese drei ungeplanten Karten verbrauchen zusammen 476 Wanduhrminuten
+  (63 % des gesamten Sprints) — größtenteils für Netz-Retries und Zeitdeckel, nicht für Arbeit.</p>
+
+  <h2>7. Geplante gegen ungeplante Karten — die halbe Wahrheit</h2>
+  <p>Geplant (die 4-Stufen-Kette F1 und F2 + Merge): 203 Wanduhrminuten. Ungeplant (GATE + drei
+  F2-Nacharbeiten + QA + Doku-Auflage): <strong>555 min — 73 % der Sprintzeit.</strong></p>
+  <table>
+    <thead><tr><th>Gruppe</th><th>Karten</th><th>Wanduhr (min)</th><th>Ausgelöst durch</th></tr></thead>
+    <tbody>
+      <tr><td>Geplant (Kette+Merge)</td><td>t_21eb98bf, t_77a13161, t_e4473bf4, t_30a4e2e6, t_defe6e49, t_560fc80a, t_5b5209ea, t_0fccb8ce, t_6300d0d4, t_d2da004a, t_21b71850</td><td>203</td><td>—</td></tr>
+      <tr><td>F2-Nacharbeit (Review-Befund)</td><td>t_801cb487, t_18e04ddf, t_b6357b34</td><td>476</td><td>Review-Urteil rejected, Frage 4 / Umgehungspfade / Nachprüfung</td></tr>
+      <tr><td>GATE (CEO)</td><td>t_3bb0cf65</td><td>8</td><td>Data-Migration irreversibel, modify-Freigabe</td></tr>
+      <tr><td>QA (Betriebsbefund)</td><td>t_288738fa</td><td>61</td><td>E2E-Flakiness „Workspace name is required“</td></tr>
+      <tr><td>Doku-Auflage (CEO)</td><td>t_369240f2</td><td>5</td><td>Auflage 2: Backup-vor-Update-Hinweis</td></tr>
+      <tr><td><strong>Summe ungeplant</strong></td><td>7 Karten</td><td><strong>555</strong></td><td>73 % der Sprint-Wanduhr</td></tr>
+    </tbody>
+  </table>
+  <p>Diese ungeplanten Karten tragen korrekt <code>estimate: null</code> (sie waren zum Schätzen
+  nicht vorhersehbar). Aber sie sind der größere Teil der Sprintkosten. Für die nächste Schätzung
+  heißt das nicht „schätze die Ungeplanten vorab“ — es heißt: Jede Sprint-Schätzung braucht einen
+  sichtbaren <strong>Ungeplant-Puffer</strong> (Review-Rückschläge, Betriebs-/QA-Befunde), der in
+  S2 ~3× der geplanten Zeit ausmachte.</p>
+
+  <h2>8. Was die nächste Schätzung anders machen muss</h2>
+  <p><strong>Ein Satz, konkret:</strong> Für <code>impl-worktree-M</code> verbindlich die bereinigte
+  S1-Basis (Faktor 0,47, ~32–35 min als p50-Basis bei Umfang „1 Feature ~6 Dateien“) ins Ledger
+  schreiben statt der rohen 114 min — denn R1-F1 hat sie gerade auf 0,97 bestätigt, während die
+  rohe Basis bei R1-F2 um Faktor ~2 überschätzte — und zusätzlich in jede Sprint-Aufteilung einen
+  expliziten Ungeplant-Puffer von grob 3× der geplanten Karte ansiedeln, weil S2 73 % seiner
+  Wanduhr in ungeplanten (Review-/Betriebs-/Auflagen-)Karten verbraucht hat.</p>
+
+  <h2>9. E2E-Schrittzahl je Journey — Bedienbarkeits-Trend</h2>
+  <p>Aus <a href="../analysis/journeys.html">analysis/journeys.html</a> (Karte t_288738fa, Stand
+  2026-08-18): J-00 = 2 · J-01 = 7 · J-02 = 10 · J-03 = 13 · J-04 = 13 · J-06 = 11.
+  <strong>Die Schrittzahl ist NICHT gewachsen — identisch zu S1 und Phase 1</strong> (dieselben
+  sechs Journeys, dieselben Zähler; J-05, J-07, J-08, J-09 weiter bewusst offen). Was sich geändert
+  hat: Die Bedienbarkeit wurde robuster, nicht höher — die S2-QA-Karte t_288738fa hat die
+  „Workspace name is required“-Flakiness behoben (Helfer verifiziert den kontrollierten Wert nach
+  <code>fill</code> statt <code>--retries</code> zu fahren; 5/5 volle Durchgänge grün ohne
+  Wiederholung). Bedienbarkeits-Trend: <strong>stabil in der Schrittzahl, besser in der
+  Zuverlässigkeit.</strong></p>
+
+  <h2>10. Widersprüche und strukturelle Befunde</h2>
+  <ul>
+    <li><strong>Zwei-Basen-Widerspruch im Ledger (t_0fccb8ce):</strong> Das metadata der Karte nennt
+        als Basis „S1-Ist 114 min“ und verwirft sogar die neue Klasse <code>impl-worktree-auth-M</code>
+        („keine Historie“) — korrekt entschieden, aber die gewählte Basis (roh) widerspricht der
+        verbindlichen S1-Entscheidung (bereinigt, controller-s1.html §2.1). Board/estimator-Basis
+        vs. S1-Beschluss stehen nebeneinander; die Folge ist die Überschätzung um Faktor 2.
+        <strong>Die nächste Schätzung braucht die Ledger-Zeile um eine normative Basis zu ergänzen.</strong></li>
+    <li><strong>CEO-Kommentar „drei timed_out“ vs. Board „zwei timed_out“</strong> — siehe §5.3; die
+        dritte Karte lief in Netz-crashes. Board gewinnt.</li>
+    <li><strong>Merge-Wartezeit nicht messbar:</strong> t_d2da004a bucht 5 min als „done“, obwohl
+        der Riegel nie lief (Review rejected). Die echte Wartezeit bis t_21b71850 ist nicht als
+        Wanduhr gebucht — dieselbe Lücke wie t_4f601104 in S1.</li>
+    <li><strong>t_801cb487 ohne sauber abgegrenzten Arbeit-Lauf:</strong> 188 min, aber der
+        completed-Lauf ist 0 min; die sichtbare Arbeit lag in einem <code>review_requested</code>-Lauf
+        (101 min) und einem crashed (85). Für die Kalibrierung ist die Karte ungeplannt/estimate null,
+        also unschädlich — für die Kostenwahrheit aber der größte Einzelposten des Sprints.</li>
+    <li><strong>Linter:</strong> sauber (check-sprint Prüfung 6, Vault-Linter „sauber“). Der
+        S1-Linter-Konflikt (kosten-je-rolle.jsonl als estimates-Ledger gelesen) ist in S2 nicht mehr
+        rot — Fix aus S1 (AGENTS.md 6.1) wirkt.</li>
+  </ul>
+
+  <h2>11. Belege</h2>
+  <ul>
+    <li>Ledger: <code>ledger/estimates.jsonl</code> (17 neue Zeilen S2, Commit <code>7b5043f</code>);
+        Kostendatei <code>ledger/kosten-je-rolle.jsonl</code>.</li>
+    <li>Check-Lauf: <code>scripts/check-sprint.sh S2</code> am 2026-08-18 (Protokoll unten).</li>
+    <li>Riegel-Protokolle: <a href="riegel-r1-f1.txt">reports/riegel-r1-f1.txt</a>,
+        <a href="riegel-r1-f2.txt">reports/riegel-r1-f2.txt</a>,
+        <a href="riegel-r1-f5-zweiter-anlauf.txt">reports/riegel-r1-f5-zweiter-anlauf.txt</a>.</li>
+    <li>Schätzungen R1-F1/F2: <a href="schaetzung-r1-f1.html">reports/schaetzung-r1-f1.html</a>,
+        <a href="schaetzung-r1-f2.html">reports/schaetzung-r1-f2.html</a>.</li>
+    <li>Lauf-Daten je Karte: <code>hermes kanban show &lt;id&gt; --json</code> (started_at/ended_at,
+        outcome, error), abgeglichen durch <code>ledger-sync.sh</code>.</li>
+    <li>S1-Basis-Beschluss: <code>reports/controller-s1.html</code> §2.1 (bereinigt 0,47).</li>
+    <li>E2E: <a href="../analysis/journeys.html">analysis/journeys.html</a>.</li>
+  </ul>
+
+  <h2>12. check-sprint.sh S2 — Auszug (der entscheidet, nicht ich)</h2>
+  <pre>
+ 1. Sprint-Karten      ✓ 15 von 15 fertig
+ 2. Abschluss-metadata ✓ alle 15 fertigen Karten tragen Abschluss-metadata
+ 3. (Schätzung, Ist)-Paare — der Riegel
+      ✓ t_e4473bf4  impl-worktree-M  p50=35  Ist=34  Ist/Schätzung=0.97
+      ✓ t_30a4e2e6  review-repo-M    p50=25  Ist=9   Ist/Schätzung=0.36
+      ✓ t_6300d0d4  review-repo-M    p50=40  Ist=39  Ist/Schätzung=0.97
+      ✓ t_defe6e49  merge-repo-S     p50=8   Ist=4   Ist/Schätzung=0.50
+      ✓ t_d2da004a  merge-repo-S     p50=8   Ist=5   Ist/Schätzung=0.62
+      ✓ t_0fccb8ce  impl-worktree-M  p50=150 Ist=80  Ist/Schätzung=0.53
+      ✓ t_21b71850  merge-repo-S     p50=8   Ist=5   Ist/Schätzung=0.62
+      ✓ 7 vollständige (Schätzung, Ist)-Paare
+ 4. Ledger            ✓ jede fertige Sprint-Karte hat eine Ledger-Zeile
+ 5. Arbeit auf main   ✓ F1, F2, F5 alle in main enthalten
+ 6. Berichte im Vault ✗ controller-s2.html fehlt (dieser Report); sprint-s2-report.html fehlt
+      Vault-Linter    ✓ sauber
+  ⇒ Sprint S2 messbar; Berichte folgen in der Reihenfolge (chief-of-staff schreibt Sprint-Report)
+  </pre>
+  <p>Nach diesem Report existiert <code>controller-s2.html</code>; ein zweiter Check-Lauf von
+  <code>check-sprint.sh S2</code> wird nur noch <code>sprint-s2-report.html</code> melden.</p>
+
+  <p><em>Controller-Report S2 — esf-controller, 2026-08-18.</em></p>
+</body>
+</html>

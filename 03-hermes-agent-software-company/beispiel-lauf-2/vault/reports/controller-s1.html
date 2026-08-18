@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <title>Controller-Report S1 — ESF</title>
+  <meta name="esf-typ" content="report">
+  <meta name="esf-karte" content="t_2a3a8499">
+  <meta name="esf-datum" content="2026-08-17">
+</head>
+<body>
+  <h1>Controller-Report Sprint S1 — Kalibrierung</h1>
+  <p class="lead">Karte <code>t_2a3a8499</code>, Ledger-Abgleich vom 2026-08-17 (Commit <code>1a72d5f</code>),
+  Abschluss-Check-Lauf siehe unten. Alle Wanduhrzeiten aus Board-Zeitstempeln
+  (<code>hermes kanban runs</code>), nicht aus Modelltext.</p>
+
+  <h2>Das Wichtigste in drei Minuten</h2>
+  <ul>
+    <li><strong>Der Riegel (check-sprint.sh Prüfung 3) ist ROT.</strong> Die Merge-Karte
+        <code>t_4f601104</code> (S1 F5 5/5) trägt einen Istwert (6 min, Board) OHNE bezifferte
+        Schätzung — ihr <code>estimate.wall_minutes.p50</code> ist <code>null</code>. Das
+        (Schätzung, Ist)-Paar dieser Karte ist zerrissen. Der Sprint bleibt damit messbar, aber
+        nicht vollständig kalibrierbar; die Merge-Basis fehlt als Paar.</li>
+    <li><strong>Die Schätzgüte-Baseline steht.</strong> Drei Referenzklassen tragen echte Paare:
+        <code>impl-worktree-M</code> (Ist/Schätzung 1,63 roh bzw. 0,47 bereinigt — siehe
+        Kontaminationen unten), <code>review-repo-M</code> (0,71), <code>estimate-vault-S</code>
+        (0,20). Siehe Kapitel „Baseline“.</li>
+    <li><strong>Es braucht eine Entscheidung:</strong> WELCHE Zahl von <code>impl-worktree-M</code>
+        (114 roh oder 33 bereinigt) geht in die Baseline für S2. Vorschlag unten, begründet —
+        die bereinigte.</li>
+  </ul>
+
+  <h2>1. Was hat der Sprint umgesetzt</h2>
+  <p>R1-F5 (API-Modularisierung, <code>apps/api/src/index.ts</code> zerlegt) ist inhaltlich
+  fertig, inkl. Spec-Nachtrag AK8 (<code>t_cd747924</code>) und Nacharbeit Linter
+  (<code>t_4221fe1f</code>). Der Merge wurde am Riegel verweigert (Unit-Test-Flake
+  <code>mcp-internal-api-url.test.ts</code>, Protokoll <a href="riegel-r1-f5.txt">riegel-r1-f5.txt</a>);
+  die Nacharbeit-Karte <code>t_22dedbdf</code> läuft noch. Der Sprint ist deshalb mit
+  check-sprint.sh <strong>noch nicht grün</strong> (dazu gehört auch, dass die beiden
+  Sprint-Berichte noch fehlen — das ist die Reihenfolge, kein Befund).</p>
+
+  <h2>2. Schätzgüte-Baseline (der Kern)</h2>
+  <p>Je Referenzklasse die Paarkarte aus dem Ledger (<code>ledger/estimates.jsonl</code>).
+  Quotient = Ist-Wanduhrminuten ÷ p50-Schätzung.</p>
+  <table>
+    <thead>
+      <tr><th>Referenzklasse</th><th>Karte</th><th>Schätzung p50/p90</th><th>Ist (min)</th><th>Ist/Schätzung</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>impl-worktree-M</code></td>
+        <td><a href="#karte-t_6c366810">t_6c366810</a> (Umsetzung)</td>
+        <td>70 / 110</td>
+        <td>114 Roh · <strong>33 bereinigt</strong></td>
+        <td>1,63 Roh · <strong>0,47 bereinigt</strong></td>
+      </tr>
+      <tr>
+        <td><code>review-repo-M</code></td>
+        <td><a href="#karte-t_83b0c34a">t_83b0c34a</a> (Review)</td>
+        <td>35 / 60</td>
+        <td>25</td>
+        <td>0,71</td>
+      </tr>
+      <tr>
+        <td><code>estimate-vault-S</code></td>
+        <td><a href="#karte-t_0965b04b">t_0965b04b</a> (Schätzung R1-F5)</td>
+        <td>20 / 40</td>
+        <td>4</td>
+        <td>0,20</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3 id="baseline-entscheidung">2.1 Welche Zahl geht in die Baseline für S2 (Entscheidung)</h3>
+  <p><strong>Die bereinigte: 33 min, Ist/Schätzung 0,47 — für <code>impl-worktree-M</code>.</strong></p>
+  <p>Begründung: Eine Schätzung soll die ARBEIT vorhersagen, nicht die Fehlkonfiguration des
+  Wachhunds. Die 81 Wanduhrminuten der beiden Fehlkills (Lauf 6: 51 min, Lauf 7: 30 min) waren
+  keine Arbeit, sondern ein Werkzeugfehler (<code>watchdog.sh</code> tötete laufende Worker auf
+  „0 % CPU + toter Socket“, Beleg im CEO-Befund; behoben seit Commit <code>9d50da6</code> mit dem
+  dritten Kriterium Prozessbaum+Kind). Diese Minuten in die Baseline zu nehmen, würde die
+  Kalibrierung systematisch nach oben ziehen und zukünftige Arbeit überschätzen. Das Gegenargument
+  (die Organisation hat die Zeit wirklich verbraucht, Werkzeuge sind Teil der Velocity) ist
+  wahr für die <em>Kostenwahrheit</em> des Sprints — deshalb steht die Rohzahl 114 oben in der
+  Tabelle und im Ledger. Für die <em>Schätzgüte</em> ist die bereinigte Zahl die richtige Basis,
+  weil der Fehler behoben ist und sich nicht wiederholen würde. Die ehrliche Zeile daraus:
+  <strong>impl-worktree-M war in S1 deutlich ÜBERschätzt (0,47 ≪ 1), die Umsetzung ist schneller
+  als im Plan — hohe Zeit ging in Werkzeug-Retries, nicht in Arbeit.</strong></p>
+
+  <h2>3. Wanduhrminuten je Karte (Board)</h2>
+  <table>
+    <thead>
+      <tr><th>Karte</th><th>Titel</th><th>Rolle</th><th>Läufe</th><th>Wanduhr (min)</th><th>Ausgang</th></tr>
+    </thead>
+    <tbody>
+      <tr id="karte-t_6146cf22"><td>t_6146cf22</td><td>S1 F5 1/5 Konzept &amp; ADR</td><td>esf-architect</td><td>1</td><td>30</td><td>completed</td></tr>
+      <tr id="karte-t_0965b04b"><td>t_0965b04b</td><td>S1 F5 2/5 Schätzung R1-F5</td><td>esf-estimator</td><td>1</td><td>4</td><td>completed</td></tr>
+      <tr id="karte-t_6c366810"><td>t_6c366810</td><td>S1 F5 3/5 Umsetzung R1-F5</td><td>esf-dev-a</td><td>5</td><td>114</td><td>2 crashed · 1 gave_up · 1 completed</td></tr>
+      <tr id="karte-t_83b0c34a"><td>t_83b0c34a</td><td>S1 F5 4/5 Review R1-F5</td><td>esf-reviewer</td><td>1</td><td>25</td><td>completed</td></tr>
+      <tr id="karte-t_4f601104"><td>t_4f601104</td><td>S1 F5 5/5 Merge R1-F5</td><td>esf-qa-release</td><td>1</td><td>6</td><td>completed (Riegel verweigert)</td></tr>
+      <tr id="karte-t_62d7827c"><td>t_62d7827c</td><td>S1 QA — E2E-Kaltstart J-03</td><td>esf-qa-release</td><td>1</td><td>45</td><td>completed</td></tr>
+      <tr id="karte-t_4221fe1f"><td>t_4221fe1f</td><td>S1 F5 4b/5 Nacharbeit Linter</td><td>esf-dev-a</td><td>1</td><td>6</td><td>completed</td></tr>
+      <tr id="karte-t_cd747924"><td>t_cd747924</td><td>S1 Spec-Nachtrag AK8</td><td>esf-architect</td><td>1</td><td>4</td><td>completed</td></tr>
+    </tbody>
+  </table>
+
+  <h2>4. Kosten</h2>
+  <p>Aus <code>ledger/kosten-je-rolle.jsonl</code> (Snapshot 2026-08-17). Der OpenRouter-Key misst
+  <strong>kumulativ je Rolle</strong>, nicht je Karte — je Karte gibt es deshalb keine Kosten. Die
+  Summe hier ist der Verbrauch seit Bestehen der Rolle-Keys und umfasst neben S1 auch den
+  Phase-1-Probelauf; <strong>eine saubere Aufteilung auf S1 allein ist messmethodisch nicht
+  möglich</strong> (kein Tages-Snapshot vor dem Probelauf). Deshalb: nicht gemessen im Sinne
+  einer S1-zurechenbaren Zahl.</p>
+  <table>
+    <thead><tr><th>Rolle</th><th>kumulativ (USD)</th></tr></thead>
+    <tbody>
+      <tr><td>esf-architect</td><td>0,123285</td></tr>
+      <tr><td>esf-estimator</td><td>0,029014</td></tr>
+      <tr><td>esf-dev-a</td><td>0,696261</td></tr>
+      <tr><td>esf-market-scout</td><td>0,004391</td></tr>
+      <tr><td>esf-qa-release</td><td>0,426515</td></tr>
+      <tr><td>esf-reviewer</td><td>0,129212</td></tr>
+      <tr><td>esf-controller</td><td>0,010643</td></tr>
+      <tr><td>esf-chief-of-staff / market-analyst / product-manager / dev-b</td><td>0,000</td></tr>
+      <tr><td><strong>Summe</strong></td><td><strong>1,419321 USD</strong></td></tr>
+    </tbody>
+  </table>
+  <p>Die Skript-Ausgabe von <code>ledger-sync.sh</code> meldet dieselbe Summe (1,41932146 USD).
+  Per Karte: <em>nicht gemessen</em>.</p>
+
+  <h2>5. Kontaminationen (benannt, nicht geglättet)</h2>
+  <h3>5.1 Werkzeug-Fehlkills der Umsetzungskarte t_6c366810</h3>
+  <p><strong>Die Rohzahl des Ledgers: 114 min.</strong> Rechnet man die beiden Wachhund-Fehlkills
+  heraus (Lauf 6: 51 min, Lauf 7: 30 min), bleibt <strong>33 min</strong> über Lauf 4 (10,
+  echter CLOSE_WAIT-Hänger), Lauf 5 (9, Iteration budget exhausted) und Lauf 8 (13, der Commit).
+  Zwei Zahlen stehen nebeneinander, weil beide wahr sind (AGENTS.md 3.3): 114 ist die Wahrheit
+  über die <em>Kosten</em>, 33 über die <em>Arbeit</em>. Die Abweichung zwischen 113 (CEO-Befund,
+  aus gerundeten Lauf-Labels summiert) und 114 (Ledger-Skript, Summe exakter Epoch-Sekunden,
+  <code>floor</code> auf Minuten) ist genau das: gerundete vs. exakte Rechnung. Board-Zeitstempel
+  gewinnen, also <strong>114</strong>.</p>
+  <h3>5.2 Gate-Wartezeit — hat sie in die Wanduhr geleckt?</h3>
+  <p>Nein für S1. Gates waren eigene (zurückgestellte) Karten, keine S&lt;n&gt;-Arbeitskarten der
+  Kette; keine Umsetzungs-/Review-/Merge-Karte hat eine Wanduhr jenseits ihrer eigenen Läufe.
+  Die Lücke, die auffällt, ist umgekehrt: <code>t_4f601104</code> (Merge) lief nur 6 min und
+  verweigerte sofort den Riegel-Merge — die lange Wartezeit bis zur Nacharbeit liegt NICHT in ihrer
+  Wanduhr, weil die Karte als „done“ mit 1 Lauf gebucht wurde. Eine Merge-Wartezeit, die auf einer
+  Karte fehlt (weil sie nichts tat), ist ebenso wenig in t_6c366810 gelandet.</p>
+  <h3>5.3 Standby</h3>
+  <p>Keine Karte überschreitet die 240-min-Schwelle, <code>standby_overlap</code> ist überall
+  <code>false</code>. Kein Rechner-Standby in S1.</p>
+
+  <h2>6. Retries und Abbrüche</h2>
+  <p>Genau eine Karte lief mehrfach: <strong>t_6c366810</strong> (Umsetzung) in 5 Läufen
+  (10+9+51+30+13 min). Zwei Läufe crashed durch den Wachhund-Fehlkill (51, 30), einer durch einen
+  echten Socket-Hänger (10), einer gab nach 500/500 Iterationen auf (9), der letzte committe (13).
+  Die übrigen sieben Karten liefen je genau einmal. Für die Kostenwahrheit heißt das: Die
+  Umsetzungskarte verbrauchte bei weitem die meiste Wanduhr, aber nur 13 davon waren der
+  erfolgreiche Lauf; der Rest war Werkzeug-Retrie.</p>
+
+  <h2>7. E2E-Schrittzahl je Journey — Bedienbarkeit</h2>
+  <p>Aus <a href="../analysis/journeys.html">analysis/journeys.html</a> (Karte t_62d7827c):</p>
+  <table>
+    <thead><tr><th>Journey</th><th>Schritte</th></tr></thead>
+    <tbody>
+      <tr><td>J-00 Anwendung erreichbar</td><td>2</td></tr>
+      <tr><td>J-01 Konto anlegen</td><td>7</td></tr>
+      <tr><td>J-02 Projekt anlegen</td><td>10</td></tr>
+      <tr><td>J-03 Aufgabe erfassen und zuweisen</td><td>13</td></tr>
+      <tr><td>J-04 Aufgabe im Board voranbringen</td><td>13</td></tr>
+      <tr><td>J-06 Teammitglied einladen</td><td>11</td></tr>
+    </tbody>
+  </table>
+  <p><strong>Die Schrittzahl ist NICHT gewachsen</strong> — sie ist identisch zur Phase-1-Version
+  (dieselben Journeys J-00…J-06, dieselben Zähler). Was sich in S1 geändert hat: Bedienbarkeit
+  wurde robuster (Kaltstart der Suite grün, 8/8 in 2,1 min statt reproduzierbarem J-03-Fehlschlag),
+  nicht höher. Als UX-Trend also: stabil, Zuverlässigkeit verbessert.</p>
+
+  <h2>8. Was die nächste Schätzung anders machen muss</h2>
+  <p><strong>Ein Satz, konkret:</strong> Für <code>impl-worktree-M</code> in S2 als reale
+  Arbeitsdauer 33 min ansetzen (Faktor 0,47) statt der Rohzahl 114 — und zusätzlich einen
+  expliziten Wartungs-Puffer für Werkzeug-Retries (Fehlkills, Budget-Überschreitungen) in jede
+  Umsetzungs-Schätzung einplanen, weil die reine Wanduhr der Arbeit die retry-bedingten Kosten
+  sonst verschweigt.</p>
+  <p>Kalibrierungs-Reife ist damit erst Grundlage: Von den drei gemessenen Klassen liegen zwei
+  deutlich unter 1 (review 0,71, estimate 0,20) und die Umsetzungs-Klasse erfordert die oben
+  getroffene Bereinigung. Eine einzige Messung je Klasse ist noch keine Kalibrierung — n=1 made
+  this sprint plausibel, n≥3 macht ihn tragfähig.</p>
+
+  <h2>9. Strukturelle Befunde (für Stimme des Chefs / fürs nächste Sprint-Design)</h2>
+  <ul>
+    <li><strong>Vault-Linter-Fehlschlag auf kosten-je-rolle.jsonl:</strong> <code>vault-lint.py:167-168</code>
+        prüft <em>jede</em> <code>.jsonl</code> unter <code>ledger/</code> als Schätz-Ledger. Die
+        Kostendatei hat eine andere, legitime Schema-Zeile (per <code>ledger-sync.sh:55</code>
+        angelegt). Dadurch schlägt Prüfung 6 des Checks rot, obwohl estimates.jsonl sauber ist.
+        Ausweg nötig: Linter darf die Kostendatei nicht als estimates-Ledger lesen (oder ein
+        erlaubtes Schema für kosten-je-rolle.jsonl definieren — via ADR).</li>
+    <li><strong>Zerrissener Handoff bei t_4f601104:</strong> Die Schätzung (merge-repo-S) entstand
+        auf t_0965b04b, wurde aber nicht als <em>nummeriertes</em> p50/p90-Intervall ins metadata
+        der Merge-Karte kopiert (nur als <code>note</code>-String, <code>wall_minutes:null</code>).
+        Genau der Riegel-Fall, für den check-sprint.sh Prüfung 3 existiert. t_22dedbdf / S2 müssen
+        einen mitgeführten estimate.Object tragen.</li>
+    <li><strong>Widerspruch Ledger ↔ Board bei t_cd747924:</strong> Die Karte hat nur
+        einen Lauf zu <strong>4 min</strong> (Board), die handgeschriebene Ledger-Zeile
+        <code>estimates.jsonl:11</code> führt <strong>8 min</strong> und eine Klasse
+        (<code>spec-vault-S</code>), die das Karten-metadata nie trug. Board gewinnt (4 min, AGENTS.md
+        3.2/3.3); die handgetippte Zeile entspricht weder Board noch metadata und ist ein
+        Nacharbeitskandidat.</li>
+    <li><strong>Unklassifizierte Karten t_cd747924, t_4221fe1f:</strong> beide ohne
+        <code>metadata.estimate.reference_class</code> — im Ledger „unklassifiziert“, wertlos für
+        künftige Schätzungen. Ungeplante/Nacharbeits-Karten des Sprints tragen ihre Klasse bisher
+        nicht mit.</li>
+  </ul>
+
+  <h2>10. Belege</h2>
+  <ul>
+    <li>Ledger: <code>ledger/estimates.jsonl</code> (7 neue Zeilen, Commit <code>1a72d5f</code>); Kostendatei: <code>ledger/kosten-je-rolle.jsonl</code>.</li>
+    <li>Check-Lauf: <code>scripts/check-sprint.sh S1</code> am 2026-08-17 (siehe unten).</li>
+    <li>Riegel-Protokoll: <a href="riegel-r1-f5.txt">reports/riegel-r1-f5.txt</a>; CEO-Kontaminations-Befund zu t_6c366810 im Karten-Kommentar.</li>
+    <li>Zuordnung Ledger→metadata: <code>scripts/ledger-sync.sh:115-116</code> (liest Schätzung/Klasse aus <code>.runs[].metadata</code>).</li>
+    <li>E2E: <a href="../analysis/journeys.html">analysis/journeys.html</a>; Phase-1-Vergleich aus <code>git show 91eac0a:analysis/journeys.html</code>.</li>
+  </ul>
+
+  <h2>11. check-sprint.sh S1 — Auszug (der entscheidet, nicht ich)</h2>
+  <pre>
+ 1. Sprint-Karten      ✗ 8 von 9 fertig (t_22dedbdf [running] läuft noch)
+ 2. Abschluss-metadata ✓ alle 8 fertigen Karten tragen Abschluss-metadata
+ 3. (Schätzung, Ist)-Paare — der Riegel
+      ✓ t_6c366810  impl-worktree-M  p50=70  Ist=114  Ist/Schätzung=1.63
+      ✓ t_83b0c34a  review-repo-M    p50=35  Ist=25   Ist/Schätzung=0.71
+      ✗ ohne metadata.estimate.reference_class: t_cd747924 t_4221fe1f
+      ✗ Istwert ohne bezifferte Schätzung: t_4f601104   &lt;-- zerrissenes Paar
+ 4. Ledger            ✓ jede fertige Sprint-Karte hat eine Ledger-Zeile
+ 5. Die Arbeit liegt auf main
+      feat/esf-r1-f5-api-modularisierung noch nicht in main (2 Commits davor)
+ 6. Berichte im Vault ✗ controller-s1.html fehlt (jetzt vorhanden); sprint-s1-report.html fehlt
+      Vault-Linter    ✗ kosten-je-rolle.jsonl: Pflichtfelder fehlen (Schema-Konflikt, s. §9)
+  ⇒ Sprint S1 noch nicht abgeschlossen (Reihenfolge: sprint-s1-report.html durch esf-chief-of-staff)
+  </pre>
+
+  <p><em>Controller-Report S1 — esf-controller, 2026-08-17.</em></p>
+</body>
+</html>

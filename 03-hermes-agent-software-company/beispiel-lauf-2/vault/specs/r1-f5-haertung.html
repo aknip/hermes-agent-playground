@@ -1,0 +1,334 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <title>Spezifikation R1-F5 — apps/api/src/index.ts zerlegen — ESF</title>
+  <meta name="esf-typ" content="spec">
+  <meta name="esf-karte" content="t_6146cf22">
+  <meta name="esf-datum" content="2026-08-17">
+  <style>
+    body{font:16px/1.65 -apple-system,system-ui,sans-serif;max-width:56rem;margin:2rem auto;padding:0 1rem}
+    h1{border-bottom:3px solid #111;padding-bottom:.4rem}
+    h2{margin-top:2.4rem;border-bottom:1px solid #ddd;padding-bottom:.2rem}
+    h3{margin-top:1.8rem}
+    code{background:#f3f3f3;padding:.1rem .3rem;border-radius:3px;font-size:14px}
+    pre{background:#f6f6f6;border:1px solid #e5e5e5;border-radius:4px;padding:.8rem 1rem;overflow-x:auto;font-size:13.5px}
+    .meta{color:#666;font-size:14px}
+    .beleg{color:#444;font-size:14px}
+    table{border-collapse:collapse;width:100%;margin:1rem 0}
+    td,th{border-bottom:1px solid #ddd;padding:.45rem .5rem;text-align:left;vertical-align:top}
+    th{background:#fafafa}
+    .invariante{border-left:4px solid #b91c1c;padding:.4rem 0 .4rem 1rem;margin:.6rem 0}
+    .akzeptanz{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:4px;padding:.6rem 1rem;margin:.6rem 0}
+    ul{margin:.3rem 0 .8rem 0}
+  </style>
+</head>
+<body>
+<h1>Spezifikation R1-F5 — apps/api/src/index.ts zerlegen</h1>
+<p class="meta">Karte <code>t_6146cf22</code> · 2026-08-17 · Bau-Karte: <b>S1 F5 3/5</b> ·
+Entscheidung: <a href="../decisions/ADR-001-api-modularisierung.html">ADR-001</a></p>
+
+<p>Diese Spezifikation ist die ausführbare Anweisung für die <b>eine</b> Bau-Karte von R1-F5. Der
+Entwickler sieht nur diese Datei; er <b>entscheidet nichts</b> — Zielstruktur, Inhalte, Montageaufrufe
+und Invarianten stehen unten konkret. Die Aufgabe ist <b>rein strukturell</b>: Code verschieben, nicht
+umschreiben. Nutzersichtbar ändert sich nichts.</p>
+
+<h2>Kontext</h2>
+<p><code>apps/api/src/index.ts</code> hat 968 Zeilen und ist der höchste Kollisions-Hotspot der
+Codebasis (<code>analysis/codebase.html</code> §5.2, §6.1). Er wird zerlegt, <em>bevor</em> R1-F1 und
+R1-F2 parallel laufen (<code>roadmap/q1-freigegeben.html</code> R1-F5). Der Planungsgraph dieses
+Features hat genau eine Bau-Karte; der Schnitt ist als „erster Schnitt, der trägt“ konzipiert und passt
+in diese eine Karte. Zielrepo:
+<code>…/04-hermes-agent-software-company-test-kaneo</code> (<code>cadence.yaml:59</code>).</p>
+
+<h2>Zielstruktur — welche Datei entsteht wo, mit welchem Inhalt</h2>
+<p>Alle Pfade relativ zu <code>apps/api/src/</code>. Fünf neue Dateien plus die veränderte
+<code>index.ts</code>. Die Herkunftszeilen bezeichnen Zeilen im <em>heutigen</em>
+<code>index.ts</code>; der Entwickler übernimmt den Code <b>unverändert</b> an den Zielort. „Herkunft“
+ist die vollständige Liste — kein Block bleibt doppelt, keiner geht verloren.</p>
+
+<table>
+  <thead><tr><th>Datei</th><th>Rolle &amp; Inhalt</th><th>Herkunft (heutiges index.ts)</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><code>index.ts</code> <i>(verändert → ~80 Z.)</i></td>
+      <td>Dünner Paket-Einstieg: <code>import "./instrument"</code> als erster Import
+          (Sentry-Setup läuft vor allem anderen), dann Re-Export <code>createApp</code> + Typ
+          <code>AppType</code> aus <code>./app</code>, <code>runStartupTasks</code> +
+          <code>startServer</code> aus <code>./startup</code>, <code>export default app</code>, und der
+          Main-Module-Guard (<code>process.argv[1]</code>-Prüfung gegen
+          <code>pathToFileURL(entrypoint)</code>), der <code>startServer(injectWebSocket)</code>startet.</td>
+      <td>Z.1, Z.929–937, Z.968 (<code>export default app</code>); Instanz <code>app</code> und
+          <code>injectWebSocket</code> aus <code>./app</code></td>
+    </tr>
+    <tr>
+      <td><code>app.ts</code> <i>(neu)</i></td>
+      <td>Die komplette Assembler-Funktion <code>createApp()</code> mit allen Montageaufrufen in der
+          unten vorgegebenen Reihenfolge, plus die Typen <code>ApiKey</code>/<code>AppVariables</code>/
+          <code>ApiVariables</code>, den Error-Handler, CORS, die drei <code>register*</code>-Aufrufe,
+          die verbleibenden Inline-Routen (<code>/public-project/:id</code>,
+          <code>/invitation/public/:id</code>, <code>/user/avatar/:id</code>, GitHub-/Gitea-Webhooks,
+          <code>/config</code>, <code>/openapi</code>, MCP, beide WS-Endpunkte), den
+          <code>api.use("*", …)</code>-Auth-Middleware-Block und die komplette
+          <code>api.route(...)</code>-Montageliste. Erzeugt die Modul-Instanz
+          <code>const createdApp = createApp()</code>, exportiert <code>app = createdApp.app</code> und
+          <code>injectWebSocket = createdApp.injectWebSocket</code> sowie den Typ <code>AppType</code>
+          (dieselbe 27-gliedrige Union wie heute, aufgebaut aus
+          <code>ReturnType&lt;typeof createApp&gt;[&lt;Handle&gt;]</code>). Der
+          <code>api.use("*", …)</code>-Block bleibt <b>vor</b> der Montageliste, exakt wie heute.</td>
+      <td>Z.92–168 (Typen, onError), Z.170–205 (CORS), Z.207 (api-Hono), Z.243–261
+          (public-project, Webhooks, invitation/public), Z.360–404 (<code>/user/avatar/:id</code>),
+          Z.406 (config), Z.408–471 (<code>/openapi</code>), Z.572 (mcp), Z.574–601 (Auth-Middleware),
+          Z.603–652 (oauth + Montageliste + mcpWellKnown), Z.656–774 (WS-Endpunkte), Z.776
+          (<code>app.route("/api", api)</code>), Z.778–809 (Rückgabeobjekt), Z.896–927 (Modul-Instanz),
+          Z.939–966 (<code>AppType</code>)</td>
+    </tr>
+    <tr>
+      <td><code>startup.ts</code> <i>(neu)</i></td>
+      <td><code>runStartupTasks()</code> und <code>startServer(injectWebSocket, port=1337)</code>
+          inklusive graceful-shutdown (SIGTERM/SIGINT). Beide werden exportiert.</td>
+      <td>Z.812–847 (<code>runStartupTasks</code>), Z.849–894 (<code>startServer</code>)</td>
+    </tr>
+    <tr>
+      <td><code>routes/health.ts</code> <i>(neu)</i></td>
+      <td>Exportiert <code>registerHealthRoutes(api: Hono&lt;ApiVariables&gt;): void</code>:
+          <code>GET /health</code> und <code>GET /instance/status</code> (auf
+          <code>getInstanceStatus()</code>).</td>
+      <td>Z.209–211 (<code>/health</code>), Z.213–241 (<code>/instance/status</code>)</td>
+    </tr>
+    <tr>
+      <td><code>routes/assets.ts</code> <i>(neu)</i></td>
+      <td>Exportiert <code>registerAssetRoutes(api: Hono&lt;ApiVariables&gt;): void</code>: den
+          <code>GET /asset/:id</code>-Handler (S3-Streaming, Content-Disposition, Cache-/ETag-Header)
+          plus die Konstanten <code>SAFE_INLINE_ASSET_TYPES</code> und
+          <code>buildContentDisposition</code> (ziehen mit an den Zielort).</td>
+      <td>Z.118–128 (<code>SAFE_INLINE_ASSET_TYPES</code>), Z.130–151 (<code>buildContentDisposition</code>),
+          Z.284–358 (<code>/asset/:id</code>)</td>
+    </tr>
+    <tr>
+      <td><code>routes/auth.ts</code> <i>(neu)</i></td>
+      <td>Exportiert <code>registerAuthRoutes(api: Hono&lt;ApiVariables&gt;): void</code>: die drei
+          Auth-Passthrough-Blöcke <code>GET /auth/get-session</code>, <code>GET /auth/device</code>
+          (+ Schema <code>authDeviceQuerySchema</code>) und der <code>/auth/*</code>-Fangpfad
+          (Bearer/API-Key-Passthrough an <code>auth.handler</code>). <b>Reihenfolge innerhalb der
+          Funktion zählt:</b> erst <code>get-session</code>, dann <code>device</code>, zuletzt der
+          <code>/auth/*</code>-Fangpfad.</td>
+      <td>Z.263–282 (<code>/auth/get-session</code>), Z.473–540 (<code>/auth/device</code> +
+          Schema), Z.542–570 (<code>/auth/*</code>)</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3>Montage in <code>app.ts</code> — Reihenfolge und Funktionen</h3>
+<p>Übernommene Aufrufe in <code>createApp()</code>, in dieser Reihenfolge (entspricht der heutigen
+Zeilenreihenfolge; die Reihenfolge ist verhaltenswirksam, siehe Invarianten):</p>
+<pre>const api = new Hono&lt;ApiVariables&gt;();          // war Z.207
+registerHealthRoutes(api);                     // war Z.209–241
+const publicProjectApi = api.get("/public-project/:id", …);   // 243–248
+api.post("/github-integration/webhook", handleGithubWebhookRoute);        // 250
+api.post("/gitea-integration/webhook/:integrationId", handleGiteaWebhookRoute); // 252–255
+const invitationPublicApi = api.get("/invitation/public/:id", …);         // 257–261
+registerAuthRoutes(api);                       // war Z.263–282 + 473–570
+registerAssetRoutes(api);                      // war Z.284–358 (inkl. Konstanten)
+api.get("/user/avatar/:id", …);                // 360–404
+const configApi = api.route("/config", config);            // 406
+// OpenAPI-Handler + /openapi (Z.408–471)          — bleibt an dieser Position
+api.route("/", mcpRoutes);                      // 572
+api.use("*", …Auth-Middleware…);               // 574–601  <b>AB HIER geschützte Routen</b>
+const oauthApi = api.route("/oauth", oauth);    // 603
+const billingApi = api.route("/billing", billing);   // 605 … und so weiter bis Z.642
+app.route("/", mcpWellKnownRoutes(…));          // 644–652
+// WS-Endpunkte /ws/user (656–703) und /ws/:projectId (705–774), unverändert inline
+app.route("/api", api);                         // 776
+return { app, api, injectWebSocket, … };        // 778–809, Handle-Liste unverändert</pre>
+<p>Die Montageliste (Z.605–642) bleibt vollständig und in derselben Reihenfolge; kein
+<code>api.route(...)</code>-Aufruf darf entfallen oder umsortiert werden.</p>
+
+<h3>Typen und Exporte — die vertragliche Grenze</h3>
+<ul>
+  <li><code>app.ts</code> definiert <code>ApiKey</code>, <code>AppVariables</code>,
+      <code>ApiVariables</code>, exportiert <code>createApp</code>, den Typ <code>AppType</code>
+      (Union aus <code>ReturnType&lt;typeof createApp&gt;[…]</code>, dieselben 27 Handles wie
+      Z.939–966), sowie <code>app</code> und <code>injectWebSocket</code> (aus der Modul-Instanz).</li>
+  <li><code>startup.ts</code> exportiert <code>runStartupTasks</code> und <code>startServer</code>.</li>
+  <li><code>index.ts</code> re-exportiert <code>createApp</code> und <code>AppType</code> aus
+      <code>./app</code>, <code>runStartupTasks</code> und <code>startServer</code> aus
+      <code>./startup</code>, hält <code>export default app</code> und den Main-Module-Guard.</li>
+  <li>Die <code>routes/*</code>-Module importieren den Typ <code>ApiVariables</code> als
+      <code>import type { ApiVariables } from "../app"</code> (typreiner Import, vom Bundler entfernt;
+      kein zyklischer Laufzeit-Import).</li>
+</ul>
+
+<h2>Was darf sich NICHT ändern (Invarianten)</h2>
+<p>Der Wert dieser Karte liegt darin, dass hinterher alles genau so funktioniert wie vorher. Folgendes
+bleibt bitte-gleich:</p>
+<div class="invariante">
+  <b>Öffentliche Paket-Fläche von <code>@kaneo/api</code>
+  (<code>apps/api/package.json:4–8</code> → <code>src/index.ts</code>):</b>
+  <code>createApp</code>, <code>AppType</code>, <code>runStartupTasks</code>, <code>startServer</code>
+  und <code>export default app</code> werden weiterhin aus <code>apps/api/src/index.ts</code>
+  exportiert. Konsumenten unverändert: <code>packages/libs/src/hono.ts:3</code>
+  (<code>import type { AppType } from "@kaneo/api"</code>),
+  <code>apps/api/scripts/export-openapi.ts:3</code>
+  (<code>import { createApp } from "../src/index"</code>),
+  <code>tests/api-integration/*.test.ts</code>
+  (<code>import { createApp } from "../../apps/api/src/index"</code>).</div>
+<div class="invariante">
+  <b>Alle öffentlichen HTTP-Routen, Pfade, Methoden, Statuscodes, Header und Antwortkörper bleiben
+  identisch.</b> Keine Route entfällt, keine wird umbenannt, kein Prefix ändert sich, kein Handler
+  verhält sich anders. Einziger erlaubter Eingriff über die reine Verschiebung hinaus: Imports in den
+  Zielmodulen ergänzen/entfernen, wenn eine Verschiebung es erzwingt.</div>
+<div class="invariante">
+  <b>Die Registrierungsreihenfolge bleibt erhalten — sie ist verhaltenswirksam.</b> Hono matcht
+  Handlern in Registrierungsreihenfolge; eine <code>api.use("*", …)</code>-Middleware (Z.574–601) wirkt
+  nur auf die <em>nach</em> ihr registrierten Routen. Deshalb: (a) alle öffentlichen Routen
+  (Health/Instance, public-project, Webhooks, invitation/public, Auth-Routen, Avatar, Asset, config,
+  openapi, MCP) bleiben <em>vor</em> der Auth-Middleware registriert; (b) die geschützte
+  Montageliste (oauth, billing, …, user, ws) bleibt <em>nach</em> der Middleware; (c) <code>/ws/user</code>
+  <em>vor</em> <code>/ws/:projectId</code> (Kommentar Z.654–655); (d) <code>/auth/get-session</code> und
+  <code>/auth/device</code> <em>vor</em> dem <code>/auth/*</code>-Fangpfad (in
+  <code>routes/auth.ts</code>).</div>
+<div class="invariante">
+  <b>Der <code>/auth/device</code>-Redirect bleibt unverändert (Z.473–540):</b> bei <code>ui=1</code>
+  oder <code>Sec-Fetch-Dest: document</code> → 302 auf <code>&lt;KANEO_CLIENT_URL&gt;/device</code>
+  (Default <code>http://localhost:5173</code>; Default-API-Port <code>1337</code>); sonst Passthrough an
+  <code>auth.handler</code>.</div>
+<div class="invariante">
+  <b>Kein Verhaltens- oder Konfigurationswandel:</b> keine Änderung an DB-Schema, Migrationen,
+  <code>.env</code>/Umgebungsvariablen, <code>apps/api/package.json</code>-Scripts (insbesondere der
+  esbuild-Einstieg <code>src/index.ts</code>, <code>apps/api/package.json:12</code>), keine neue
+  Dependency, keine Änderung an der <code>runStartupTasks</code>-Semantik (Migrationen in derselben
+  Reihenfolge Z.815–846), an <code>startServer</code>-Port/Graceful-Shutdown und an der
+  <code>/openapi</code>-Normalisierungskette.</div>
+<div class="invariante">
+  <b>E2E: kein neuer Spec.</b> Die Absicherung ist ausschließlich der volle Regressionslauf über
+  J-00..J-06 (8 Tests, <code>analysis/journeys.html</code>) — <code>pnpm exec playwright test</code>
+  (<code>cadence.yaml:64</code>) mit Postgres-Vorbedingung
+  <code>docker compose -f compose.yml up -d postgres</code> (<code>cadence.yaml:63</code>). Es darf
+  kein Journey-Spec hinzugefügt oder geändert werden.</div>
+
+<h2>Ausführungshinweise</h2>
+<ul>
+  <li>Die Verschiebung ist mechanisch: Codeblöcke aus den Herkunftszeilen <b>unverändert</b> in die
+      Zielmodule übernehmen, Routen über die <code>register*</code>-Funktionen in <code>app.ts</code>
+      einhängen, die Montageliste in <code>createApp</code> vollständig und in Reihenfolge erhalten.
+      Kein Refactoring von Logik, keine Umbenennung von Variablen/Funktionen außerhalb der reinen
+      Verschiebung.</li>
+  <li>Arbeite in einem eigenen Git-Worktree auf Branch <code>feat/…</code>; ändere ausschließlich die
+      sechs genannten Dateien. Committe in kleinen, logischen Schritten (z.&#8201;B.
+      <code>startup.ts</code> zuerst, dann <code>routes/*</code>, dann <code>app.ts</code>/
+      <code>index.ts</code>), nicht alles in einem Rutsch.</li>
+  <li>Prüfe nach jedem Schritt <code>pnpm --filter @kaneo/api typecheck</code> und die
+      Unit-Suite; die Integrationstests und E2E laufen erst am Ende vollständig.</li>
+</ul>
+
+<h2>Akzeptanzkriterien</h2>
+<p>Jedes Kriterium ist einzeln abhakbar; der Entwickler prüft alle vor dem Review, der Reviewer prüft
+gegen genau diese Liste.</p>
+<ol class="akzeptanz">
+  <li><b>Typecheck grün:</b> <code>pnpm --filter @kaneo/api typecheck</code> (bzw.
+      <code>tsc --noEmit -p apps/api/tsconfig.json</code>) läuft fehlerfrei.</li>
+  <li><b>Unit-Tests grün, Anzahl unverändert (374/374 auf dem Ausgangsstand):</b> die komplette
+      Unit-Suite läuft grün und exakt 374 Tests — keine Tests entfernt, hinzugefügt oder geändert.</li>
+  <li><b>Integrationstests grün:</b> <code>tests/api-integration/</code> (bootet
+      <code>createApp</code> gegen echtes Postgres) läuft grün — diese Tests üben den Schnitt direkt
+      aus und importieren <code>createApp</code> unverändert aus <code>src/index</code>.</li>
+  <li><b>Volle E2E-Suite grün:</b> der Regressionslauf über J-00..J-06 (8 Tests,
+      <code>analysis/journeys.html</code>) läuft grün, ohne dass ein Spec angefasst wurde.</li>
+  <li><b>Keine Änderung an öffentlichen Routen (Route-Parität):</b> vor und nach dem Schnitt
+      <code>pnpm --filter @kaneo/api openapi:export</code> ausführen und die zwei erzeugten
+      <code>apps/docs/openapi.json</code> vergleichen — der Diff muss leer sein (kein
+      Operations-Titel, Pfad, Methode oder Statuscode entfernt/umbenannt). Alternativ: eine
+      geskriptete, sortierte Routen-Liste (Methode + Pfad) des <code>api</code>-Hono vor
+      <code>app.route("/api", api)</code> vor/nach vergleichen — identisch.</li>
+  <li><b>Build grün:</b> <code>pnpm --filter @kaneo/api build</code> (esbuild bündelt
+      <code>src/index.ts</code>) läuft erfolgreich.</li>
+  <li><b>Biome grün auf den geänderten Dateien:</b> <code>pnpm exec biome check apps/api/src/index.ts apps/api/src/app.ts apps/api/src/startup.ts apps/api/src/routes</code>
+      meldet keine Fehler.</li>
+  <li><b>Zielstruktur vorhanden, <code>index.ts</code> dünn:</b> die fünf neuen Dateien existieren
+      (<code>app.ts</code>, <code>startup.ts</code>, <code>routes/health.ts</code>,
+      <code>routes/assets.ts</code>, <code>routes/auth.ts</code>);
+      <code>apps/api/src/index.ts</code> hat <b>&lt; 150 Zeilen</b> und enthält keine Inline-Körper der
+      Asset-/Auth-/Health-/Startup-Blöcke mehr; <code>apps/api/src/app.ts</code> bleibt <b>&lt; 450
+      Zeilen</b>.</li>
+  <li><b>Öffentliche Exporte unverändert:</b> <code>createApp</code>, <code>AppType</code>,
+      <code>runStartupTasks</code>, <code>startServer</code> und <code>export default app</code> kommen
+      weiterhin aus <code>apps/api/src/index.ts</code>; die Rückgabe-Form von <code>createApp()</code>
+      schließt exakt dieselben Handles wie heute (Z.778–809, 27 Route-Handles + app/api/injectWebSocket).</li>
+  <li><b>Kein Verhaltens-/Konfigurationswandel:</b> kein Commit an
+      <code>apps/api/src/database/</code>, <code>*.env</code>, <code>apps/api/package.json</code>,
+      <code>apps/api/drizzle.config.ts</code>, <code>pnpm-lock.yaml</code>; keine neuen Dependencies;
+      keine geänderten Journey-Specs.</li>
+</ol>
+
+<hr style="border:none;border-top:3px solid #111;margin:2.4rem 0">
+<h2>Nachtrag: AK8 aufgehoben (CEO-Entscheid, 2026-08-17)</h2>
+<p class="meta">Karte <code>t_cd747924</code> · 2026-08-17 · Nachtrag nach Review-Befund und
+CEO-Urteil.</p>
+
+<p>Das ursprüngliche AK8 — <em>„<code>apps/api/src/app.ts</code> bleibt &lt; 450 Zeilen“</em> — steht
+oben <b>wörtlich unverändert</b> und ist damit hiermit <b>widerlegt</b>, nicht gelöscht (AGENTS.md 3.3:
+Widersprüche stehen nebeneinander, sie werden nicht geglättet). Der CEO hat das Limit am 17.08.2026
+aufgehoben. Die Bau-Umsetzung von R1-F5 landete bei 565 Zeilen in <code>app.ts</code> und hat damit die
+alte Zeilenzahl gerissen, obwohl sie die Zielstruktur dieser Spec exakt befolgt hat — ein Beleg, dass
+450 eine Größe war, die nicht aus dem Inhalt abgeleitet, sondern daneben gesetzt wurde. Das Problem war
+die Steuergröße, nicht die Umsetzung.</p>
+
+<h3>Die CEO-Entscheidung (wortgleich übernommen, 2026-08-17)</h3>
+<ul>
+  <li>Zweck von R1-F5 ist laut Roadmap und CEO-Urteil vom 17.08.2026, die
+      <b>Kollisionsfläche zu senken</b>, bevor R1-F1 und R1-F2 parallel laufen — nicht,
+      eine Zeilenzahl zu erreichen.</li>
+  <li>Erreicht ist er: <code>index.ts</code> 968 → 20 Zeilen, Auth-Routen in <code>routes/auth.ts</code>.
+      F1 (Suche) und F2 (2FA) berühren <code>app.ts</code> künftig mit je einer
+      Registrierungszeile statt in vielen Regionen einer 968-Zeilen-Datei.</li>
+  <li>Was zusätzlich auszulagern wäre, um unter 450 zu kommen — WS, <code>/openapi</code>,
+      MCP —, berührt F1 und F2 nicht. Der Ausbau senkt das Kollisionsrisiko um
+      null und erhöht das Umbaurisiko. Eine Hilfsgröße gegen ihren eigenen Zweck
+      durchzusetzen ist Buchstabentreue, nicht Sorgfalt.</li>
+</ul>
+
+<h3>Ersatz-Kriterium — AK8 misst jetzt den Zweck, nicht eine Zahl</h3>
+<p>Die Lehre aus dem Befund: Das Kriterium soll die <b>Kollisionsfläche</b> messen, nicht die
+Dateigröße. Eine Größe, die nicht aus dem Zweck ableitbar ist, ist gegen ihren Zweck durchgesetzt.
+Der tragfähige Kandidat — „Kein Feature-Branch von R1 ändert mehr als <i>N</i> Zeilen in
+<code>app.ts</code>“ — hat trotz des richtigen Reflexes (an der Kollisionsfläche gemessen) eine
+Schwäche: Die Schwelle <i>N</i> wäre eine <b>neue, wiederum nicht abgeleitete Zahl</b> — genau der
+Fehler, der die 450 geschaffen hat. Ich setze deshalb bewusst keine neue Zahl, sondern ein Kriterium,
+das die Kollisionsfläche direkt beobachtbar macht:</p>
+
+<div class="akzeptanz">
+<b>Neues AK8 — Kollisionsfläche statt Dateigröße:</b> Für jeden Feature-Branch von R1 (insbesondere
+F1 Suche, F2 2FA) gilt: <code>git diff main…&lt;Branch&gt; -- apps/api/src/app.ts</code> zeigt
+ausschließlich <b>additive Montagezeilen</b> — jeweils eine neue <code>api.route(...)</code>- oder
+<code>register*</code>-Registrierungszeile für die neue Funktions-Route. Keine bestehende Zeile wird
+verändert, verschoben, umsortiert oder umformatiert. Prüfung durch den Reviewer in &lt; 1 Minute: der
+Diff gegen <code>main</code> auf <code>app.ts</code> ist rein additiv; jede geänderte/ersetzte
+bestehende Zeile ist ein Verstoß (die Montagereihenfolge ist verhaltenswirksam — siehe Invarianten).
+</div>
+<p class="beleg">Warum das dem Zweck entspricht: Merge-Konflikte zwischen parallelen Branches
+entstehen dort, wo beide <em>dieselbe bestehende Region</em> umschreiben. Ein rein additiver Branch —
+nur eine neue Registrierungszeile am Ende der Montageliste — kann mit einem anderen additiven Branch
+nicht kollidieren. Die Zeilenzahl der Datei ist dafür irrelevant; die Größe, die dieses Kriterium
+wirklich misst, ist die <em>überschriebene Fläche</em> im Diff. Eine im Gesamtbild wachsende, aber rein
+additiv montierte <code>app.ts</code> ist dank dieses Kriteriums
+unauffällig — was zugleich die Konsequenz des CEO-Urteils ist (WS/OpenAPI/MCP dürfen inline bleiben).</p>
+<p><b>Konsequenz für R1-F1/F2:</b> Diese Nachfolge-Karten werden darauf eingeschworen, ihre
+Funktions-Route in <code>app.ts</code> mit <b>einer</b> Registrierungszeile zu hängen und
+<b>keine</b> bestehende Zeile anzufassen. Das ist die operative Übersetzung des neuen AK8 für die
+Arbeit im Worktree.</p>
+<hr style="border:none;border-top:1px solid #ddd;margin:1.6rem 0">
+
+<h2>Nicht-Ziele</h2>
+<ul>
+  <li>Keine Verhaltensänderung, kein Feature, kein neuer Endpunkt.</li>
+  <li>Keine neue E2E-Journey und keine Änderung an bestehenden Specs (Absicherung ist allein der
+      Regressionslauf J-00..J-06).</li>
+  <li>Keine vollständige Domänen-Zerlegung und keine per-Domäne-Montageregistrierung — bewusst auf
+      später verschoben (<code>ADR-001</code>, Revision).</li>
+  <li>Keine Änderung an der <code>/openapi</code>-Normalisierungslogik, an den WebSocket-Endpunkten
+      oder am Startup-/Server-Lebenszyklus (diese werden nur verschoben, nicht geändert).</li>
+</ul>
+
+</body>
+</html>

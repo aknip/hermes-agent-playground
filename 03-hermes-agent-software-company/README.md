@@ -114,7 +114,8 @@ Drei Dinge dazu:
 | `seed/lint-selbsttest/` | Fixture mit genau neun bekannten Linter-Befunden |
 | `seed/quellen.txt` | Die Markt-Quellen, die `fetch-sources.sh` täglich holt |
 | `workspace/` | Die Wegwerfkopie — gitignored |
-| `beispiel-lauf-1/` | **Die Akte des Laufs vom 17.08.2026**: Board mit voller Karten-Historie, Vault, Laufzeiten, beide Git-Historien. Erzeugt von `scripts/dump-lauf.sh` |
+| `beispiel-lauf-1/` | **Die Akte von Phase 0/1 (17.08.2026)**: Board mit voller Karten-Historie, Vault, Laufzeiten, beide Git-Historien. Erzeugt von `scripts/dump-lauf.sh` |
+| `beispiel-lauf-2/` | **Die Akte von Phase 2 (18.08.2026)**: 33 Karten, 1131 Minuten Kartenzeit, Release R1 freigegeben. Ohne diese Akte wäre der Lauf nach dem Rückbau spurlos weg |
 | `scripts/` | Betrieb und Riegel, siehe unten |
 
 ### Die Skripte in `scripts/`

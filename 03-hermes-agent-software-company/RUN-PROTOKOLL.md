@@ -570,3 +570,301 @@ Die Verteilung ist die eigentliche Aussage: **80 % liegen auf einer Rolle**, und
 davon ist der grösste Teil in vier abgebrochenen Läufen verbrannt. Nicht das
 Modell war teuer, sondern die Werkzeug-Fehlkonfiguration — der Iterations-Deckel
 und mein eigener Wachhund.
+
+### Der erste Merge-Versuch: der Riegel schlug sich selbst
+
+Der Riegel verweigerte — und zwar richtig. Bemerkenswert war das *Wie*: Er lief,
+verweigerte, lief **einmal** sauber nach (wie sein Kartentext vorschreibt),
+verweigerte erneut, maß den Test isoliert mit 3/3 in 752 ms, entlastete den
+Branch mit einem Argument (`git diff --name-only` zeigt sechs Dateien, keine
+davon in `apps/api/src/mcp`) — und mergte **trotzdem nicht**, weil seine eigene
+Regel sagt: zweite Verweigerung = Sachgrund. Statt zu überstimmen legte er eine
+Nacharbeitskarte an.
+
+Dahinter steckte ein struktureller Befund über den Riegel selbst:
+
+| Lauf | Ergebnis | `import` |
+|------|----------|----------|
+| Branch allein, volle Unit-Suite | 374/374 grün | **6,81 s** |
+| main allein | 374/374 grün | — |
+| Riegel-Lauf | 2 rot | **107,74 s** |
+
+Faktor 16. `pnpm test` ist `turbo test`, und turbo fährt die Paket-Tasks
+parallel. **Der Riegel erzeugte die Last, an der er scheiterte** — und sein
+Urteil hing davon ab, wie viele andere Karten gerade liefen. „Code entscheidet,
+kein Modell" trägt nur, wenn der Code deterministisch ist; ein Riegel, dessen
+Ergebnis vom Betriebszustand abhängt, ist ein Würfel mit Protokoll. Er
+serialisiert seither (`--concurrency=1`) und entschied danach dreimal in Folge in
+vier Minuten.
+
+Die Nacharbeit fand die Ursache genauer als das Wort „lastempfindlich": Das
+5000-ms-Default-Timeout killte Test 1 **mitten im Request**, und sein noch
+laufender Modul- und Fetch-Zustand leckte in den frischen `fetch`-Stub des
+nächsten Tests — daher `toHaveBeenCalledOnce` mit 2. Behoben mit Warmlauf in
+`beforeAll`, 60-s-Budget je Test und Modul-Isolation; verifiziert mit 3 normalen,
+4 Last- und 4 Turbo-Riegel-Läufen.
+
+## S2 — R1-F1 und R1-F2 parallel
+
+Die Auflage der Roadmap hat gegriffen: `create-sprint.sh 2` prüfte selbst, dass
+`Kalibrierung S1` fertig war, bevor es Karten anlegte. Die Reihenfolge war
+Riegel, nicht Absicht.
+
+### R1-F1: die Karte, die glatt durchlief
+
+34 Minuten, ein Lauf, Schätzung p50 = 35 → **Ist/Schätzung 0,97**. Damit hatte
+sich die Kalibrierungsschleife geschlossen: S1 schätzte 70 und maß 114 roh; S2
+schätzte 35 und traf.
+
+Zwei Dinge darüber hinaus. Der Product Manager **widerlegte eine Prämisse der
+eigenen Roadmap** und ließ beide Aussagen nach `AGENTS.md 3.3` nebeneinander
+stehen: Die Baseline hatte bereits einen sichtbaren Sidebar-Suchbutton
+(`app-sidebar.tsx:42`), was `analysis/product.html` K9 widerspricht — und die
+Roadmap hatte F1 mit Score 22,5 als „größten Bruch mit dem Markenversprechen"
+begründet. Er verkleinerte das Feature ehrlich auf den Header-Griff, rein
+Frontend. Und `git diff main...feat/esf-r1-f1-globale-suche -- apps/api/src/app.ts`
+blieb **leer**: Das neue AK8 des Architekten wirkte als Bauanleitung, nicht als
+Prüfung. Die Kollision, die in S1 dreimal zuschlug, kam gar nicht erst zustande.
+
+### R1-F2: vier Prüfzyklen, zwei echte Befunde
+
+**Zyklus 1 — Review `rejected`, Sicherheitsbefund.** Der 2FA-Hook feuerte nur auf
+den Passwort-Anmeldewegen (`plugins/two-factor/index.mjs:222`); Magic-Link,
+E-Mail-OTP und Social/OAuth bauten Sessions ohne zweiten Faktor
+(`auth.ts:252-306`), und `twoFactorEnabled` wurde außerhalb des Plugins nirgends
+konsultiert — belegt mit einem grep über den gesamten Dist. Drei Umgehungspfade.
+Ein zweiter Faktor mit Hintertür ist keiner.
+
+**Zyklus 2 — geschlossen.** Ein `databaseHooks.session.create.before`-Hook
+verwirft die Session-Erzeugung bei `user.twoFactorEnabled`. Gewählt wurde
+*ablehnen* statt *herausfordern*, weil Letzteres den Plugin-Matcher forken **und**
+die Web-Client-Anmeldebehandlung umbauen müsste. Bewiesen mit Gegenprobe: Konto
+ohne 2FA meldet sich unverändert an.
+
+**Zyklus 3 — Nachprüfung `rejected`, Frage 4.** Die drei Wege waren empirisch
+geschlossen, kein vierter Weg, Gegenprobe echt — aber die Abweisung erreichte den
+Nutzer nicht: Magic-Link zeigte rohes 401-JSON, E-Mail-OTP hing **endlos** auf
+„Verifying…". Und der Nebenbefund war der lehrreichere: `J-08b umgeht den
+Web-Client absichtlich und prüft nur den Server-Vertrag` — deshalb war die Lücke
+grün getestet. Ein Test, der den Weg des Nutzers auslässt, färbt genau die Stelle
+grün, an der es weh tut.
+
+**Zyklus 4 — behoben, und ein belegtes Nein.** `authClient.signIn.emailOtp` hängt
+bei einer 401, weil sein Promise nie auflöst; der Endpunkt wird jetzt per `fetch`
+gerufen, die Abweisung erkannt und als Meldung mit Passwort-Link angezeigt (i18n
+en-US und de-DE), J-08b prüft den Browser-Weg. Für den Magic-Link lieferte der
+Entwickler eine **Absage mit Fundstellen**: `/api/auth/magic-link/verify` gibt
+auch mit `errorCallbackURL` eine rohe 401 zurück, weil das Plugin den `APIError`
+nicht in einen `redirectWithError` übersetzt, und der Browser navigiert direkt zur
+API-Origin und umgeht die SPA. Dazu der entscheidende Produktbefund: **Die
+Anwendung versendet selbst keine Magic-Links.**
+
+**CEO-Entscheid (a):** descopen. Kein nutzersichtbarer Pfad, sicherheitlich
+geschlossen, die 401 ist hässlich statt durchlässig. Als bekannte Einschränkung
+in `apps/api/src/auth.ts:660` dokumentiert — nicht in einem Kartenkommentar, der
+in einem Monat verloren wäre.
+
+Meine Grenze war vorher ausgesprochen: **ein Versuch, dann wandert 2FA nach R2** —
+und ausdrücklich als Zusage formuliert, nicht als Drohung: „Ein ehrliches Nein
+kostet mich zwanzig Minuten, ein optimistisches Ja kostet zwei Stunden." Genau
+das kam zurück.
+
+### Das Irreversibel-Gate: `modify` mit zwei Auflagen
+
+Die 2FA-Spezifikation enthielt eine irreversible Datenmigration (`two_factor`,
+`user.two_factor_enabled`). Kapitel 7 macht das **immer** gate-pflichtig, also
+legte ich die Gate-Karte an, **während ihr Elternteil noch offen war** — sonst
+startet der Dispatcher sie zwischen `create` und `block`. Sie hing nicht daran,
+ob der Reviewer die Migration bemerkt: Eine Pflicht aus Kapitel 7 ist keine
+Beobachtung.
+
+Die Vorlage war vorbildlich und ehrlich beim Schlimmstfall (Punkt 4: Boot-Migrate
+scheitert → API startet nicht, Betriebsausfall ohne Datenverlust). Die Antwort
+war trotzdem `modify`:
+
+- **Auflage 1:** Die Migration geht nicht vor dem geschlossenen zweiten Faktor
+  nach main. Ein irreversibles Schema für ein Feature freizugeben, das falsche
+  Sicherheit verkauft, wäre die Reihenfolge genau falschherum.
+- **Auflage 2:** Der Backup-Hinweis wird **geschrieben**, nicht empfohlen. Punkte
+  5 und 7 nannten ihn als einzigen Rückweg und zugleich als einzige Auflage — er
+  stand aber nirgends. Eine Auflage, die im selben Dokument schon erfüllt klingt,
+  ist keine.
+
+Kein `shelve`, und der Grund gehört dazu: Die Migration ist additiv, auf einer
+echten Bestands-DB mit **79 Nutzern** verifiziert, und der Aussperr-Pfad steht mit
+echten Spaltennamen im Repo. Der Blocker lag in der Anmeldung, nicht in der
+Datenhaltung; ein `shelve` hätte gute Arbeit für einen fremden Fehler bestraft.
+
+Das Gate legte für Auflage 2 eine **eigene Karte** an statt sie selbst
+auszuführen — eine Entscheidung, eine Karte. `ADR-002` hält den Beschluss fest,
+inklusive der verworfenen Option A („Migration ohne Kopplung freigeben") mit ihrer
+Begründung.
+
+## Vier weitere v0.20.0-Eigenheiten
+
+Sie stehen mit ihren Konsequenzen in `PHASE-2-PLAN.md`; hier die Kurzfassung.
+
+**Eine Karte im Status `review` kann sich selbst nicht abschließen.**
+`kanban_complete` antwortet `could not complete <id> (unknown id or already
+terminal)`. Ein Worker drehte **vier Läufe** in dieser Schleife, je 0 Minuten,
+während seine Arbeit längst committet war. Ausweg ist
+`hermes kanban complete <id> --metadata '<json>'` von außen — `complete` nimmt
+`--metadata`, die Fremdschließung ist also vorgesehen. Die Kartentexte verbieten
+`request_review` seither.
+
+**Der Dispatcher gibt einen Branch an den Worktree der neuen Karte und detacht
+den alten.** Ich habe deshalb einen fertigen Fix fälschlich für fehlend erklärt —
+im detachten Baum nachgesehen. Verlässlich ist `git branch -v`.
+
+**`link` hält keine Karte zurück, die schon `ready` ist.** Beim Archivieren einer
+laufenden Karte wurde ihr Kind elternlos und startete auf einem leeren Branch.
+Der Weg ist `reclaim` plus `schedule` — nicht `block`, denn die Karte wartet auf
+Arbeit, nicht auf einen Menschen.
+
+**Worker verlassen die vorgesehene Arbeitsfläche.** Zwei Git-Worktrees in
+`/private/tmp/`, ein Verzeichnis mit verstümmeltem Pfad im Elternverzeichnis des
+Repos (`03-hermes-agent-softire-company/…/revironments/it's.`, 0 Byte, ein falsch
+gequotetes `mkdir -p`), und eine neu geschriebene `.env` im Hauptbaum.
+`monitor.sh` meldet seither Worktrees außerhalb von `.worktrees/`.
+
+## Der schwerste Messbefund: wessen Anwendung testen wir eigentlich?
+
+Er kam als **Nebenbemerkung** einer QA-Karte:
+
+> Die E2E-Baseline lag einem stalen Dev-Server aus dem R1-F2-Worktree zugrunde —
+> deshalb fiel auch J-07 rot.
+
+`playwright.config.ts` hat `reuseExistingServer: !process.env.CI`. Die Suite
+benutzt also, **was auf dem Port lauscht** — auch einen Server aus einem fremden
+Worktree, der anderen Code ausliefert. Und weil jede Feature-Karte ihren eigenen
+Stack in ihrem eigenen Worktree startet (gemessen: zwei zusätzliche
+Postgres-Container neben dem des Hauptbaums), ist das der **Normalfall**.
+
+Ein grüner oder roter Lauf sagt dann nichts über den Branch, den der Riegel
+prüft. Dieselbe Fehlerklasse wie der „grüne Lauf, der nichts prüft" aus Phase 1 —
+nur schwerer zu sehen, weil das Ergebnis plausibel aussieht. Der Riegel ordnet
+jetzt vor dem E2E-Schritt die lauschenden Prozesse ihrem Arbeitsverzeichnis zu
+und verweigert bei fremder Herkunft, mit dem `kill`-Befehl im Protokoll.
+Nachgewiesen mit einem Worktree-Lauscher auf einem Testport.
+
+Dieselbe QA-Karte behob auch die zweite Flakiness und maß deren Ursache statt sie
+zu raten: `fill()` wird vom React-kontrollierten RHF-Feld über Base-UI
+`FieldControl` unter Last **still verworfen**, das Feld bleibt dauerhaft leer.
+Behoben im Helfer (nachführen bis der kontrollierte Wert hält), **kein
+`--retries`**, 5 von 5 vollen Läufen grün.
+
+## Die Kalibrierung: was zwei Sprints ergeben haben
+
+`check-sprint.sh S2` ist grün — **7 vollständige Paare, keins zerrissen**. In S1
+riss eines, weil der Estimator nur Elternteil der ersten Folgekarte war; seither
+ist er direkter Elternteil jeder Karte, die er schätzt.
+
+| Klasse | n | Ist/Schätzung |
+|--------|---|---------------|
+| `impl-worktree-M` | 3 | **1,04** |
+| `merge-repo-S` | 4 | 0,50 |
+| `review-repo-M` | 3 | 0,68 |
+| `estimate-vault-S` | 3 | 0,28 |
+
+Die Bau-Schätzungen treffen; Merge und Review werden systematisch überschätzt.
+Das ist jetzt eine messbare Aussage statt eines Gefühls — und der Gate-Report
+leitet daraus einen Korrekturfaktor von etwa 0,6 auf p50 ab.
+
+Der unbequemste Befund der Kalibrierung ist ein **Prozess**-Befund: Derselbe
+Estimator behandelte dieselbe Klasse zweimal verschieden — bei R1-F1 mit der
+bereinigten Basis (traf 0,97), bei R1-F2 mit der rohen (überschätzte um Faktor
+2). Die Arithmetik war beide Male richtig; es fehlte die Disziplin, die
+Entscheidung des Controllers anzuwenden. Eine Kalibrierungsschleife schließt sich
+nur, wenn die nächste Rolle das Urteil der vorigen achtet. Das steht seit heute
+in der SOUL des `esf-estimator` — eine Auflage bindet R2, eine SOUL bindet die
+Rolle.
+
+Und die Zahl, die betriebswirtschaftlich am schwersten wiegt: **ungeplante Arbeit
+555 Minuten = 73 % der Sprint-Wanduhr**, gegen 203 geplante. Keine Ausfälle,
+sondern Review-Befunde, Betriebsdefekte und CEO-Auflagen — also genau das, was
+diese Organisation gut macht. Wer R2 mit fünf Features zum Nominalaufwand plant,
+plant an drei Vierteln der Wirklichkeit vorbei.
+
+## Das Release-Gate: `approve` mit zwei Auflagen
+
+Vor der Antwort habe ich jede Zahl der Vorlage selbst nachgemessen, mit einem
+eigenen **kalten** E2E-Lauf und vorher keinen laufenden Servern:
+
+| Behauptung der Karte | selbst gemessen |
+|----------------------|-----------------|
+| E2E 11/11 ohne `--retries` | 11 passed, kalt, 2,7 min |
+| Unit 613 passed | 613 passed über 7 Pakete |
+| Typecheck 6/6 | grün |
+| main sauber auf `56e0b8f` | 0 offene Änderungen |
+| alle drei Features drin | alle drei `in main` |
+
+Meine erste Unit-Zahl (726) war ein eigener Zählfehler — Testdateien
+mitaddiert. Die Karte hatte recht.
+
+Die Antwort war `approve`, mit zwei Auflagen für den Roadmap-Fortschritt: der
+gemessene Klassenfaktor wird **angewendet und mit seinem n genannt** (bei n < 5
+bleibt die Konfidenz unter 0,4), und R2 wird gegen die **gemessene** Kapazität
+geplant statt gegen die nominelle. Dazu drei Punkte, die nicht verlorengehen
+dürfen: die Magic-Link-Einschränkung als benannter R2-Backlog-Posten, die Pflicht
+jeder R2-Spezifikation, ihre Roadmap-Begründung zuerst am Code zu prüfen (die
+Lehre aus R1-F1), und der Autonomie-Horizont bleibt `release` — kein
+Quartals-Mandat für eine Organisation, die für ihr erstes Release vier
+Prüfzyklen, drei Zeitüberschreitungen und sieben ungeplante Karten gebraucht hat.
+
+Das Gate legte die Kapazitätsfrage dem Roadmap-Gate **vor** statt sie zu
+entscheiden (Empfehlung: R2 von fünf auf drei Features plus Ungeplant-Puffer
+≈3×) — genau die Rollentrennung, die verlangt war.
+
+## Was Phase 2 gekostet hat
+
+| Rolle | USD | |
+|-------|-----|-|
+| `esf-dev-b` | 5,8477 | 63 % |
+| `esf-dev-a` | 1,1944 | 13 % |
+| `esf-qa-release` | 0,8969 | 10 % |
+| `esf-reviewer` | 0,7518 | 8 % |
+| die übrigen sieben | 0,6598 | 7 % |
+| **Summe** | **9,3506** | |
+
+1131 Minuten Kartenzeit über 33 Karten. Das Konzept schätzt „~20–60 USD je
+Sprint"; zwei Sprints kosteten **9,35 USD** — deutlich darunter. Aber **ein
+Feature verbrauchte 63 %**: 2FA, mit vier Prüfzyklen, drei Zeitüberschreitungen
+und mehreren Netzausfällen. Teuer wurde die bauende Rolle nicht durch das Modell,
+sondern durch die Zahl der Anläufe.
+
+## Bilanz von Phase 2
+
+Alle drei Nachweise aus Kapitel 12 sind grün, deterministisch geprüft:
+15 echte (Schätzung, Ist)-Paare in zwei Sprint-Reports, das erste Release durch
+das Release-Gate, und eine Schätzgüte-Baseline, die eine **Reihe** ist und kein
+Einzelwert.
+
+Was an diesem Lauf trägt, ist wieder nicht die Menge der Artefakte, sondern die
+Verteilung der Fehler. Von den vierzehn Befunden lagen **neun in meinem eigenen
+Werkzeug**: der unbekannte Iterations-Deckel, der prozessbaum-blinde Wachhund,
+die fehlende `.env` im Worktree, der Hook, der in keinem Worktree existierte, der
+selbst-blockierende Riegel, der übergriffige Vault-Linter, der Estimator ohne
+Eltern-Beziehung, der stale Dev-Server — und viermal dieselbe Fehlerklasse: ein
+Leser, der eine Datenform annahm und nie gegen echte Daten gelaufen war
+(`metadata` auf Karten- statt Laufebene, flache gegen verschachtelte Schätzung,
+Gate-Antwort in der Payload statt im Kommentar, `tail -1` statt Summe über sieben
+Pakete). Der letzte davon stand im grünen Phase-2-Nachweis selbst und meldete
+111 statt 613.
+
+Zwei Befunde betrafen die Arbeit der Modelle, und beide fand der Reviewer: die
+biome-Verstöße und eine Falschbehauptung im `metadata`. Drei Befunde waren
+Bibliotheks- oder Testmängel im Produkt, alle drei von der Organisation selbst
+gefunden und behoben.
+
+Und dreimal hat die Organisation **den CEO korrigiert** — beim Kaltstart (meine
+Diagnose „API" gegen die gemessene „Client-Vite"), bei der AK8-Metrik (mein
+Zahlen-Vorschlag gegen ein Kriterium, das die überschriebene Fläche misst) und
+bei einer Roadmap-Prämisse (Score 22,5 für einen Bruch, den die Codebasis
+teilweise widerlegte). Jedes Mal mit Messung oder Argument, nie mit Meinung. Das
+ist der Teil, der sich nicht aus einem Kartentext ergibt.
+
+Ein Punkt bleibt offen und rot, bewusst: `check-sprint.sh S1` meldet weiterhin
+ein zerrissenes Paar auf `t_4f601104`, der ersten, verweigerten Merge-Karte. Sie
+hat ihre Schätzung wirklich nicht mitgenommen. Die Ursache ist bekannt und
+strukturell behoben — aber dem Prüfer das Verzeihen zu lehren wäre der teuerste
+Fehler, den man an einem Riegel machen kann.

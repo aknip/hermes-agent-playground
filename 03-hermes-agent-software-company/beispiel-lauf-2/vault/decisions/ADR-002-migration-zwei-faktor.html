@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <title>ADR-002 — Freigabe der irreversiblen R1-F2-Datenmigration, mit zwei Auflagen — ESF</title>
+  <meta name="esf-typ" content="adr">
+  <meta name="esf-karte" content="t_3bb0cf65">
+  <meta name="esf-datum" content="2026-08-18">
+  <style>
+    body{font:16px/1.65 -apple-system,system-ui,sans-serif;max-width:56rem;margin:2rem auto;padding:0 1rem}
+    h1{border-bottom:3px solid #111;padding-bottom:.4rem}
+    h2{margin-top:2.4rem;border-bottom:1px solid #ddd;padding-bottom:.2rem}
+    h3{margin-top:1.8rem}
+    code{background:#f3f3f3;padding:.1rem .3rem;border-radius:3px;font-size:14px}
+    pre{background:#f6f6f6;border:1px solid #e5e5e5;border-radius:4px;padding:.8rem 1rem;overflow-x:auto;font-size:13.5px}
+    .meta{color:#666;font-size:14px}
+    .beleg{color:#444;font-size:14px}
+    table{border-collapse:collapse;width:100%;margin:1rem 0}
+    td,th{border-bottom:1px solid #ddd;padding:.45rem .5rem;text-align:left;vertical-align:top}
+    th{background:#fafafa}
+    ul{margin:.3rem 0 .8rem 0}
+  </style>
+</head>
+<body>
+<h1>ADR-002 — Freigabe der irreversiblen R1-F2-Datenmigration (two_factor), mit zwei Auflagen</h1>
+<p class="meta">Karte <code>t_3bb0cf65</code> · 2026-08-18 · Feature R1-F2 „Zwei-Faktor-Authentifizierung“ · Status: gültig</p>
+
+<h2>Kontext</h2>
+<p>R1-F2 bringt eine Datenmigration mit: eine neue Tabelle <code>two_factor</code>
+und eine neue Spalte <code>user.two_factor_enabled</code>
+(<code>specs/r1-f2-zwei-faktor.html</code>, Abschnitt Datenhaltung; Migration
+<code>0043_ancient_squadron_supreme.sql</code>). Die Migration ist <b>additiv</b> —
+sie destruiert keine Bestandsdaten, kein Spalten-Drop, kein Umschreiben
+bestehender Zeilen — aber sie ist <b>trotzdem irreversibel gegen
+Bestandsinstallationen</b>: Es gibt kein In-place-Downgrade, Tabelle und Spalte
+bleiben nach der Anwendung bestehen, sobald ein Selbst-Hoster das Update
+einspielt. Der Anwendungszeitpunkt ist der Boot via
+<code>migrate(getDatabase(), …)</code>, kein manueller Befehl.</p>
+<p>Kapitel 7 des Firmenvertrags (AGENTS.md) schreibt vor: Eine irreversible
+Änderung gegenüber Bestandsinstallationen ist <b>immer</b> gate-pflichtig, auch
+mitten im Release — und zwar unabhängig davon, ob ein Reviewer sie bemerkt. Eine
+Pflicht aus Kapitel 7 ist keine Beobachtung. Deshalb wurde das Irreversibel-Gate
+(Karte <code>t_3bb0cf65</code>) bereits angelegt, als das Review noch offen war,
+und dem CEO laut Gate-Vorlage (acht Zeilen) vorgelegt.</p>
+
+<h2>Optionen</h2>
+
+<h3>Option A — Migration ohne Kopplung an den Feature-Zustand freigeben (ungehemmt)</h3>
+<p>Die Freigabe unbedingt erteilen: Die Migration ist additiv, destruiert keine
+Bestandsdaten, wurde vom Review auf einer echten Bestands-DB mit 79 Nutzern
+verifiziert, und der Aussperr-Pfad steht mit echten Spaltennamen im Repo
+statt nur in der Spezifikation.</p>
+<p><b>Konsequenz:</b> Das Review von R1-F2 lautet <b>rejected</b> — der
+2FA-Challenge-Hook feuert nur auf den Passwort-Anmeldewegen
+(<code>plugins/two-factor/index.mjs:222</code>); Magic-Link, E-Mail-OTP und
+Social/Custom-OAuth bauen Sessions ohne zweiten Faktor
+(<code>auth.ts:252–306</code>). Das Schema würde in jeder Bestandsinstallation
+stehen bleiben, auch wenn das Feature in seiner heutigen Form nie sicher wird.
+Eine irreversible Migration für ein Feature freizugeben, das falsche Sicherheit
+verkauft, wäre die Reihenfolge falschherum — Schema zuerst, Sicherheit nie.
+<b>Verworfen.</b></p>
+
+<h3>Option B — Freigabe mit Auflage: Migration nur als Teil eines geschlossenen 2FA (gewählt)</h3>
+<p>Die Migration wird freigegeben, aber <b>nur</b> als Teil eines 2FA ohne
+Umgehungspfad. Die Schließung der drei Anmeldewege ist Aufgabe der
+Nacharbeitskarte <code>t_18e04ddf</code>. Meldet sie
+<code>strukturell_nicht_loesbar</code>, ist die Freigabe hinfällig und 2FA
+wandert samt Migration nach R2 — als neue Entscheidung auf einer neuen Karte.
+Zusätzlich Auflage 2: der Backup-vor-Update-Hinweis wird <b>geschrieben</b>
+(nicht nur empfohlen), dort wo der Operator-SQL-Pfad steht.</p>
+<p><b>Konsequenz:</b> Die Freigabe hängt an einem verifizierbaren Zustand statt
+an einer Ankündigung. Scheitert die Nacharbeit, bleibt das Schema garantiert aus
+den Bestandsinstallationen heraus (kein Bridge-Schema zu einem nie sicheren
+Feature). Schlägt sie fehl, ist der Preis eine spätere neue Entscheidung — 
+keine Fehlinvestition, weil die Migration gültig Teil von R1-F2 bleibt.</p>
+
+<h3>Option C — shelve: 2FA samt Migration nach R2</h3>
+<p>Die Migration gar nicht freigeben; 2FA komplett nach R2 verschieben.</p>
+<p><b>Konsequenz:</b> Bestraft die gute Datenhaltung (additiv, verifiziert,
+Aussperr-Pfad dokumentiert) für einen Fehler in der <b>Anmeldung</b> — dem
+anderen Karten schwerwiegender als die Datenmigration. Der Blocker liegt nicht
+in der Datenhaltung, sondern in der Anmeldeweg-Abdeckung, und den behebt eine
+andere Karte. Ein shelve würde R1-F2 verzögern, ohne das tatsächliche Risiko
+(Gefahr zu früher Schema-Verteilung) besser zu adressieren als Option B.
+<b>Verworfen.</b></p>
+
+<h2>Entscheidung</h2>
+<p><b>Option B — modify:</b> Die Migration wird am 18.08.2026 freigegeben, mit
+<b>zwei verbindlichen Auflagen</b> (CEO-Entscheid, Karte <code>t_3bb0cf65</code>):</p>
+<ul>
+  <li><b>Auflage 1:</b> Die Migration geht NICHT vor dem geschlossenen zweiten
+  Faktor nach main. Die Freigabe gilt für die Migration als Teil eines 2FA ohne
+  Umgehungspfad; die Nacharbeitskarte <code>t_18e04ddf</code> schließt die drei
+  Umgehungspfade. Meldet sie <code>strukturell_nicht_loesbar</code>, ist diese
+  Freigabe hinfällig und 2FA wandert samt Migration nach R2 (neue Entscheidung,
+  neue Karte).</li>
+  <li><b>Auflage 2:</b> Der Backup-vor-Update-Hinweis wird geschrieben, nicht
+  empfohlen — im Repo neben dem Operator-SQL-Pfad
+  (<code>apps/docs/core/functional/manage-your-account.mdx</code> o.ä.), mit
+  (a) DB-Backup vor dem Update, kein In-place-Downgrade (Tabelle und Spalte
+  bleiben) und (b) dem Verhalten, wenn der Boot-Migrate scheitert (Betriebsausfall
+  ohne Datenverlust, Fehlermeldungsort, Backup als Weg zurück).</li>
+</ul>
+<p class="beleg">Der Wortlaut beider Auflagen steht in der CEO-Antwort in der
+Kommentar-Sektion der Gate-Karte <code>t_3bb0cf65</code> und im
+Gate-Vermerk von <code>specs/r1-f2-zwei-faktor.html</code>.</p>
+
+<h2>Konsequenzen</h2>
+<ul>
+  <li>Die Migration ist damit freigegeben, aber <b>nur bedingt</b>: ohne die
+      erfolgreiche Nacharbeit (kein <code>strukturell_nicht_loesbar</code>) läuft
+      sie nicht nach main. Die Merge-Karte <code>t_d2da004a</code> hängt an der
+      Nacharbeitskarte und kann dem Zustand nicht vorausgreifen.</li>
+  <li>Auflage 2 wird als konkreter Auftrag ausgeführt — von einer eigenen
+      Doku-Nachfolgekarte, nicht vom Gate selbst. Bis der Hinweis geschrieben
+      steht, bleibt der einzige Rückweg der Migration für den Selbst-Hoster
+      unbekannt; das ist bewusst als Auflage, nicht als Befund.</li>
+  <li>Die Revisions-Bedingung aus Kapitel 7 bleibt: Jede künftige irreversible
+      Änderung gegen Bestandsinstallationen ist erneut gate-pflichtig, auch wenn
+      sie additiv ist.</li>
+  <li>Scheitert die Nacharbeit, gilt diese Freigabe als gegenstandslos und 2FA
+      samt Migration wandert nach R2 — die Freigabe wird dann nicht „widerrufen“,
+      sondern durch eine neue Entscheidung ersetzt.</li>
+</ul>
+
+<h2>Revision</h2>
+<p>Dieses ADR wird neu bewertet, wenn eines eintritt:</p>
+<ul>
+  <li>Die Nacharbeitskarte <code>t_18e04ddf</code> meldet
+      <code>strukturell_nicht_loesbar</code> — dann ist diese Freigabe hinfällig
+      und 2FA samt Migration wandert als neues Feature nach R2 (eigene Karte,
+      eigene Entscheidung).</li>
+  <li>Ein Selbst-Hoster meldet nach dem Einspielen des Updates einen Schaden aus
+      der Migration — dann war die Verifikation auf der 79-Nutzer-DB nicht
+      repräsentativ und die Vorgehensweise (additive Migration, Boot-Anwendung)
+      wird neu bewertet.</li>
+  <li>Die Doku-Nachfolgekarte für Auflage 2 wird nicht angelegt oder versandet —
+      dann fehlt dem Selbst-Hoster der dokumentierte Rückweg und die Freigabe
+      muss überprüft werden.</li>
+</ul>
+
+</body>
+</html>

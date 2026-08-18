@@ -262,7 +262,32 @@ else
 
     printf '   Unit-Tests … '
     if ( cd "$REPO" && pnpm test ) > /tmp/esf-cr-ut.$$ 2>&1; then
-        printf '\r'; ok "Unit-Tests grün — $(grep -oE '[0-9]+ passed' /tmp/esf-cr-ut.$$ | tail -1)"
+        # SUMMIEREN, nicht das letzte Paket nehmen.
+        #
+        # `pnpm test` ist `turbo test`: sieben Pakete, sieben eigene
+        # Zusammenfassungen. Ein `grep … | tail -1` liefert deshalb die Zahl des
+        # ZULETZT fertigen Pakets, und die Reihenfolge ist bei turbo nicht
+        # stabil. Gemessen am 18.08.2026: tail -1 sagte "111 passed", die Summe
+        # war 613.
+        #
+        # Das stand so im gruenen Phase-2-Nachweis — eine falsche Zahl mitten im
+        # Artefakt, das die Phase beweist. Vierte Wiederholung derselben
+        # Fehlerklasse an diesem Tag (metadata auf Karten- statt Laufebene,
+        # flache gegen verschachtelte Schaetzung, Gate-Antwort in der Payload
+        # statt im Kommentar, und nun das). Jede einzelne war ein Leser, der
+        # eine Form annahm und nie gegen echte Daten lief.
+        #
+        # Die ANSI-Sequenzen muessen weg, bevor awk zaehlt: vitest faerbt die
+        # Zahl, und "\x1b[1m613" ist kein Zahlenfeld.
+        #
+        # Der E2E-Aufruf zwei Bloecke weiter unten benutzt bewusst WEITERHIN
+        # `tail -1`, und das ist dort richtig: Playwright gibt genau EINE
+        # Zusammenfassung fuer die ganze Suite aus. Wer das hier "vereinheitlicht",
+        # macht es kaputt.
+        summe="$(sed 's/\x1b\[[0-9;]*m//g' /tmp/esf-cr-ut.$$ \
+                 | grep -E 'Tests[[:space:]]+[0-9]+ passed' \
+                 | awk '{for(i=1;i<=NF;i++) if($i=="passed"){s+=$(i-1)}} END {print s}')"
+        printf '\r'; ok "Unit-Tests grün — ${summe:-?} passed über $(sed 's/\x1b\[[0-9;]*m//g' /tmp/esf-cr-ut.$$ | grep -cE 'Tests[[:space:]]+[0-9]+ passed') Pakete"
     else
         printf '\r'; nein "Unit-Tests rot"
         grep -iE 'fail|✗' /tmp/esf-cr-ut.$$ | head -6 | sed 's/^/      /'

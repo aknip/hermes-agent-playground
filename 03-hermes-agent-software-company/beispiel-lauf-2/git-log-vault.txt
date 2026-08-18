@@ -1,0 +1,86 @@
+126b39a Gate R1: CEO-approve verarbeitet — Freigabebeschluss in release-r1.html (Wortlaut, 2026-08-18) + roadmap/q1-fortschritt.html (Auflage 1 Klassenfaktor, Auflage 2 gemessene Kapazitaet, 3 Punkte)
+ reports/release-r1.html     |  33 ++++++++
+ roadmap/q1-fortschritt.html | 182 ++++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 215 insertions(+)
+0af06ae release R1: release-r1.html (Prüfstand grün, Migration 0043, Freigabevorlage)
+ reports/release-r1.html | 194 ++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 194 insertions(+)
+9ab576e Sprint-Abschluss S2: sprint-s2-report.html (Check GRUEN, Riegel 7 Paare)
+ reports/sprint-s2-report.html | 285 ++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 285 insertions(+)
+277d81b Controller: Kalibrierung S2 — Baseline (7 Paare, Riegel grün), Kontaminationen, Ungeplant-Puffer
+ AGENTS.md                               |  20 ++
+ ledger/kosten-je-rolle.jsonl            |  22 ++
+ reports/controller-s2.html              | 334 +++++++++++++++++++++++++++++
+ reports/riegel-r1-f1.txt                |  40 ++++
+ reports/riegel-r1-f2.txt                |  73 +++++++
+ reports/riegel-r1-f5-zweiter-anlauf.txt |  39 ++++
+ reports/schaetzung-r1-f1.html           | 176 +++++++++++++++
+ reports/schaetzung-r1-f2.html           | 136 ++++++++++++
+ specs/r1-f1-suche.html                  | 366 ++++++++++++++++++++++++++++++++
+ 9 files changed, 1206 insertions(+)
+7b5043f Ledger: 17 (Schätzung, Ist)-Paar(e) vom 2026-08-18
+ ledger/estimates.jsonl | 17 +++++++++++++++++
+ 1 file changed, 17 insertions(+)
+25acb1d katalog: flakiness im arbeitsbereich-anlegen dokumentieren (t_288738fa)
+ analysis/journeys.html | 27 +++++++++++++++++++++++++--
+ 1 file changed, 25 insertions(+), 2 deletions(-)
+aaf4c1a Gate R1-F2 Migration: modify-Freigabe mit zwei Auflagen (CEO) — Spec-Vermerk + ADR-002
+ decisions/ADR-002-migration-zwei-faktor.html | 143 +++++++++
+ specs/r1-f2-zwei-faktor.html                 | 457 +++++++++++++++++++++++++++
+ 2 files changed, 600 insertions(+)
+e3ffd5b Ledger: 4 (Schätzung, Ist)-Paar(e) vom 2026-08-17
+ ledger/estimates.jsonl | 4 ++++
+ 1 file changed, 4 insertions(+)
+baf4bfe Sprint-Abschluss S1: sprint-s1-report.html (Check ROT, wörtlich übernommen)
+ reports/sprint-s1-report.html | 161 ++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 161 insertions(+)
+3ca9b4f Controller: Kalibrierung S1 — Baseline, Kontaminationen, Kosten
+ analysis/journeys.html        |  23 ++-
+ ledger/kosten-je-rolle.jsonl  |  11 ++
+ reports/controller-s1.html    | 240 +++++++++++++++++++++++++++
+ reports/riegel-r1-f5.txt      | 365 ++++++++++++++++++++++++++++++++++++++++++
+ reports/schaetzung-r1-f5.html | 125 +++++++++++++++
+ 5 files changed, 759 insertions(+), 5 deletions(-)
+1a72d5f Ledger: 7 (Schätzung, Ist)-Paar(e) vom 2026-08-17
+ ledger/estimates.jsonl | 7 +++++++
+ 1 file changed, 7 insertions(+)
+c8551ef Spec: Formulierung im AK8-Ersatz korrigiert
+ specs/r1-f5-haertung.html | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+1bbcaba S1 Spec-Nachtrag: AK8 Zeilenlimit aufgehoben (CEO-Entscheid 2026-08-17)
+ decisions/ADR-001-api-modularisierung.html | 153 +++++++++++++
+ ledger/estimates.jsonl                     |   1 +
+ specs/r1-f5-haertung.html                  | 334 +++++++++++++++++++++++++++++
+ 3 files changed, 488 insertions(+)
+91eac0a Phase-1-Stand aus beispiel-lauf-1/ wiederhergestellt
+ analysis/HERKUNFT.txt => reports/herkunft-phase1.txt | 0
+ 1 file changed, 0 insertions(+), 0 deletions(-)
+8967361 Phase-1-Stand aus beispiel-lauf-1/ wiederhergestellt
+ analysis/HERKUNFT.txt       |  29 ++++
+ analysis/codebase.html      | 216 +++++++++++++++++++++++++++
+ analysis/journeys.html      |  91 ++++++++++++
+ analysis/market.html        | 142 ++++++++++++++++++
+ analysis/product.html       | 355 ++++++++++++++++++++++++++++++++++++++++++++
+ ledger/estimates.jsonl      |  10 ++
+ roadmap/q1-entwurf.html     | 175 ++++++++++++++++++++++
+ roadmap/q1-freigegeben.html | 204 +++++++++++++++++++++++++
+ specs/probelauf.html        |  59 ++++++++
+ 9 files changed, 1281 insertions(+)
+9545a69 Vault-Gerüst: AGENTS.md, cadence.yaml, Ordnerstruktur
+ .gitignore                                  |    3 +
+ AGENTS.md                                   |  128 ++++
+ cadence.yaml                                |   64 ++
+ ledger/estimates.jsonl                      |    0
+ sources/2026-08-17/focalboard-releases.md   |  261 +++++++
+ sources/2026-08-17/height-startseite.fehler |    6 +
+ sources/2026-08-17/huly-releases.md         |  282 ++++++++
+ sources/2026-08-17/kanboard-releases.md     |  229 ++++++
+ sources/2026-08-17/kaneo-releases.md        |  108 +++
+ sources/2026-08-17/linear-changelog.md      | 1029 +++++++++++++++++++++++++++
+ sources/2026-08-17/openproject-releases.md  |  304 ++++++++
+ sources/2026-08-17/plane-releases.md        |  209 ++++++
+ sources/2026-08-17/taiga-releases.md        |    8 +
+ sources/2026-08-17/vikunja-releases.md      |  130 ++++
+ sources/2026-08-17/wekan-releases.md        |  294 ++++++++
+ 15 files changed, 3055 insertions(+)

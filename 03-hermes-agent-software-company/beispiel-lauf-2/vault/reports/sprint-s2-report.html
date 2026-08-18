@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <title>Sprint-Abschluss S2 — ESF</title>
+  <meta name="esf-typ" content="report">
+  <meta name="esf-karte" content="t_eab76c96">
+  <meta name="esf-datum" content="2026-08-18">
+</head>
+<body>
+  <h1>Sprint-Abschluss-Report S2 — R1-F1 und R1-F2</h1>
+  <p class="lead">Karte <code>t_eab76c96</code>, Stand 2026-08-18. Der Abschluss-Check
+  <code>scripts/check-sprint.sh S2</code> ist auf dem <strong>Riegel</strong>
+  (Prüfung 3) <span style="color:#070;font-weight:bold">GRÜN</span> — 7 vollständige
+  (Schätzung, Ist)-Paare. Sein Ergebnis ist unten wörtlich übernommen. Zahlen aus
+  <code>ledger/estimates.jsonl</code> (Commit <code>7b5043f</code>) und
+  <a href="controller-s2.html">controller-s2.html</a> (Commit <code>277d81b</code>).
+  Wanduhrzeiten aus Board-Zeitstempeln, nie aus Modelltext (AGENTS.md 3.2).</p>
+
+  <h2>1. Das Wichtigste in drei Minuten</h2>
+  <ul>
+    <li><strong>Geändert:</strong> S2 ist inhaltlich vollständig. Alle drei R1-Features
+        liegen auf <code>main</code> des Produkt-Repos: R1-F1 (globaler Sucheinstieg,
+        <code>ba5eb81</code>, gemerged <code>efb1e7c</code>), R1-F2 (Zwei-Faktor-Auth,
+        <code>5d2dabc</code> + Nacharbeiten, gemerged <code>56e0b8f</code>) und R1-F5
+        (API-Modularisierung aus S1, gemerged <code>0e4e165</code>). Der
+        Abschluss-Check meldet als einzigen offenen Punkt diesen Sprint-Report — ihn
+        schreibt diese Karte.</li>
+    <li><strong>Kosten:</strong> 7,52 USD Rollenkosten-Delta seit 17.08. (kumulativ 9,36 USD);
+        <code>esf-dev-b</code> dominiert mit 5,85 USD. Wanduhr: 203 min geplant gegen
+        555 min ungeplant — <strong>73 % der Sprintzeit liefen über ungeplante Karten</strong>
+        (Details Kap. 7).</li>
+    <li><strong>Entscheidung nötig:</strong> die verbindliche Schätzbasis für die nächste
+        Kalibrierung. Empfehlung Controller: <code>impl-worktree-M</code> auf die bereinigte
+        S1-Basis (Faktor 0,47), plus Ungeplant-Puffer ~3× der geplanten Zeit — siehe
+        <a href="controller-s2.html#baseline-entscheidung">controller-s2.html §2.1</a>.</li>
+  </ul>
+
+  <h2>2. Der Abschluss-Check (wörtlich, der entscheidet)</h2>
+  <pre>
+Abschluss-Check Sprint S2
+──────────────────────────────────────────────────────────────────────
+
+1. Sprint-Karten
+  ✓ 15 von 15 fertig
+
+2. Abschluss-metadata
+  ✓ alle 15 fertigen Karten tragen Abschluss-metadata
+
+3. (Schätzung, Ist)-Paare — der Riegel dieses Checks
+  ✓ t_e4473bf4     impl-worktree-M      p50=35    Ist=34    Ist/Schätzung=0.97
+  ✓ t_30a4e2e6     review-repo-M        p50=25    Ist=9     Ist/Schätzung=0.36
+  ✓ t_6300d0d4     review-repo-M        p50=40    Ist=39    Ist/Schätzung=0.97
+  ✓ t_defe6e49     merge-repo-S         p50=8     Ist=4     Ist/Schätzung=0.50
+  ✓ t_d2da004a     merge-repo-S         p50=8     Ist=5     Ist/Schätzung=0.62
+  ✓ t_0fccb8ce     impl-worktree-M      p50=150   Ist=80    Ist/Schätzung=0.53
+  ✓ t_21b71850     merge-repo-S         p50=8     Ist=5     Ist/Schätzung=0.62
+  ✓ 7 vollständige (Schätzung, Ist)-Paare
+
+4. Ledger
+  ✓ jede fertige Sprint-Karte hat eine Ledger-Zeile
+
+   Referenzklassen mit Paaren (Grundlage der nächsten Schätzung)
+    controller-vault-M: n=1, Ist/Schätzung im Mittel 0.28
+    estimate-vault-S: n=3, Ist/Schätzung im Mittel 0.28
+    impl-worktree-M: n=3, Ist/Schätzung im Mittel 1.04
+    merge-repo-S: n=4, Ist/Schätzung im Mittel 0.5
+    review-repo-M: n=3, Ist/Schätzung im Mittel 0.68
+    spec-vault-M: n=1, Ist/Schätzung im Mittel 0.19
+
+5. Die Arbeit liegt auf main
+  ✓ feat/esf-r1-f1-globale-suche ist in main enthalten (ba5eb81)
+  ✓ feat/esf-r1-f2-zwei-faktor ist in main enthalten (09ba5ac)
+  ✓ feat/esf-r1-f5-api-modularisierung ist in main enthalten (03d939b)
+
+6. Berichte im Vault
+  ✓ reports/controller-s2.html (24580 Byte, 21 Schätz-Bezüge)
+  ✗ reports/sprint-s2-report.html fehlt
+
+   Vault-Linter
+  ✓ sauber
+
+──────────────────────────────────────────────────────────────────────
+✗ Sprint S2 noch nicht abgeschlossen — siehe die ✗ oben.
+  </pre>
+  <p>Der einzige rote Punkt ist <code>sprint-s2-report.html</code> — das Artefakt dieser
+  Karte. Danach schließt S2 grün. <em>Anmerkung Reihenfolge:</em>
+  <code>controller-s2.html</code> und dieser Report entstehen in zwei Karten nach Plan;
+  der Check rechnet beide erst am Sprint-Ende als vorhanden.</p>
+
+  <h2>3. Tabelle der (Schätzung, Ist)-Paare</h2>
+  <table border="1" cellspacing="0" cellpadding="4">
+    <thead>
+      <tr><th>Karte</th><th>Referenzklasse</th><th>p50/p90</th><th>Ist (min)</th><th>Quotient</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><code>t_e4473bf4</code> (Umsetzung R1-F1)</td><td><code>impl-worktree-M</code></td>
+          <td>35 / 60</td><td>34</td><td><strong>0,97</strong></td></tr>
+      <tr><td><code>t_0fccb8ce</code> (Umsetzung R1-F2)</td><td><code>impl-worktree-M</code></td>
+          <td>150 / 230</td><td>80</td><td><strong>0,53</strong></td></tr>
+      <tr><td><code>t_30a4e2e6</code> (Review R1-F1)</td><td><code>review-repo-M</code></td>
+          <td>25 / 45</td><td>9</td><td>0,36</td></tr>
+      <tr><td><code>t_6300d0d4</code> (Review R1-F2)</td><td><code>review-repo-M</code></td>
+          <td>40 / 75</td><td>39 roh · <strong>20 bereinigt</strong></td>
+          <td>0,97 roh · <strong>0,50 bereinigt</strong></td></tr>
+      <tr><td><code>t_defe6e49</code> (Merge R1-F1)</td><td><code>merge-repo-S</code></td>
+          <td>8 / 30</td><td>4</td><td>0,50</td></tr>
+      <tr><td><code>t_d2da004a</code> (Merge R1-F2, 1. Versuch)</td><td><code>merge-repo-S</code></td>
+          <td>8 / 30</td><td>5</td><td>0,62</td></tr>
+      <tr><td><code>t_21b71850</code> (Merge R1-F2b, 2. Versuch)</td><td><code>merge-repo-S</code></td>
+          <td>8 / 30</td><td>5</td><td>0,62</td></tr>
+    </tbody>
+  </table>
+  <p>7 vollständige Paare (Riegel GRÜN) — der Phase-2-Nachweis aus Kapitel 12. Wo der
+  Controller bereinigt hat (der 18-min-crashed-Lauf aus t_6300d0d4), stehen Roh- und
+  bereinigte Zahl nebeneinander, nicht geglättet (AGENTS.md 3.3).</p>
+
+  <h2>4. Was geliefert wurde (Commits auf main)</h2>
+  <ul>
+    <li><strong>R1-F5 (API-Modularisierung, aus S1):</strong>
+        <code>89b9462</code>, <code>b419251</code>, <code>03d939b</code> — gemerged
+        <code>0e4e165</code> (Riegel bestanden).</li>
+    <li><strong>R1-F1 (globaler Sucheinstieg):</strong> <code>ba5eb81</code> — gemerged
+        <code>efb1e7c</code> (Riegel bestanden). Journey J-07 grün, E2E-Suite 9/9.</li>
+    <li><strong>R1-F2 (Zwei-Faktor-Auth):</strong> <code>5d2dabc</code> (TOTP-Implementierung),
+        dann drei Nacharbeiten aus den Review-Rückschlägen: <code>f1f93eb</code> +
+        <code>89fee04</code> (Umgehungspfade schließen), <code>ef957f4</code> (E-Mail-OTP-Abweisung
+        verständlich), <code>09ba5ac</code> (Magic-Link-Einschränkung dokumentiert) — gemerged
+        <code>56e0b8f</code> (Riegel bestanden).</li>
+    <li><strong>QA (Betriebsbefund):</strong> <code>bd4d462</code> (E2E-Flakiness behoben).</li>
+    <li><strong>Vault:</strong> Ledger <code>7b5043f</code>, Controller-Report <code>277d81b</code>,
+        Gate-Freigabe <code>aaf4c1a</code>, Flakiness-Katalog <code>25acb1d</code>.</li>
+  </ul>
+
+  <h2>5. Was NICHT geliefert wurde und warum</h2>
+  <p><em>deliberately_not_done</em> (bewusst herausgeschnitten):</p>
+  <ul>
+    <li><strong>R1-F1 (t_e4473bf4):</strong> keine Unit-/Component-Tests für HeaderSearch
+        (bei UI-Feature ist laut Karte der E2E-Spec der Test; J-07 grün). Kein Header-Griff auf
+        der Einladungs-Seite (nicht in AK2/Berührungspunkten — AK2 nennt explizit vier Seiten).
+        <code>common/layout.tsx</code> und <code>search-command-menu/index.tsx</code> bewusst
+        unverändert (Spez §4.1, Fokus aus autoFocus).</li>
+    <li><strong>R1-F2 (t_0fccb8ce):</strong> kein QR-Renderer in der UI (otpauth://-Text reicht
+        laut Spec). Kein erzwungenes 2FA, kein trustDeviceMaxAge, kein E-Mail/SMS-OTP, kein
+        WebAuthn — alle Nicht-Ziele der Spec. <strong>Magic-Link descoped</strong> (CEO-Entscheid):
+        als bekannte Einschränkung im Code dokumentiert, nicht als voller Fix (t_801cb487).</li>
+    <li><strong>QA-E2E (t_288738fa):</strong> kein <code>--retries</code> in Playwright,
+        keine Änderung an einzelnen Journeys, keine Änderung an App-/API-Code — reiner
+        Test-Infrastruktur-Fix im gemeinsamen Helfer.</li>
+  </ul>
+  <p><em>gefunden_nicht_gemacht</em> (offen, wird zu Folgekarten):</p>
+  <ul>
+    <li><strong>Magic-Link-Umgehungspfad</strong> bei 2FA: serverseitig geschlossen und als
+        Einschränkung dokumentiert, aber <em>nicht</em> mit einer Nutzer-abwendbaren UX gelöst —
+        der beschlossene Weg war descope, nicht beheben (t_801cb487, CEO-Entscheid).</li>
+    <li><strong>Die offene Frage zur Roadmap-Begründung von R1-F1</strong> — siehe Kap. 9:
+        keine der übrigen R2-Begründungen wurde heute am Code geprüft; das ist Arbeit für die
+        R2-Spezifikation.</li>
+  </ul>
+
+  <h2>6. Die Befunde des Reviewers und wie sie ausgingen</h2>
+  <ol>
+    <li><strong>[minor] R1-F1 (t_30a4e2e6):</strong> flaky Timer-Leak im vorbestehenden
+        <code>verify-otp.test.tsx</code> („window is not defined“ nach Testende, exit 1) — kein
+        Regression von R1-F1 (Datei liegt auf main unverändert, Re-Run 109/109 exit 0).
+        <strong>Ausgang:</strong> als Flake dokumentiert, kein Zuschnitt; verdict
+        <strong>approved</strong>.</li>
+    <li><strong>[minor] R1-F1 (t_30a4e2e6):</strong> F2-Zweig hatte zum Review-Zeitpunkt keine
+        Commits (leere Schnittmenge) — nur Hinweis, kein Eingriff; approved.</li>
+    <li><strong>[blocker] R1-F2 (t_6300d0d4):</strong> der 2FA-Challenge-Hook feuert nur auf die
+        Passwort-Anmeldewege (<code>plugins/two-factor/index.mjs:222</code>); Magic-Link,
+        E-Mail-OTP und Social/Custom-OAuth erzeugen Sessions ohne Zweitfaktor — eine Hintertür,
+        die Entscheidung 4 der Spec widerlegt. <strong>Ausgang:</strong> verdict
+        <strong>rejected</strong> → Nacharbeit t_18e04ddf (serverseitig alle drei Wege
+        geschlossen, bewiesen in Tests).</li>
+    <li><strong>[blocker] R1-F2 (t_b6357b34):</strong> nach dem Schließen der Wege erreicht die
+        2FA-Abweisung den Nutzer auf passwortlosen Wegen nicht verständlich (Magic-Link rohe
+        401-JSON, E-Mail-OTP endloser „Verifying…“-Spinner), und J-08b umgeht den Web-Client.
+        <strong>Ausgang:</strong> verdict <strong>rejected</strong> → Nacharbeit t_801cb487
+        (E-Mail-OTP-Abweisung verständlich, J-08b nutzt den Browser-Weg; Magic-Link descoped).</li>
+  </ol>
+  <p>Der zweite Merge-Anlauf (t_21b71850) verifizierte die drei Vorprüfungen selbst und mergte
+  erst dann. Der Review-Zyklus war der mit Abstand größte Kostenposten des Sprints (Kap. 7).</p>
+
+  <h2>7. Betriebsbefunde: Hänger, Retries, Riegel</h2>
+  <table border="1" cellspacing="0" cellpadding="4">
+    <thead><tr><th>Karte</th><th>Läufe</th><th>Ursache</th></tr></thead>
+    <tbody>
+      <tr><td>t_18e04ddf</td><td>2 (1 timed_out + 1 completed)</td>
+          <td><code>--max-runtime</code>-Deckel: <code>elapsed 7214s &gt; 7200s</code> (120 min); 175 min buchen, nur 55 sind Arbeit.</td></tr>
+      <tr><td>t_b6357b34</td><td>2 (1 timed_out + 1 completed)</td>
+          <td><code>elapsed 3626s &gt; 3600s</code> (60 min); 113 min buchen, nur 53 Arbeit.</td></tr>
+      <tr><td>t_801cb487</td><td>8 (6 crashed + …)</td>
+          <td>Netzausfälle (<code>pid not alive</code>), ein 85-min-crashed-Lauf; 188 min, completed-Lauf 0 min.</td></tr>
+      <tr><td>t_6300d0d4</td><td>4 (1 reclaimed, 1 scheduled, 1 crashed, 1 completed)</td>
+          <td>1 crashed-Lauf (18 min) — bereinigt.</td></tr>
+      <tr><td>t_0fccb8ce</td><td>3 (2 spawn_failed + 1 completed)</td>
+          <td>Worktree-Fehler beim Spawn, 0 min.</td></tr>
+      <tr><td>t_d2da004a</td><td>1</td>
+          <td>Riegel NICHT gelaufen: Einstiegs-Vorbedingung (Review-Urteil approved) nicht erfüllt — Riegel-Verweigerung aus Sachgrund, kein Fehler des Riegels.</td></tr>
+    </tbody>
+  </table>
+  <p>Zwei <code>timed_out</code>-Läufe (t_18e04ddf, t_b6357b34) und mehrere Netz-crashes —
+  dieselbe Klasse wie die S1-Wachhund-Fehlkills: Werkzeug-/Netz-Zeit, keine Arbeit. Die
+  kontaminierten Läufe sind benannt und, wo sie in Paar-Karten steckten, bereinigt ausgewiesen;
+  die ungeplanten Karten ohne Schätzung führen sie roh (controller-s2.html §5.3). Die
+  Merge-Wartezeit (t_d2da004a bucht 5 min als done, obwohl der Riegel nie lief) ist wie in S1
+  nicht als Wanduhr messbar — eine Lücke, kein Leck.</p>
+
+  <h2>8. Geplante gegen ungeplante Karten</h2>
+  <p>Geplant (4-Stufen-Kette F1 und F2 + Merge): <strong>203</strong> Wanduhrminuten.
+  Ungeplant (GATE + drei F2-Nacharbeiten + QA + Doku-Auflage): <strong>555 min — 73 % der
+  Sprint-Wanduhr.</strong> Davon die drei F2-Nacharbeiten (t_801cb487, t_18e04ddf, t_b6357b34)
+  allein 476 min — größtenteils Netz-Retries und Zeitdeckel, nicht Arbeit. Für die nächste
+  Schätzung heißt das nicht „schätze die Ungeplanten vorab“, sondern: Jede Sprint-Schätzung
+  braucht einen sichtbaren <strong>Ungeplant-Puffer ~3× der geplanten Zeit</strong>
+  (controller-s2.html §7).</p>
+
+  <h2>9. Eine widerlegte Roadmap-Begründung — was daraus für R2 folgt</h2>
+  <p>Die Spezifikation von R1-F1 (t_21eb98bf) fand einen Widerspruch zur Produktanalyse und
+  ließ ihn korrekt nebeneinander stehen (AGENTS.md 3.3): <code>analysis/product.html</code> K9
+  behauptet, das Wiederfinden einer Aufgabe über Projekte hinweg sei tastaturgebunden — die
+  Baseline hat aber bereits einen sichtbaren Sidebar-Suchbutton (<code>app-sidebar.tsx:42</code>),
+  und Such-Endpunkt wie Kommandomenü existieren ebenfalls (<code>app.ts:334</code>,
+  search-command-menu).</p>
+  <p><strong>Befund:</strong> Die Roadmap-Begründung von R1-F1 — „der größte Bruch mit dem eigenen
+  Markenversprechen“, Score 22,5, der höchste in Q1 — ist an der Codebasis <em>nicht getragen</em>.
+  Die verbleibende Lücke ist der Header-Griff, nicht ein fehlender Sucheinstieg. Die Begründung
+  war überzeichnet; die CEO-Entscheidung, R1-F1 zum verkleinerten Zuschnitt weiterlaufen zu
+  lassen, bleibt gültig (Aufwand klein, Kollisionsrisiko null, Rein-frontend).</p>
+  <p><strong>Offene Frage (nicht beantwortet):</strong> Wie viele der <em>übrigen</em>
+  R2-Begründungen sind ungeprüft? R2 trägt fünf Features, deren Scores aus derselben Produkt-
+  und Marktanalyse stammen wie der von R1-F1. Wenn eine Score-22,5-Begründung bei der ersten
+  Berührung mit dem Code schrumpft, ist die Frage nicht „war K9 falsch“, sondern wie viele
+  weitere Begründungen nicht tragen. Heute weiß das niemand — es ist eine offene Frage, keine
+  Antwort.</p>
+  <p><strong>Empfehlung für den Roadmap-Fortschritt:</strong> Jede R2-Feature-Spezifikation prüft
+  ihre Roadmap-Begründung zuerst am Code und schreibt den Befund in die Spec, bevor sie den
+  Zuschnitt festlegt — Analog zu dem, was R1-F1 getan hat. Der Score allein hält keinen
+  Zuschnitt; der Zuschnitt hält nur, wenn er sich am Code belegen lässt. Die Maßnahme ist
+  konkret, kostet fast nichts (die Spec-Karte prüft ohnehin) und verhindert, dass sich eine
+  überzeichnete Begründung still in die nächsten fünf R2-Karten fortschreibt.</p>
+
+  <h2>10. Für den nächsten Sprint — konkret</h2>
+  <ol>
+    <li><strong>Schätzbasis fixieren:</strong> <code>impl-worktree-M</code> verbindlich auf die
+        bereinigte S1-Basis (Faktor 0,47), denn genau sie hat in S2 gemessen (R1-F1 traf 0,97,
+        R1-F2 mit Roh-Basis überschätzte 0,53). Soll im Ledger als normative Basis notiert
+        werden (controller-s2.html §2.1, §8).</li>
+    <li><strong>Ungeplant-Puffer:</strong> in jede Sprint-Schätzung einen expliziten Puffer
+        ~3× der geplanten Zeit einrechnen — S2 hat 73 % seiner Wanduhr in ungeplanten Karten
+        verbraucht.</li>
+    <li><strong>R2-Spezifikationen prüfen zuerst am Code ihre Roadmap-Begründung</strong> und
+        den Befund hinschreiben (Kap. 9), bevor sie den Zuschnitt festlegen. Dabei die offene
+        Frage benennen, wie viele der übrigen R2-Scores tragen.</li>
+    <li><strong>Merge-Wartezeit messbar machen:</strong> die Zeit, die eine Merge-Karte auf ein
+        Review-Urteil wartet, ist in S2 (wie in S1) nicht als Wanduhr gebucht
+        (t_d2da004a → t_21b71850). Ein Karten-Zustand „wartend“ statt „done“ wäre die Lücke,
+        die beide Sprints gezeigt haben.</li>
+    <li><strong>Timed-out-Ursachen weiter verfolgen:</strong> zwei Läufe liefen in ihren
+        <code>--max-runtime</code>-Deckel; die Netz-crashes bei esf-dev-b (6 von 8 Läufen auf
+        t_801cb487) sind der größte Einzelposten der Sprintkosten.</li>
+  </ol>
+  <p><em>Hinweis:</em> Diese Karte legt keine neuen Karten an; den Graphen erstellt
+  <code>create-sprint.sh</code>, das die Auflage (restliche R1-Features erst nach der
+  Kalibrierung neu schätzen) selbst prüft.</p>
+
+  <h2>11. Belege</h2>
+  <ul>
+    <li>Check §2; <a href="controller-s2.html">controller-s2.html</a>;
+        <a href="riegel-r1-f1.txt">riegel-r1-f1.txt</a>;
+        <a href="riegel-r1-f2.txt">riegel-r1-f2.txt</a>;
+        <a href="riegel-r1-f5-zweiter-anlauf.txt">riegel-r1-f5-zweiter-anlauf.txt</a>.</li>
+    <li>Review-Findings und <code>deliberately_not_done</code> in den Abschluss-metadata der
+        Karten t_21eb98bf, t_e4473bf4, t_0fccb8ce, t_30a4e2e6, t_6300d0d4, t_b6357b34,
+        t_801cb487, t_18e04ddf, t_288738fa, t_369240f2.</li>
+    <li>Commits auf <code>main</code>: Produkt-Repo <code>git log</code> (56e0b8f, efb1e7c,
+        0e4e165); Vault-Repo <code>git log</code> (7b5043f, 277d81b, 25acb1d, aaf4c1a).</li>
+    <li>CEO-NOTIZ zu R1-F1 (Kommentar auf Karte t_eab76c96) und Spec
+        <code>specs/r1-f1-suche.html</code> mit dem nebeneinandergestellten Widerspruch
+        (AGENTS.md 3.3).</li>
+  </ul>
+  <p><em>Sprint-Abschluss S2 — esf-chief-of-staff, 2026-08-18.</em></p>
+</body>
+</html>

@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <title>ADR-001 — apps/api/src/index.ts zerlegen — ESF</title>
+  <meta name="esf-typ" content="adr">
+  <meta name="esf-karte" content="t_6146cf22">
+  <meta name="esf-datum" content="2026-08-17">
+  <style>
+    body{font:16px/1.65 -apple-system,system-ui,sans-serif;max-width:56rem;margin:2rem auto;padding:0 1rem}
+    h1{border-bottom:3px solid #111;padding-bottom:.4rem}
+    h2{margin-top:2.4rem;border-bottom:1px solid #ddd;padding-bottom:.2rem}
+    code{background:#f3f3f3;padding:.1rem .3rem;border-radius:3px;font-size:14px}
+    .meta{color:#666;font-size:14px}
+    .beleg{color:#444;font-size:14px}
+    table{border-collapse:collapse;width:100%;margin:1rem 0}
+    td,th{border-bottom:1px solid #ddd;padding:.45rem .5rem;text-align:left;vertical-align:top}
+    th{background:#fafafa}
+    ul{margin:.3rem 0 .8rem 0}
+  </style>
+</head>
+<body>
+<h1>ADR-001 — apps/api/src/index.ts zerlegen</h1>
+<p class="meta">Karte <code>t_6146cf22</code> · 2026-08-17 · Feature R1-F5 „Technische Härtung“ · Status: gültig</p>
+
+<h2>Kontext</h2>
+<p><code>apps/api/src/index.ts</code> ist mit <b>968 Zeilen</b> der Verdrahtungshub der Hono-API
+(<code>apps/api/src/index.ts:153–810</code> birgt <code>createApp()</code>, <code>:207</code> den
+API-Sub-Hono, <code>:605–642</code> die Montageliste, <code>:656–774</code> die WebSocket-Endpunkte).
+Die Codebasis-Analyse markiert ihn als <b>höchsten Kollisions-Hotspot</b>: Jede neue Route, jedes
+Middleware-Element, jede Variablen- und OpenAPI-Änderung landet hier
+(<code>analysis/codebase.html</code> §5.2, §6.1). Die freigegebene Roadmap stellt R1-F5 auf
+<b>Position 1</b> des Releases, <em>bevor</em> R1-F1 (Suche) und R1-F2 (2FA) parallel laufen, damit
+diese beiden Branches nicht am selben Hotspot kollidieren
+(<code>roadmap/q1-freigegeben.html</code>, R1-F5). Die Organisation hat am 17.08.2026 dreimal
+bewiesen, dass parallele Git-Arbeit ihr häufigster Ausfallgrund ist. Nutzersichtbar ändert sich
+nichts — die Zerlegung ist eine Voraussetzung, kein Feature.</p>
+<p>Der Planungsgraph je Feature ist auf 8 Karten gedeckelt
+(<code>cadence.yaml:16</code>, <code>karten_pro_feature: 8</code>); dieses Feature hat fünf Karten und
+davon <b>genau eine Bau-Karte</b> (S1 F5 3/5). Jede Zerlegungsoption muss in <em>eine</em> Bau-Karte
+passen — ein Konzept, das die eigene Kadenz sprengt, ist kein ehrgeiziges Konzept, sondern ein
+ungeprüftes.</p>
+
+<h2>Optionen</h2>
+
+<h3>Option A — Zerlegung nach Schicht/Belang (Layer + Inline-Routen-Auslagerung)</h3>
+<p>Die Datei wird nach <em>Verantwortlichkeit</em> geschnitten: Die Assembler-Funktion
+<code>createApp()</code> wandert nach <code>app.ts</code>, der Server-/Startup-Lebenszyklus
+(<code>runStartupTasks</code> + <code>startServer</code>) nach <code>startup.ts</code>, und die drei
+größten Inline-Routenblöcke (Asset-Streaming, Auth-Passthrough, Health/Instance) in eigene Module
+unter <code>routes/</code>. <code>index.ts</code> bleibt der Paket-Einstiegspunkt von
+<code>@kaneo/api</code> (package.json:4–8 → <code>src/index.ts</code>) und wird ein dünner Re-Export
+(~80 Zeilen).</p>
+<p><b>Konsequenz:</b> Greift genau dort an, wo die Kollisionsfläche wirklich ist — die
+Domänenmodule (<code>./task</code>, <code>./project</code> usw.) sind bereits getrennt; was den Hub
+gefährlich macht, ist die <em>Montage</em> plus die Inline-Blöcke. Die Schritte sind mechanisch (Code
+verschieben, nicht umschreiben) und damit risikoarm; die zurückgegebenen Route-Handles und der Typ
+<code>AppType</code> bleiben strukturell identisch, weil sie aus dem Rückgabetyp von
+<code>createApp</code> abgeleitet werden. Nachteil: Die Montage konzentriert sich danach in
+<code>app.ts</code> (~400 Zeilen) statt in <code>index.ts</code> — das ist ein deutlich kleineres
+Skelett ohne die großen Inline-Körper, aber ein neuer Ort, an dem Funktionsbranches einzelne
+Montagezeilen kollidieren können.</p>
+
+<h3>Option B — Zerlegung nach Domäne (Route-Gruppen in fachliche Module)</h3>
+<p>Die verbliebenen Inline-Routen (<code>/asset/:id</code> → storage/assets,
+<code>/user/avatar/:id</code> → user/controllers, <code>/instance/status</code> → instance/controllers
+usw.) werden ihren fachlichen Modulen zugeordnet und die Montageliste in eine
+per-Domäne-Registrierung aufgelöst.</p>
+<p><b>Konsequenz:</b> Fühlt sich nach der „richtigen“ langfristigen Struktur an, aber die
+Domänenmodule sind bereits ausgelagert — die echte Hotspot-Fläche ist die <em>Montage</em>, nicht die
+Route-Gruppen selbst. Eine volle Domänen-Zerlegung berührt viele Dateien über die Modulgrenzen
+hinweg, erzeugt viele Review-Gates und sprengt die eine Bau-Karte. Für eine erste Härtung ist sie zu
+groß; sie ist bewusst für später zurückgestellt (siehe Revision).</p>
+
+<h3>Option C — Nullvariante: Datei lassen, Kollision über Kartenreihenfolge entschärfen</h3>
+<p>Die 968-Zeilen-Datei bleibt unangetastet; parallele Branches, die sie anfassen, werden
+serialisiert, indem ihre Karten nacheinander statt parallel laufen.</p>
+<p><b>Konsequenz:</b> Null Risiko und null Aufwand — aber genau das Kollisionsproblem bleibt, das
+R1-F5 laut Roadmap lösen soll. R1-F1 und R1-F2 würden weiterhin dieselbe Datei anfassen; die
+Reihenfolge macht die Parallelität, die die Roadmap explizit will, zur Serialität. Als
+Verdrahtungs-Hub bliebe <code>index.ts</code> der Flaschenhals jeder künftigen Änderung. Diese Option
+ist keine Alibi-These: Eine Umstrukturierung ohne Verhaltensänderung ist reines Risiko, wenn sie zu
+groß wird — sie wird hier ernsthaft erwogen und nur verworfen, weil die gewählte Schnittmenge klein,
+mechanisch und auf eine Bau-Karte zugeschnitten ist.</p>
+
+<h2>Entscheidung</h2>
+<p><b>Option A</b> — Zerlegung nach Schicht/Belang mit Auslagerung der großen Inline-Routen,
+zugeschnitten auf <em>eine</em> Bau-Karte. Konkret entstehen fünf neue Dateien unter
+<code>apps/api/src/</code> (<code>app.ts</code>, <code>startup.ts</code>, <code>routes/health.ts</code>,
+<code>routes/assets.ts</code>, <code>routes/auth.ts</code>) und <code>index.ts</code> wird zum dünnen
+Einstieg. Die genaue Zielstruktur, die Inhalte je Datei mit Herkunftszeilen, die Montagefunktionen und
+die Invarianten stehen in <a href="../specs/r1-f5-haertung.html">specs/r1-f5-haertung.html</a>.</p>
+<p>Die öffentliche Fläche des Pakets <code>@kaneo/api</code> bleibt identisch und kommt weiterhin aus
+<code>apps/api/src/index.ts</code>: <code>createApp</code> (Re-Export aus <code>./app</code>),
+<code>AppType</code> (Re-Export), <code>runStartupTasks</code>/<code>startServer</code> (Re-Export aus
+<code>./startup</code>) und <code>export default app</code>. Damit bleiben alle Konsumenten unverändert
+(<code>packages/libs/src/hono.ts:3</code>, <code>apps/api/scripts/export-openapi.ts:3</code>,
+<code>tests/api-integration/*.test.ts</code>).</p>
+
+<h2>Konsequenzen</h2>
+<ul>
+  <li><code>apps/api/src/index.ts</code> schrumpft von 968 auf ~80 Zeilen; der benannte Kollisions-Hotspot
+      zerfällt in unabhängig editierbare, große Blöcke getrennte Module.</li>
+  <li>R1-F1 (Suche) und R1-F2 (2FA) treffen danach höchstens noch einzelne Montagezeilen in
+      <code>app.ts</code> bzw. <code>routes/auth.ts</code>, nicht mehr die großen Inline-Blöcke und den
+      Startup-Pfad — die Merge-Konfliktfläche pro Branch sinkt deutlich, und zwei Feature-Branches
+      teilen sich keine Datei mit großem Inline-Body mehr.</li>
+  <li>Nutzersichtbar ändert sich nichts: Routen, Pfade, Methoden, Statuscodes, Header, Antwortkörper
+      und das OpenAPI-Dokument bleiben identisch (geprüft über die Akzeptanzkriterien der Spec).</li>
+  <li>Risiko bleibt die Montagereihenfolge: Hono matcht in Registrierungsreihenfolge und eine
+      <code>api.use("*", …)</code>-Middleware wirkt nur auf die nach ihr registrierten Routen. Die
+      öffentlichen Routen müssen <em>vor</em> der Auth-Middleware bleiben, der
+      <code>/ws/user</code>-Endpunkt <em>vor</em> <code>/ws/:projectId</code>, und die
+      <code>/auth/get-session</code>-/<code>/auth/device</code>-Routen <em>vor</em> dem
+      <code>/auth/*</code>-Fangpfad. Die Spec macht diese Reihenfolgen verbindlich.</li>
+  <li>Eine vollständige Domänen-Zerlegung (Option B) ist damit für diese Härtung zurückgestellt; sie
+      wäre eine eigene, größere Härtung.</li>
+</ul>
+
+<h2>Revision</h2>
+<p><b>Revision-Nachtrag 2026-08-17 (CEO-Urteil):</b> Das Zeilenlimit als Steuergröße ist
+untauglich und aufgehoben. Die 450-Zeilen-Schwelle für <code>app.ts</code> war nicht aus dem Inhalt
+abgeleitet, sondern daneben gesetzt: die Umsetzung befolgte die Zielstruktur exakt und landete bei 565
+Zeilen — der Zweck von R1-F5 (die Kollisionsfläche vor R1-F1/F2 senken) war erreicht, das Limit
+trotzdem gerissen. Das Zeilenlimit ist ersetzt durch ein am Zweck gemessenes Kriterium
+(<code>specs/r1-f5-haertung.html</code>, „Nachtrag: AK8 aufgehoben“): Für jeden R1-Feature-Branch muss
+<code>git diff main…&lt;Branch&gt; -- apps/api/src/app.ts</code> <b>rein additiv</b> sein — nur neue
+<code>api.route(...)</code>-/<code>register*</code>-Registrierungszeilen, keine Änderung an
+bestehenden Zeilen. Das misst die tatsächliche Merge-Konfliktfläche und keine Dateigröße. Dementsprechend
+ist die erste Revisions-Bedingung unten (der „~450-Zeilen“-Trigger) gegenstandslos; der nächste Schnitt
+wird nicht mehr über eine Zeilenzahl, sondern über ein reales Kollisionsereignis oder ein bloßes
+Anzeichen wiederholter Konflikte an <code>app.ts</code> ausgelöst.</p>
+<p>Dieses ADR wird neu bewertet, wenn eines eintritt:</p>
+<ul>
+  <li><code>app.ts</code> wächst über ~450 Zeilen hinaus oder wird selbst zum gemeldeten Hotspot —
+      dann ist der nächste Schnitt fällig (die verbliebenen Inline-Routen
+      <code>/public-project/:id</code>, <code>/invitation/public/:id</code>,
+      <code>/user/avatar/:id</code>, die Webhook- und <code>/openapi</code>-Montage in eigene Module
+      auslagern oder die WS-Endpunkte in ein <code>routes/ws.ts</code> ziehen).</li>
+  <li>Ein Feature-Branch kollidiert erneut an <code>app.ts</code> oder <code>index.ts</code> — dann
+      war der Schnitt zu flach und Option B (Domänen-Zerlegung inklusive per-Domäne-Registrierung)
+      wird als eigene Karte neu aufgemacht.</li>
+  <li>Die Bau-Karte (S1 F5 3/5) sprengt ihr Budget — dann wird der Schnitt verkleinert (z.&#8201;B.
+      zuerst nur <code>startup.ts</code> + die drei <code>routes/</code>-Module, <code>app.ts</code>-
+      Umzug als zweiter Zug), nicht die Kadenz.</li>
+</ul>
+<p><b>Bewusst für später liegen gelassen:</b> die Auslagerung der kleinen verbleibenden Inline-Routen,
+die per-Domäne-Montageregistrierung (Option B), die WebSocket-Endpunkte und die weitere Zerlegung von
+<code>app.ts</code>. Sie tragen jetzt noch keinen Risikoabschlag und würden die eine Bau-Karte
+sprengen.</p>
+
+</body>
+</html>

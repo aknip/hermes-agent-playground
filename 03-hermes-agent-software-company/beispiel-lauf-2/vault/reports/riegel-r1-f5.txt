@@ -1,0 +1,365 @@
+ESF Merge-Riegel — 2026-08-17 21:52:23
+Repo:   /Users/aknipschild/github/hermes-agent-playground/04-hermes-agent-software-company-test-kaneo
+Branch: feat/esf-r1-f5-api-modularisierung
+
+── 1/6  Branch und Ausgangslage ──────────────────────────────────────────
+  Basis:            58310dc858d87e55e8f61add3e3092bbad78d4e2
+  Geänderte Dateien: 6
+    apps/api/src/app.ts
+    apps/api/src/index.ts
+    apps/api/src/routes/assets.ts
+    apps/api/src/routes/auth.ts
+    apps/api/src/routes/health.ts
+    apps/api/src/startup.ts
+
+── 2/6  Konfliktfreiheit ──────────────────────────────────────────
+  konfliktfrei — der Merge bleibt jetzt stehen und wird geprüft
+
+── 3/6  Linter auf den geänderten Dateien ──────────────────────────────────────────
+  sauber (6 Dateien)
+
+── 4/6  Typecheck ──────────────────────────────────────────
+  grün
+
+── 5/6  Unit-Tests ──────────────────────────────────────────
+
+───── vollständige Ausgabe ─────
+
+> kaneo@2.19.1 test /Users/aknipschild/github/hermes-agent-playground/04-hermes-agent-software-company-test-kaneo
+> turbo test
+
+• turbo 2.10.8
+
+   • Packages in scope: @kaneo/api, @kaneo/email, @kaneo/libs, @kaneo/mcp, @kaneo/permissions, @kaneo/planka-import, @kaneo/site, @kaneo/typescript-config, @kaneo/web
+   • Running test in 9 packages
+   • Remote caching disabled
+
+@kaneo/email:test: cache bypass, force executing e4c794b04cc1cad8
+@kaneo/mcp:test: cache bypass, force executing 027b07d66c7b36a1
+@kaneo/permissions:test: cache bypass, force executing 82f7ce08a766fe3e
+@kaneo/email:build: cache hit, replaying logs aabe475eb4acf979
+@kaneo/planka-import:test: cache bypass, force executing efbcc6733829042c
+@kaneo/permissions:build: cache hit, replaying logs 0efb76faccf30862
+@kaneo/email:build: 
+@kaneo/email:build: > @kaneo/email@1.0.0 build /Users/aknipschild/github/hermes-agent-playground/04-hermes-agent-software-company-test-kaneo/.worktrees/t_6c366810/packages/email
+@kaneo/email:build: > tsc
+@kaneo/email:build: 
+@kaneo/permissions:build: 
+@kaneo/permissions:build: > @kaneo/permissions@0.0.0 build /Users/aknipschild/github/hermes-agent-playground/04-hermes-agent-software-company-test-kaneo/.worktrees/t_6c366810/packages/permissions
+@kaneo/permissions:build: > tsc
+@kaneo/permissions:build: 
+@kaneo/api:test: cache bypass, force executing 11d6bcbda96a9d18
+@kaneo/api:build: cache hit, replaying logs b60d096f56e45803
+@kaneo/api:build: 
+@kaneo/api:build: > @kaneo/api@ build /Users/aknipschild/github/hermes-agent-playground/04-hermes-agent-software-company-test-kaneo/.worktrees/t_6c366810/apps/api
+@kaneo/api:build: > esbuild src/index.ts --bundle --platform=node --outdir=dist --format=esm --packages=external --external:fs --external:path --external:crypto --external:os --external:util --external:stream --external:buffer --external:events --external:url --external:querystring --external:http --external:https --external:net --external:tls --external:zlib --external:@modelcontextprotocol/sdk
+@kaneo/api:build: 
+@kaneo/api:build: 
+@kaneo/api:build:   dist/index.js  1.2mb ⚠️
+@kaneo/api:build: 
+@kaneo/api:build: ⚡ Done in 95ms
+@kaneo/libs:test: cache bypass, force executing c3e059d49c8b8b3d
+@kaneo/web:test: cache bypass, force executing 6887aece46f5edf4
+@kaneo/planka-import:test: 
+@kaneo/planka-import:test: > @kaneo/planka-import@0.2.0 test /Users/aknipschild/github/hermes-agent-playground/04-hermes-agent-software-company-test-kaneo/packages/planka-import
+@kaneo/planka-import:test: > vitest run --config vitest.config.ts
+@kaneo/planka-import:test: 
+@kaneo/mcp:test: 
+@kaneo/mcp:test: > @kaneo/mcp@0.1.11 test /Users/aknipschild/github/hermes-agent-playground/04-hermes-agent-software-company-test-kaneo/packages/mcp
+@kaneo/mcp:test: > vitest run --config vitest.config.ts
+@kaneo/mcp:test: 
+@kaneo/api:test: 
+@kaneo/api:test: > @kaneo/api@ test /Users/aknipschild/github/hermes-agent-playground/04-hermes-agent-software-company-test-kaneo/apps/api
+@kaneo/api:test: > npm run test:unit
+@kaneo/api:test: 
+@kaneo/web:test: 
+@kaneo/web:test: > @kaneo/web@0.0.0 test /Users/aknipschild/github/hermes-agent-playground/04-hermes-agent-software-company-test-kaneo/apps/web
+@kaneo/web:test: > vitest run --config vitest.config.ts
+@kaneo/web:test: 
+@kaneo/email:test: 
+@kaneo/email:test: > @kaneo/email@1.0.0 test /Users/aknipschild/github/hermes-agent-playground/04-hermes-agent-software-company-test-kaneo/packages/email
+@kaneo/email:test: > vitest run --config vitest.config.ts
+@kaneo/email:test: 
+@kaneo/permissions:test: 
+@kaneo/permissions:test: > @kaneo/permissions@0.0.0 test /Users/aknipschild/github/hermes-agent-playground/04-hermes-agent-software-company-test-kaneo/packages/permissions
+@kaneo/permissions:test: > vitest run --config vitest.config.ts
+@kaneo/permissions:test: 
+@kaneo/libs:test: 
+@kaneo/libs:test: > @kaneo/libs@0.0.0 test /Users/aknipschild/github/hermes-agent-playground/04-hermes-agent-software-company-test-kaneo/packages/libs
+@kaneo/libs:test: > vitest run --config vitest.config.ts
+@kaneo/libs:test: 
+@kaneo/api:test: 
+@kaneo/api:test: > test:unit
+@kaneo/api:test: > vitest run --config vitest.config.ts
+@kaneo/api:test: 
+@kaneo/libs:test: (!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+@kaneo/libs:test:   - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+@kaneo/libs:test: Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+@kaneo/email:test: (!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+@kaneo/email:test:   - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+@kaneo/email:test: Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+@kaneo/web:test: (!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+@kaneo/web:test:   - `__dirname` (vitest.config.ts:17:25). Use `import.meta.dirname` instead
+@kaneo/web:test: Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+@kaneo/libs:test: 
+@kaneo/libs:test: [1m[30m[46m RUN [49m[39m[22m [36mv4.1.10 [39m[90m/Users/aknipschild/github/hermes-agent-playground/04-hermes-agent-software-company-test-kaneo/packages/libs[39m
+@kaneo/libs:test: 
+@kaneo/email:test: 
+@kaneo/email:test: [1m[30m[46m RUN [49m[39m[22m [36mv4.1.10 [39m[90m/Users/aknipschild/github/hermes-agent-playground/04-hermes-agent-software-company-test-kaneo/packages/email[39m
+@kaneo/email:test: 
+@kaneo/mcp:test: 
+@kaneo/mcp:test: [1m[30m[46m RUN [49m[39m[22m [36mv4.1.10 [39m[90m/Users/aknipschild/github/hermes-agent-playground/04-hermes-agent-software-company-test-kaneo/packages/mcp[39m
+@kaneo/mcp:test: 
+@kaneo/planka-import:test: 
+@kaneo/permissions:test: 
+@kaneo/planka-import:test: [1m[30m[46m RUN [49m[39m[22m [36mv4.1.10 [39m[90m/Users/aknipschild/github/hermes-agent-playground/04-hermes-agent-software-company-test-kaneo/packages/planka-import[39m
+@kaneo/planka-import:test: 
+@kaneo/permissions:test: [1m[30m[46m RUN [49m[39m[22m [36mv4.1.10 [39m[90m/Users/aknipschild/github/hermes-agent-playground/04-hermes-agent-software-company-test-kaneo/packages/permissions[39m
+@kaneo/permissions:test: 
+@kaneo/web:test: 
+@kaneo/web:test: [1m[30m[46m RUN [49m[39m[22m [36mv4.1.10 [39m[90m/Users/aknipschild/github/hermes-agent-playground/04-hermes-agent-software-company-test-kaneo/apps/web[39m
+@kaneo/web:test: 
+@kaneo/libs:test:  [32m✓[39m src/api-url.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 4[2mms[22m[39m
+@kaneo/libs:test: 
+@kaneo/libs:test: [2m Test Files [22m [1m[32m1 passed[39m[22m[90m (1)[39m
+@kaneo/libs:test: [2m      Tests [22m [1m[32m3 passed[39m[22m[90m (3)[39m
+@kaneo/libs:test: [2m   Start at [22m 21:52:26
+@kaneo/libs:test: [2m   Duration [22m 812ms[2m (transform 73ms, setup 0ms, import 241ms, tests 4ms, environment 0ms)[22m
+@kaneo/libs:test: 
+@kaneo/email:test:  [32m✓[39m src/smtp-config.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 4[2mms[22m[39m
+@kaneo/api:test: Both esbuild and oxc options were set. oxc options will be used and esbuild options will be ignored. The following esbuild options were set: `{ target: 'node18' }`
+@kaneo/planka-import:test:  [32m✓[39m src/args.test.ts [2m([22m[2m9 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+@kaneo/permissions:test:  [32m✓[39m src/index.test.ts [2m([22m[2m10 tests[22m[2m)[22m[32m 13[2mms[22m[39m
+@kaneo/permissions:test: 
+@kaneo/permissions:test: [2m Test Files [22m [1m[32m1 passed[39m[22m[90m (1)[39m
+@kaneo/permissions:test: [2m      Tests [22m [1m[32m10 passed[39m[22m[90m (10)[39m
+@kaneo/permissions:test: [2m   Start at [22m 21:52:26
+@kaneo/permissions:test: [2m   Duration [22m 993ms[2m (transform 149ms, setup 0ms, import 319ms, tests 13ms, environment 0ms)[22m
+@kaneo/permissions:test: 
+@kaneo/mcp:test:  [32m✓[39m src/install/merge-config.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 2[2mms[22m[39m
+@kaneo/planka-import:test:  [32m✓[39m src/mapping.test.ts [2m([22m[2m15 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+@kaneo/planka-import:test:  [32m✓[39m src/keys.test.ts [2m([22m[2m11 tests[22m[2m)[22m[32m 11[2mms[22m[39m
+@kaneo/planka-import:test:  [32m✓[39m src/planka.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 28[2mms[22m[39m
+@kaneo/api:test: 
+@kaneo/api:test: [1m[30m[46m RUN [49m[39m[22m [36mv4.1.10 [39m[90m/Users/aknipschild/github/hermes-agent-playground/04-hermes-agent-software-company-test-kaneo/apps/api[39m
+@kaneo/api:test: 
+@kaneo/mcp:test:  [32m✓[39m src/kaneo/task-helpers.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 4[2mms[22m[39m
+@kaneo/mcp:test:  [32m✓[39m src/utils/normalize-base-url.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+@kaneo/planka-import:test:  [32m✓[39m src/migrate.test.ts [2m([22m[2m14 tests[22m[2m)[22m[32m 32[2mms[22m[39m
+@kaneo/planka-import:test: 
+@kaneo/planka-import:test: [2m Test Files [22m [1m[32m5 passed[39m[22m[90m (5)[39m
+@kaneo/planka-import:test: [2m      Tests [22m [1m[32m54 passed[39m[22m[90m (54)[39m
+@kaneo/planka-import:test: [2m   Start at [22m 21:52:26
+@kaneo/planka-import:test: [2m   Duration [22m 1.36s[2m (transform 1.18s, setup 0ms, import 1.72s, tests 85ms, environment 1ms)[22m
+@kaneo/planka-import:test: 
+@kaneo/mcp:test:  [32m✓[39m src/auth/device-flow.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 136[2mms[22m[39m
+@kaneo/mcp:test: [90mstderr[2m | src/auth/auth-service.test.ts[2m > [22m[2mAuthService[2m > [22m[2mclears the cached token and starts device auth after a 401
+@kaneo/mcp:test: [22m[39m[kaneo-mcp] Open https://verify.example.com and approve this device. User code: ABCD-EFGH
+@kaneo/mcp:test: 
+@kaneo/mcp:test:  [32m✓[39m src/auth/auth-service.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 116[2mms[22m[39m
+@kaneo/mcp:test:  [32m✓[39m src/kaneo/client.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 146[2mms[22m[39m
+@kaneo/mcp:test:  [32m✓[39m src/install/parse-install-args.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+@kaneo/mcp:test:  [32m✓[39m src/tools/register.test.ts [2m([22m[2m13 tests[22m[2m)[22m[33m 434[2mms[22m[39m
+@kaneo/mcp:test: 
+@kaneo/mcp:test: [2m Test Files [22m [1m[32m8 passed[39m[22m[90m (8)[39m
+@kaneo/mcp:test: [2m      Tests [22m [1m[32m33 passed[39m[22m[90m (33)[39m
+@kaneo/mcp:test: [2m   Start at [22m 21:52:26
+@kaneo/mcp:test: [2m   Duration [22m 2.81s[2m (transform 4.63s, setup 0ms, import 7.64s, tests 853ms, environment 47ms)[22m
+@kaneo/mcp:test: 
+@kaneo/api:test:  [32m✓[39m ../../tests/api/utils/openapi-spec.test.ts [2m([22m[2m8 tests[22m[2m)[22m[32m 70[2mms[22m[39m
+@kaneo/api:test:  [32m✓[39m ../../tests/api/user/avatar.test.ts [2m([22m[2m11 tests[22m[2m)[22m[32m 89[2mms[22m[39m
+@kaneo/email:test: [90mstderr[2m | src/templates/otp.test.ts[2m > [22m[2mOtpEmail[2m > [22m[2mrenders OTP and verification copy in HTML
+@kaneo/email:test: [22m[39mYour app (or one of its dependencies) is using an outdated JSX transform. Update to the modern JSX transform for faster performance: https://react.dev/link/new-jsx-transform
+@kaneo/email:test: 
+@kaneo/email:test:  [32m✓[39m src/templates/otp.test.ts [2m([22m[2m1 test[22m[2m)[22m[33m 550[2mms[22m[39m
+@kaneo/email:test:      [33m[2m✓[22m[39m renders OTP and verification copy in HTML [33m 548[2mms[22m[39m
+@kaneo/email:test: [90mstderr[2m | src/templates/workspace-invitation.test.ts[2m > [22m[2mWorkspaceInvitationEmail[2m > [22m[2mrenders the invitation in French for a French locale
+@kaneo/email:test: [22m[39mYour app (or one of its dependencies) is using an outdated JSX transform. Update to the modern JSX transform for faster performance: https://react.dev/link/new-jsx-transform
+@kaneo/email:test: 
+@kaneo/email:test:  [32m✓[39m src/templates/workspace-invitation.test.ts [2m([22m[2m1 test[22m[2m)[22m[33m 629[2mms[22m[39m
+@kaneo/email:test:      [33m[2m✓[22m[39m renders the invitation in French for a French locale [33m 625[2mms[22m[39m
+@kaneo/email:test: 
+@kaneo/email:test: [2m Test Files [22m [1m[32m3 passed[39m[22m[90m (3)[39m
+@kaneo/email:test: [2m      Tests [22m [1m[32m9 passed[39m[22m[90m (9)[39m
+@kaneo/email:test: [2m   Start at [22m 21:52:26
+@kaneo/email:test: [2m   Duration [22m 5.32s[2m (transform 914ms, setup 0ms, import 8.95s, tests 1.18s, environment 0ms)[22m
+@kaneo/email:test: 
+@kaneo/api:test:  [32m✓[39m ../../tests/api/redis/redis-priority.test.ts [2m([22m[2m9 tests[22m[2m)[22m[33m 326[2mms[22m[39m
+@kaneo/api:test:  [32m✓[39m ../../tests/api/redis/redis-config.test.ts [2m([22m[2m25 tests[22m[2m)[22m[32m 17[2mms[22m[39m
+@kaneo/api:test: [90mstdout[2m | ../../tests/api/ws/broadcast.test.ts[2m > [22m[2mbroadcastToProject[2m > [22m[2mdelivers messages to connected clients after batch timeout
+@kaneo/api:test: [22m[39m📡 WebSockets Initialized using: "InMemoryBroadcastAdapter"
+@kaneo/api:test: 
+@kaneo/api:test: [90mstdout[2m | ../../tests/api/ws/broadcast.test.ts[2m > [22m[2mbroadcastToProject[2m > [22m[2mexcludes connections matching excludeInitiatorId
+@kaneo/api:test: [22m[39m📡 WebSockets Initialized using: "InMemoryBroadcastAdapter"
+@kaneo/api:test: 
+@kaneo/api:test:  [32m✓[39m ../../tests/api/mcp-tools.test.ts [2m([22m[2m14 tests[22m[2m)[22m[33m 629[2mms[22m[39m
+@kaneo/api:test: [90mstdout[2m | ../../tests/api/ws/broadcast.test.ts[2m > [22m[2mbroadcastToProject[2m > [22m[2mdeduplicates messages with the same key in a batch window
+@kaneo/api:test: [22m[39m📡 WebSockets Initialized using: "InMemoryBroadcastAdapter"
+@kaneo/api:test: 
+@kaneo/api:test: [90mstdout[2m | ../../tests/api/ws/broadcast.test.ts[2m > [22m[2mbroadcastToProject[2m > [22m[2mdoes not deliver to connections on a different project
+@kaneo/api:test: [22m[39m📡 WebSockets Initialized using: "InMemoryBroadcastAdapter"
+@kaneo/api:test: 
+@kaneo/api:test: [90mstdout[2m | ../../tests/api/ws/broadcast.test.ts[2m > [22m[2mbroadcastToProject[2m > [22m[2mwarns when called before adapter initialization
+@kaneo/api:test: [22m[39m📡 WebSockets Initialized using: "InMemoryBroadcastAdapter"
+@kaneo/api:test: 
+@kaneo/api:test:  [32m✓[39m ../../tests/api/ws/broadcast.test.ts [2m([22m[2m5 tests[22m[2m)[22m[33m 761[2mms[22m[39m
+@kaneo/api:test:      [33m[2m✓[22m[39m delivers messages to connected clients after batch timeout [33m 302[2mms[22m[39m
+@kaneo/api:test: [90mstderr[2m | ../../tests/api/utils/verify-turnstile.test.ts[2m > [22m[2mverifyTurnstile[2m > [22m[2mfails gracefully when the fetch throws
+@kaneo/api:test: [22m[39mTurnstile verification request failed Error: network down
+@kaneo/api:test:     at /Users/aknipschild/github/hermes-agent-playground/04-hermes-agent-software-company-test-kaneo/tests/api/utils/verify-turnstile.test.ts:71:26
+@kaneo/api:test:     at file:///Users/aknipschild/github/hermes-agent-playground/04-hermes-agent-software-company-test-kaneo/node_modules/[4m.pnpm[24m/@vitest+runner@4.1.10/node_modules/[4m@vitest/runner[24m/dist/chunk-artifact.js:302:11
+@kaneo/api:test:     at file:///Users/aknipschild/github/hermes-agent-playground/04-hermes-agent-software-company-test-kaneo/node_modules/[4m.pnpm[24m/@vitest+runner@4.1.10/node_modules/[4m@vitest/runner[24m/dist/chunk-artifact.js:1903:26
+@kaneo/api:test:     at file:///Users/aknipschild/github/hermes-agent-playground/04-hermes-agent-software-company-test-kaneo/node_modules/[4m.pnpm[24m/@vitest+runner@4.1.10/node_modules/[4m@vitest/runner[24m/dist/chunk-artifact.js:2326:20
+@kaneo/api:test:     at new Promise (<anonymous>)
+@kaneo/api:test:     at runWithCancel (file:///Users/aknipschild/github/hermes-agent-playground/04-hermes-agent-software-company-test-kaneo/node_modules/[4m.pnpm[24m/@vitest+runner@4.1.10/node_modules/[4m@vitest/runner[24m/dist/chunk-artifact.js:2323:10)
+@kaneo/api:test:     at file:///Users/aknipschild/github/hermes-agent-playground/04-hermes-agent-software-company-test-kaneo/node_modules/[4m.pnpm[24m/@vitest+runner@4.1.10/node_modules/[4m@vitest/runner[24m/dist/chunk-artifact.js:2305:20
+@kaneo/api:test:     at new Promise (<anonymous>)
+@kaneo/api:test:     at runWithTimeout (file:///Users/aknipschild/github/hermes-agent-playground/04-hermes-agent-software-company-test-kaneo/node_modules/[4m.pnpm[24m/@vitest+runner@4.1.10/node_modules/[4m@vitest/runner[24m/dist/chunk-artifact.js:2272:10)
+@kaneo/api:test:     at file:///Users/aknipschild/github/hermes-agent-playground/04-hermes-agent-software-company-test-kaneo/node_modules/[4m.pnpm[24m/@vitest+runner@4.1.10/node_modules/[4m@vitest/runner[24m/dist/chunk-artifact.js:2955:64
+@kaneo/api:test: 
+@kaneo/api:test:  [32m✓[39m ../../tests/api/utils/verify-turnstile.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 150[2mms[22m[39m
+@kaneo/api:test:  [32m✓[39m ../../tests/api/ws/connections.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 75[2mms[22m[39m
+@kaneo/api:test:  [32m✓[39m ../../tests/api/gitea-integration/verify-gitea-access-fetch.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 191[2mms[22m[39m
+@kaneo/api:test: [90mstdout[2m | ../../tests/api/database/prepare-database-startup.test.ts[2m > [22m[2mprepare-database-startup[2m > [22m[2msurfaces safe database details and skips migrations when readiness fails
+@kaneo/api:test: [22m[39m🔄 Preparing database startup {
+@kaneo/api:test:   source: [32m'POSTGRES_ENV'[39m,
+@kaneo/api:test:   host: [32m'postgres'[39m,
+@kaneo/api:test:   port: [33m5432[39m,
+@kaneo/api:test:   database: [32m'kaneo'[39m,
+@kaneo/api:test:   username: [32m'kaneo'[39m
+@kaneo/api:test: }
+@kaneo/api:test: 
+@kaneo/api:test: [90mstdout[2m | ../../tests/api/database/prepare-database-startup.test.ts[2m > [22m[2mprepare-database-startup[2m > [22m[2mlogs migration failures separately from readiness failures
+@kaneo/api:test: [22m[39m🔄 Preparing database startup {
+@kaneo/api:test:   source: [32m'POSTGRES_ENV'[39m,
+@kaneo/api:test:   host: [32m'postgres'[39m,
+@kaneo/api:test:   port: [33m5432[39m,
+@kaneo/api:test:   database: [32m'kaneo'[39m,
+@kaneo/api:test:   username: [32m'kaneo'[39m
+@kaneo/api:test: }
+@kaneo/api:test: 
+@kaneo/api:test:  [32m✓[39m ../../tests/api/plugins/gitea-ssrf.test.ts [2m([22m[2m12 tests[22m[2m)[22m[32m 126[2mms[22m[39m
+@kaneo/api:test:  [32m✓[39m ../../tests/api/database/prepare-database-startup.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 21[2mms[22m[39m
+@kaneo/api:test:  [32m✓[39m ../../tests/api/column/to-slug.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+@kaneo/api:test:  [32m✓[39m ../../tests/api/utils/is-disposable-email.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 4[2mms[22m[39m
+@kaneo/api:test:  [32m✓[39m ../../tests/api/github-integration/verify-github-installation.test.ts [2m([22m[2m12 tests[22m[2m)[22m[32m 121[2mms[22m[39m
+@kaneo/api:test:  [32m✓[39m ../../tests/api/utils/assert-public-destination.test.ts [2m([22m[2m4 tests[22m[2m)[22m[33m 317[2mms[22m[39m
+@kaneo/api:test:      [33m[2m✓[22m[39m blocks the ranges a webhook must never reach [33m 310[2mms[22m[39m
+@kaneo/api:test:  [32m✓[39m ../../tests/api/label/assign-and-unassign-label.test.ts [2m([22m[2m10 tests[22m[2m)[22m[32m 114[2mms[22m[39m
+@kaneo/api:test:  [32m✓[39m ../../tests/api/utils/workspace-access-middleware.test.ts [2m([22m[2m3 tests[22m[2m)[22m[33m 565[2mms[22m[39m
+@kaneo/api:test:      [33m[2m✓[22m[39m authorizes against the body id the handler will act on [33m 316[2mms[22m[39m
+@kaneo/api:test:  [32m✓[39m ../../tests/api/plugins/github/utils/branch-matcher.test.ts [2m([22m[2m16 tests[22m[2m)[22m[33m 343[2mms[22m[39m
+@kaneo/api:test:  [32m✓[39m ../../tests/api/plugins/generic-webhook/config-reminders.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 201[2mms[22m[39m
+@kaneo/api:test:  [32m✓[39m ../../tests/api/time-entry/update-time-entry.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 57[2mms[22m[39m
+@kaneo/api:test:  [32m✓[39m ../../tests/api/storage/s3.test.ts [2m([22m[2m21 tests[22m[2m)[22m[33m 745[2mms[22m[39m
+@kaneo/api:test:      [33m[2m✓[22m[39m creates presigned upload URLs without hoisted checksum query params [33m 358[2mms[22m[39m
+@kaneo/api:test:  [32m✓[39m ../../tests/api/billing/trial-identity.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+@kaneo/api:test:  [32m✓[39m ../../tests/api/scheduler/reminder-timing.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 67[2mms[22m[39m
+@kaneo/api:test:  [32m✓[39m ../../tests/api/billing/config.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 90[2mms[22m[39m
+@kaneo/api:test:  [32m✓[39m ../../tests/api/plugins/github/utils/extract-priority.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+@kaneo/api:test:  [32m✓[39m ../../tests/api/mcp-oauth-security.test.ts [2m([22m[2m6 tests[22m[2m)[22m[33m 1069[2mms[22m[39m
+@kaneo/api:test:      [33m[2m✓[22m[39m rejects empty and unsafe redirect URI registrations [33m 418[2mms[22m[39m
+@kaneo/api:test:      [33m[2m✓[22m[39m requires explicit same-origin approval before issuing a code [33m 361[2mms[22m[39m
+@kaneo/api:test:  [32m✓[39m ../../tests/api/plugins/github/utils/parse-link-metadata.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 60[2mms[22m[39m
+@kaneo/api:test:  [32m✓[39m ../../tests/api/plugins/github/utils/resolve-private-key.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 196[2mms[22m[39m
+@kaneo/api:test:  [32m✓[39m ../../tests/api/ws/in-memory-broadcast-adapter.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 82[2mms[22m[39m
+@kaneo/api:test:  [32m✓[39m ../../tests/api/utils/authorize-asset-access.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 82[2mms[22m[39m
+@kaneo/api:test:  [32m✓[39m ../../tests/api/user/account-deletion.test.ts [2m([22m[2m11 tests[22m[2m)[22m[32m 104[2mms[22m[39m
+@kaneo/api:test:  [32m✓[39m ../../tests/api/events/publish-event.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 88[2mms[22m[39m
+@kaneo/api:test: [90mstderr[2m | ../../tests/api/plugins/github/utils/labels.test.ts[2m > [22m[2mgithub labels helpers[2m > [22m[2mrethrows unexpected label removal errors
+@kaneo/api:test: [22m[39mFailed to remove label "status:done" from issue: Error: gone
+@kaneo/api:test:     at /Users/aknipschild/github/hermes-agent-playground/04-hermes-agent-software-company-test-kaneo/tests/api/plugins/github/utils/labels.test.ts:80:19
+@kaneo/api:test:     at file:///Users/aknipschild/github/hermes-agent-playground/04-hermes-agent-software-company-test-kaneo/node_modules/[4m.pnpm[24m/@vitest+runner@4.1.10/node_modules/[4m@vitest/runner[24m/dist/chunk-artifact.js:302:11
+@kaneo/api:test:     at file:///Users/aknipschild/github/hermes-agent-playground/04-hermes-agent-software-company-test-kaneo/node_modules/[4m.pnpm[24m/@vitest+runner@4.1.10/node_modules/[4m@vitest/runner[24m/dist/chunk-artifact.js:1903:26
+@kaneo/api:test:     at file:///Users/aknipschild/github/hermes-agent-playground/04-hermes-agent-software-company-test-kaneo/node_modules/[4m.pnpm[24m/@vitest+runner@4.1.10/node_modules/[4m@vitest/runner[24m/dist/chunk-artifact.js:2326:20
+@kaneo/api:test:     at new Promise (<anonymous>)
+@kaneo/api:test:     at runWithCancel (file:///Users/aknipschild/github/hermes-agent-playground/04-hermes-agent-software-company-test-kaneo/node_modules/[4m.pnpm[24m/@vitest+runner@4.1.10/node_modules/[4m@vitest/runner[24m/dist/chunk-artifact.js:2323:10)
+@kaneo/api:test:     at file:///Users/aknipschild/github/hermes-agent-playground/04-hermes-agent-software-company-test-kaneo/node_modules/[4m.pnpm[24m/@vitest+runner@4.1.10/node_modules/[4m@vitest/runner[24m/dist/chunk-artifact.js:2305:20
+@kaneo/api:test:     at new Promise (<anonymous>)
+@kaneo/api:test:     at runWithTimeout (file:///Users/aknipschild/github/hermes-agent-playground/04-hermes-agent-software-company-test-kaneo/node_modules/[4m.pnpm[24m/@vitest+runner@4.1.10/node_modules/[4m@vitest/runner[24m/dist/chunk-artifact.js:2272:10)
+@kaneo/api:test:     at file:///Users/aknipschild/github/hermes-agent-playground/04-hermes-agent-software-company-test-kaneo/node_modules/[4m.pnpm[24m/@vitest+runner@4.1.10/node_modules/[4m@vitest/runner[24m/dist/chunk-artifact.js:2955:64
+@kaneo/api:test: 
+@kaneo/api:test:  [32m✓[39m ../../tests/api/plugins/github/utils/labels.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 74[2mms[22m[39m
+@kaneo/api:test:  [31m❯[39m ../../tests/api/mcp-internal-api-url.test.ts [2m([22m[2m3 tests[22m[2m | [22m[31m2 failed[39m[2m)[22m[33m 10699[2mms[22m[39m
+@kaneo/api:test: [31m     [31m×[31m advertises the public URL while fetching tools through the internal URL[39m[33m 8912[2mms[22m[39m
+@kaneo/api:test: [31m     [31m×[31m uses the configured internal URL http://api.internal:1337/api/ without duplicate slashes[39m[33m 1663[2mms[22m[39m
+@kaneo/api:test:      [32m✓[39m uses the configured internal URL http://api.internal:1337/ without duplicate slashes[32m 116[2mms[22m[39m
+@kaneo/api:test:  [32m✓[39m ../../tests/api/utils/generate-demo-name.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 4[2mms[22m[39m
+@kaneo/api:test:  [32m✓[39m ../../tests/api/utils/validate-dates.test.ts [2m([22m[2m12 tests[22m[2m)[22m[32m 15[2mms[22m[39m
+@kaneo/api:test:  [32m✓[39m ../../tests/api/mcp-stateless.test.ts [2m([22m[2m14 tests[22m[2m)[22m[33m 1371[2mms[22m[39m
+@kaneo/api:test:      [33m[2m✓[22m[39m serves tools/list on independent HTTP requests without session IDs [33m 641[2mms[22m[39m
+@kaneo/api:test:  [32m✓[39m ../../tests/api/database/wait-for-database.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+@kaneo/api:test:  [32m✓[39m ../../tests/api/utils/check-workspace-name.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 3[2mms[22m[39m
+@kaneo/api:test:  [32m✓[39m ../../tests/api/utils/github-sso-env.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+@kaneo/api:test:  [32m✓[39m ../../tests/api/utils/get-default-cookie-attributes.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 11[2mms[22m[39m
+@kaneo/api:test:  [32m✓[39m ../../tests/api/billing/subscription-state.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 110[2mms[22m[39m
+@kaneo/api:test:  [32m✓[39m ../../tests/api/database/resolve-database-url.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 4[2mms[22m[39m
+@kaneo/api:test:  [32m✓[39m ../../tests/api/gitea-integration/verify-gitea-access.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 152[2mms[22m[39m
+@kaneo/api:test:  [32m✓[39m ../../tests/api/plugins/github/config.test.ts [2m([22m[2m4 tests[22m[2m)[22m[33m 314[2mms[22m[39m
+@kaneo/api:test:  [32m✓[39m ../../tests/api/search/task-short-id-pattern.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 75[2mms[22m[39m
+@kaneo/api:test:  [32m✓[39m ../../tests/api/label/delete-label.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 146[2mms[22m[39m
+@kaneo/api:test:  [32m✓[39m ../../tests/api/utils/create-fk-supporting-indexes.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+@kaneo/api:test:  [32m✓[39m ../../tests/api/utils/to-normal-case.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 4[2mms[22m[39m
+@kaneo/api:test:  [32m✓[39m ../../tests/api/plugins/generic-webhook/events.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 29[2mms[22m[39m
+@kaneo/api:test:  [32m✓[39m ../../tests/api/utils/is-local-sign-in-path.test.ts [2m([22m[2m8 tests[22m[2m)[22m[32m 4[2mms[22m[39m
+@kaneo/api:test:  [32m✓[39m ../../tests/api/plugins/github/webhooks/issue-opened.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 3[2mms[22m[39m
+@kaneo/api:test:  [32m✓[39m ../../tests/api/utils/custom-oauth-profile.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+@kaneo/api:test:  [32m✓[39m ../../tests/api/utils/get-invitation-email-subject.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+@kaneo/api:test:  [32m✓[39m ../../tests/api/plugins/github/utils/format.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 80[2mms[22m[39m
+@kaneo/api:test:  [32m✓[39m ../../tests/api/search/like-pattern.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+@kaneo/api:test:  [32m✓[39m ../../tests/api/billing/entitlement.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 14[2mms[22m[39m
+@kaneo/web:test:  [32m✓[39m src/components/team/invitation-link-field.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[33m 1114[2mms[22m[39m
+@kaneo/web:test:      [33m[2m✓[22m[39m shows the full accept URL so it can be read and copied by hand [33m 877[2mms[22m[39m
+@kaneo/api:test:  [32m✓[39m ../../tests/api/plugins/gitea/webhooks/issue-opened.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+@kaneo/api:test: 
+@kaneo/api:test: [31m⎯⎯⎯⎯⎯⎯⎯[39m[1m[41m Failed Tests 2 [49m[22m[31m⎯⎯⎯⎯⎯⎯⎯[39m
+@kaneo/api:test: 
+@kaneo/api:test: [41m[1m FAIL [22m[49m ../../tests/api/mcp-internal-api-url.test.ts[2m > [22mMCP API URLs[2m > [22madvertises the public URL while fetching tools through the internal URL
+@kaneo/api:test: [31m[1mError[22m: Test timed out in 5000ms.
+@kaneo/api:test: If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".[39m
+@kaneo/api:test: [36m [2m❯[22m ../../tests/api/mcp-internal-api-url.test.ts:[2m59:3[22m[39m
+@kaneo/api:test:     [90m 57|[39m
+@kaneo/api:test:     [90m 58|[39m [34mdescribe[39m([32m"MCP API URLs"[39m[33m,[39m () [33m=>[39m {
+@kaneo/api:test:     [90m 59|[39m   it("advertises the public URL while fetching tools through the inter…
+@kaneo/api:test:     [90m   |[39m   [31m^[39m
+@kaneo/api:test:     [90m 60|[39m     [35mconst[39m apiFetch [33m=[39m vi[33m.[39m[34mfn[39m([35masync[39m () [33m=>[39m
+@kaneo/api:test:     [90m 61|[39m       [33mResponse[39m[33m.[39m[34mjson[39m({ user[33m:[39m { id[33m:[39m [32m"test-user"[39m } })[33m,[39m
+@kaneo/api:test: 
+@kaneo/api:test: [31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯[22m[39m
+@kaneo/api:test: 
+@kaneo/api:test: [41m[1m FAIL [22m[49m ../../tests/api/mcp-internal-api-url.test.ts[2m > [22mMCP API URLs[2m > [22muses the configured internal URL http://api.internal:1337/api/ without duplicate slashes
+@kaneo/api:test: [31m[1mAssertionError[22m: expected "vi.fn()" to be called once, but got 2 times[39m
+@kaneo/api:test: [36m [2m❯[22m ../../tests/api/mcp-internal-api-url.test.ts:[2m100:24[22m[39m
+@kaneo/api:test:     [90m 98|[39m
+@kaneo/api:test:     [90m 99|[39m       [34mexpect[39m(toolResponse[33m.[39mstatus)[33m.[39m[34mtoBe[39m([34m200[39m)[33m;[39m
+@kaneo/api:test: 
+@kaneo/api:test: [2m Test Files [22m [1m[31m1 failed[39m[22m[2m | [22m[1m[32m57 passed[39m[22m[90m (58)[39m
+@kaneo/api:test: [2m      Tests [22m [1m[31m2 failed[39m[22m[2m | [22m[1m[32m372 passed[39m[22m[90m (374)[39m
+@kaneo/api:test: [2m   Start at [22m 21:52:27
+@kaneo/api:test: [2m   Duration [22m 18.17s[2m (transform 26.21s, setup 0ms, import 107.74s, tests 19.94s, environment 18ms)[22m
+@kaneo/api:test: 
+@kaneo/api:test:     [90m100|[39m       [34mexpect[39m(apiFetch)[33m.[39m[34mtoHaveBeenCalledOnce[39m()[33m;[39m
+@kaneo/api:test:     [90m   |[39m                        [31m^[39m
+@kaneo/api:test:     [90m101|[39m       [34mexpect[39m([33mString[39m(apiFetch[33m.[39mmock[33m.[39mcalls[[34m0[39m][33m?.[39m[[34m0[39m]))[33m.[39m[34mtoBe[39m(
+@kaneo/api:test:     [90m102|[39m         [32m"http://api.internal:1337/api/auth/get-session"[39m[33m,[39m
+@kaneo/api:test: 
+@kaneo/api:test: [31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯[22m[39m
+@kaneo/api:test: 
+@kaneo/api:test:  ELIFECYCLE  Test failed. See above for more details.
+@kaneo/web:test:  ELIFECYCLE  Test failed. See above for more details.
+@kaneo/api#test:  ERROR  command (/Users/aknipschild/github/hermes-agent-playground/04-hermes-agent-software-company-test-kaneo/apps/api) /Users/aknipschild/.local/bin/pnpm run test exited (1)
+
+ Tasks:    8 successful, 10 total
+Cached:    3 cached, 10 total
+  Time:    21.455s 
+Failed:    @kaneo/api#test
+
+ ERROR  run failed: command  exited (1)
+ ELIFECYCLE  Test failed. See above for more details.
+───── Ende ─────
+
+✗ VERWEIGERT: Die Unit-Tests sind rot.
+
+Der Riegel merged nicht. Ursache beheben, dann erneut aufrufen.
+Nicht umgehen — 'git merge' von Hand ist ein Governance-Verstoss und
+monitor.sh meldet einen Merge ohne Riegel-Protokoll.

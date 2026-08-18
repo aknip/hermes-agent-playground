@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <title>Schätzung R1-F1 — S2 F1 2/4 — ESF</title>
+  <meta name="esf-typ" content="report">
+  <meta name="esf-karte" content="t_77a13161">
+  <meta name="esf-datum" content="2026-08-17">
+  <style>
+    body{font:16px/1.65 -apple-system,system-ui,sans-serif;max-width:56rem;margin:2rem auto;padding:0 1rem}
+    h1{border-bottom:3px solid #111;padding-bottom:.4rem}
+    h2{margin-top:2.4rem;border-bottom:1px solid #ddd;padding-bottom:.2rem}
+    table{border-collapse:collapse;width:100%;margin:1rem 0}
+    td,th{border-bottom:1px solid #ddd;padding:.45rem .5rem;text-align:left;vertical-align:top}
+    th{background:#fafafa}
+    code{background:#f3f3f3;padding:.1rem .3rem;border-radius:3px;font-size:14px}
+    .meta{color:#666;font-size:14px}
+    .beleg{color:#444;font-size:13.5px}
+    .kern{border-left:4px solid #111;background:#fafafa;padding:.8rem 1rem;margin:1rem 0}
+    .faktor{background:#fff7ed;border-left:4px solid #ea580c;padding:.4rem 1rem;margin:.8rem 0}
+  </style>
+</head>
+<body>
+<h1>Schätzung R1-F1 — die drei Folgekarten</h1>
+<p class="meta">Karte <code>t_77a13161</code> · S2 F1 2/4 · 2026-08-17 · Profil esf-estimator · CEONeuauflage „Schätzung der restlichen R1-Features vor dem Start“ (<code>roadmap/q1-freigegeben.html</code>)</p>
+
+<p class="beleg">Quellen: <code>ledger/estimates.jsonl</code> (S1-Paare und Backfill, Zeilennummern unten),
+<code>reports/controller-s1.html</code> (Schätzgüte-Baseline, Abschnitt §2),
+<code>specs/r1-f1-suche.html</code> (Zielstruktur &amp; Berührungspunkte §6, Karte <code>t_21eb98bf</code>),
+<code>ledger/kosten-je-rolle.jsonl</code> (Rollenkosten).</p>
+
+<h2>Das Wichtigste in drei Minuten</h2>
+<div class="kern">
+<p>Der Unterschied zu S1: <b>das Ledger trägt jetzt echte (Schätzung, Ist)-Paare</b> — je
+Referenzklasse liegt der Faktor aus S1 vor und wird <b>benannt und angewendet</b>, statt ihn
+still neu zu erfinden.</p>
+<table>
+  <thead><tr><th>Karte</th><th>Referenzklasse</th><th>p50</th><th>p90</th><th>Konfidenz</th><th>S1-Faktor</th></tr></thead>
+  <tbody>
+    <tr><td>S2 F1 3/4 Umsetzung</td><td><code>impl-worktree-M</code></td><td>35</td><td>60</td><td>0.35</td><td>0,47 (bereinigt)</td></tr>
+    <tr><td>S2 F1 4/4 Review</td><td><code>review-repo-M</code></td><td>25</td><td>45</td><td>0.30</td><td>0,71</td></tr>
+    <tr><td>S2 Merge F1</td><td><code>merge-repo-S</code></td><td>8</td><td>30</td><td>0.30</td><td>0,27</td></tr>
+    <tr><td>Diese Karte selbst</td><td><code>estimate-vault-S</code></td><td>6</td><td>15</td><td>0.25</td><td>0,20</td></tr>
+  </tbody>
+</table>
+<p class="beleg">tokens_k und cost_usd bleiben <code>null</code>: Hermes misst keine Tokens je Karte; der
+OpenRouter-Zähler läuft kumulativ je Rolle (AGENTS.md §6). Ein hineingeschriebener Wert wäre die
+vergiftete Kalibrierung. Die Rollenkosten aus S1 stehen unten (§5).</p>
+</div>
+
+<h2>1. Die S1-Baseline — Faktoren, die jetzt gelten</h2>
+<p>Aus <code>reports/controller-s1.html</code> §2 und <code>ledger/estimates.jsonl</code>. Der
+Quotient ist Ist-Wanduhrminuten ÷ p50-Schätzung.</p>
+<table>
+  <thead><tr><th>Referenzklasse</th><th>Paar-Karte</th><th>Schätzung p50/p90</th><th>Ist (min)</th><th>Ist/Schätzung</th></tr></thead>
+  <tbody>
+    <tr><td><code>impl-worktree-M</code></td><td><code>t_6c366810</code> (Zeile 14)</td><td>70 / 110</td><td>114 Roh · <b>33 bereinigt</b></td><td>1,63 Roh · <b>0,47 bereinigt</b></td></tr>
+    <tr><td><code>review-repo-M</code></td><td><code>t_83b0c34a</code> (Zeile 15)</td><td>35 / 60</td><td>25</td><td><b>0,71</b></td></tr>
+    <tr><td><code>merge-repo-S</code></td><td><code>t_aa39ea8d</code> (Zeile 22)</td><td>15 / 40</td><td>4</td><td><b>0,27</b></td></tr>
+    <tr><td><code>estimate-vault-S</code></td><td><code>t_0965b04b</code> (Zeile 13)</td><td>20 / 40</td><td>4</td><td><b>0,20</b></td></tr>
+  </tbody>
+</table>
+<p>Für <code>impl-worktree-M</code> gilt der <b>bereinigte</b> Faktor 0,47, nicht die Rohzahl 1,63.
+Begründung aus <code>controller-s1.html</code> §2.1 (der Controller-Entscheid für S2): Die 81
+Wanduhrminuten der beiden Wachhund-Fehlkills (Lauf 6: 51, Lauf 7: 30) waren Werkzeugfehler, kein
+Arbeitsinhalt, und sind seit Commit <code>9d50da6</code> behoben. 33 ist die ehrliche Arbeitsspur.
+Ich wende 0,47 an — eine Zahl, die <b>unterschätzt wirkt</b> (die Klasse läuft schneller als der
+Plan), und genauso steht sie hier.</p>
+<p class="faktor"><b>Faktor impl-worktree-M = 0,47 (bereinigt).</b> Basis für die Umsetzungsschätzung
+unten ist die bereinigte Arbeitsspur 33 min aus S1, nicht die Rohzahl 114.</p>
+
+<h2>2. Karte 3/4 Umsetzung — <code>impl-worktree-M</code></h2>
+<p><b>S1-Paar:</b> <code>t_6c366810</code>, bereinigter Ist 33 min für eine M-Änderung über 6
+API-Dateien mit voller Verifikationsbatterie (Typecheck, 374 Unit-Tests, Integrationstests,
+8-Tests-E2E, Route-Parität, Build, Biome). <b>Backfill:</b> <code>impl-worktree-S</code>
+(<code>t_3f496fe8</code> 21 min, 1 Datei; <code>t_22dedbdf</code> 26 min, Nacharbeit).</p>
+<p><b>R1-F1-Umfang</b> (<code>specs/r1-f1-suche.html</code> §6 Berührungspunkte): der neue
+Header-Sucheinstieg über <code>common/layout.tsx</code> + eine neue
+<code>components/header-search.tsx</code>, verdrahtet durch
+<code>workspace-/project-/task-/settings-layout.tsx</code> und <code>routes/_layout.tsx</code>;
+<code>search-command-menu/index.tsx</code> nur für Fokus-Verhalten („max. Fokus-Verhalten“,
+Spec §6). Dazu der neue E2E-Spec <code>aufgabe-ueber-suche-finden.spec.ts</code> (J-07) — das ist
+<em>neue</em> Testarbeit, die R1-F5 (bestandene Suite, kein neuer Spec) nicht hatte.</p>
+<p><b>Faktor-Anwendung:</b> Naive M-Schätzung analog S1 ≈ 70 min (6–7 Dateien, volle Batterie).
+<code>70 × 0,47 ≈ 33</code>. R1-F1 ist frontend-only (kein API-Diff, kein
+<code>mcp-internal-api-url</code>-Flake-Risiko aus der eigenen Änderung), aber der neue E2E-Spec
+J-07 trägt Unsicherheit — er muss eine Nutzeraufgabe nachspielen, nicht Selektoren. Dazu
+Controller-Auflage <code>controller-s1.html</code> §8: <b>expliziter Wartungs-Puffer für
+Werkzeug-Retries</b> in jede Umsetzungs-Schätzung. Das reine Arbeitsspur-Mittel 33 sagt nichts
+über Retries; der Puffer hebt p90, nicht p50: <b>p50 35, p90 60.</b></p>
+<p class="beleg"><b>n=3</b> (1 M-Paar + 2 S-Backfills) → Konfidenz 0.35. Der eine M-Punkt ist
+bereinigt, die Backfills sind kleinere S-Änderungen — genug, um über S1 (0.30) zu steigen, zu
+wenig, um die 0.4-Grenze einer Klasse mit echten Paaren zu reißen.</p>
+
+<h2>3. Karte 4/4 Review — <code>review-repo-M</code></h2>
+<p><b>S1-Paar:</b> <code>t_83b0c34a</code>, Ist 25 min für das Review von 6 API-Dateien gegen 10
+Akzeptanzkriterien, inkl. selbst geführter Typecheck, 374 Unit-, Integrationstests und der vollen
+E2E-Suite. <b>Backfill:</b> <code>review-repo-S</code> (<code>t_43cc8968</code>, 2 min, 1 Datei,
+kurze Checkliste).</p>
+<p><b>R1-F1-Review-Umfang</b> (Karte <code>t_30a4e2e6</code>): jedes der <b>11</b>
+Akzeptanzkriterien der Spec einzeln mit Fundstelle, der Kern („Griff wirklich sichtbar?“) an der
+Komponente statt an der Beschreibung, Prüfung auf zweiten Suchpfad (Flächenvergrößerung),
+selbst geführte Suite im Worktree des Entwicklers (Typecheck, Tests, Postgres, Playwright), das
+neue J-07-Spec gelesen und der R1-F2-Überschneidungsdiff (<code>git diff --name-only
+main..feat/esf-r1-f1…</code> vs. <code>…r1-f2…</code>).</p>
+<p><b>Faktor-Anwendung:</b> Naive M-Review-Schätzung analog S1 ≈ 35. <code>35 × 0,71 ≈ 25</code>.
+R1-F1-Review ist inhaltlich vergleichbar (11 statt 10 AK, eine Datei mehr, gleiche Suite-Last); der
+überschneidungs-Check mit R1-F2 ist neu, aber billig (ein Diff). p90 45 (Suite im Review-Lauf,
+mcp-Flake unter Parallel-Last von R1-F2 möglich — die eigene Änderung ist API-frei).</p>
+<p class="beleg"><b>n=2</b> (1 M-Paar + 1 S-Backfill) → Konfidenz 0.30. Das M-Paar ist echt; zwei
+Datenpunkte bleiben unter 0.4, auch wenn beide gut trafen.</p>
+
+<h2>4. Karte Merge F1 — <code>merge-repo-S</code></h2>
+<p><b>S1-Paar:</b> <code>t_aa39ea8d</code> (Zeile 22, zweiter Anlauf, erfolgreich), Ist 4 min.
+Dazu der erste Anlauf <code>t_4f601104</code> (Zeile 16, 6 min, Riegel-Verweigerung aus
+<code>mcp-internal-api-url.test.ts</code>-Flake unter Last) — das ist der reale Retry-Pfad dieser
+Klasse.</p>
+<p><b>Faktor-Anwendung:</b> Naive Merge-Schätzung analog S1 ≈ 15. <code>15 × 0,27 ≈ 4</code>. Der
+reine Riegel-Lauf ist schnell (Sekunden je Prüfung, die 52,9-s-Unit- und 24,7-s-E2E-Terme sind
+das Gewicht). Aber R1-F1 ist der <b>erste von zwei Merges dieses Sprints</b> und läuft parallel zu
+R1-F2 (2FA) — die mcp-Last-Empfindlichkeit ist eine reale Anamnese (S1: erste Verweigerung).
+Frontend-only senkt das Eigenrisiko, der Umgebungs-Lastfaktor bleibt: <b>p50 8, p90 30.</b></p>
+<p class="beleg"><b>n=2</b> (1 Paar + 1 Ist-ohne-bezifferte-Schätzung) → Konfidenz 0.30. Der
+einzig bezifferte Punkt (4 min) ist ein sauberer zweiter Anlauf; der verweigerte erste Anlauf
+zählt als Risikobeleg, nicht als Faktor.</p>
+
+<h2>5. Rollenkosten aus S1 (<code>ledger/kosten-je-rolle.jsonl</code>)</h2>
+<p>Der OpenRouter-Key misst <b>kumulativ je Rolle</b> (der Zähler läuft seit Bestehen der
+Rolle-Keys; eine saubere S1-allein-Zerlegung ist messmethodisch nicht möglich, siehe
+<code>controller-s1.html</code> §4). Die <b>letzten kumulativen Stände</b> des Ledgers:</p>
+<table>
+  <thead><tr><th>Rolle</th><th>kumulativ (USD)</th></tr></thead>
+  <tbody>
+    <tr><td>esf-dev-a (Umsetzung)</td><td><b>0,9456</b> — klar der größte Verbraucher, deckungsgleich mit der retry-lastigen Umsetzung (114 min Roh)</td></tr>
+    <tr><td>esf-qa-release (Merge/E2E)</td><td>0,4411</td></tr>
+    <tr><td>esf-reviewer</td><td>0,1292</td></tr>
+    <tr><td>esf-architect</td><td>0,1233</td></tr>
+    <tr><td>esf-chief-of-staff</td><td>0,1044</td></tr>
+    <tr><td>esf-controller</td><td>0,0616</td></tr>
+    <tr><td>esf-estimator</td><td>0,0290</td></tr>
+    <tr><td>esf-market-scout</td><td>0,0044</td></tr>
+    <tr><td>Summe (kumulativ)</td><td>1,8386 USD</td></tr>
+  </tbody>
+</table>
+<p class="beleg">Summe aus den <code>usage_total</code>-Werten des letzten Snapshots
+(Zeilen 12–22). Kontroller-Snapshot (1,4193 USD) war früher am Tag; die Deltas danach
+(dev-a +0,249, qa-release +0,015, controller +0,051, chief-of-staff +0,104) kommen aus
+S1-Nacharbeit und Riegel-Läufen. Das Muster zählt für die Kalibrierung: <b>die Umsetzungs-Rolle
+kostet mehr als die Hälfte</b> — die Werkzeug-Retries sind der Kostenfaktor, nicht die Schätzung.</p>
+
+<h2>6. Konfidenzen — warum so und nicht höher</h2>
+<ul>
+  <li><b>impl-worktree-M (0.35):</b> n=3 (1 bereinigtes M-Paar + 2 S-Backfills). Der eine echte
+      M-Punkt ist die 33-min-Arbeitsspur. Drei Datenpunkte reichen, um über S1 zu steigen, nicht,
+      um die 0.4-Grenze einer „Zwei-Paare“-Klasse zu reißen.</li>
+  <li><b>review-repo-M (0.30):</b> n=2 (1 M-Paar + 1 S-Backfill). Ein echtes M-Paar, ein Punkt.
+      Unter 0.4 — selbst wenn beide gut trafen.</li>
+  <li><b>merge-repo-S (0.30):</b> n=2 (1 Paar + 1 Ist-ohne-Zahl). Sauberer Faktor, aber eine
+      reale Flake-Anamnese hält die Obergrenze.</li>
+  <li><b>estimate-vault-S (0.25):</b> n=1 (t_0965b04b, Faktor 0,20). Ein Punkt — bleibt niedrig,
+      weil eine Klasse mit zwei Paaren <b>unter</b> 0.4 bleibt.</li>
+</ul>
+<p>Keine der vier Schätzungen startet über 0.4; die Zahl <b>n</b> steht je Klasse dabei. Das ist
+die ehrliche Datenlage: S1 hat die erste Kalibrierungsrunde geliefert, nicht die letzte.</p>
+
+<h2>7. Diese Karte selbst — <code>estimate-vault-S</code></h2>
+<p class="meta">Referenzklasse <code>estimate-vault-S</code> (durch Skript zugeordnet, nicht frei
+gewählt).</p>
+<p>Die Schätzung dieser Karte liegt im <code>metadata.estimate</code> des Abschlusses. S1-Faktor
+0,20 (t_0965b04b: 20/40 → Ist 4). Diese Karte liest mehr (Controller-Report, Ledger, Spec), wendet
+die Faktoren an und schreibt einen Report über drei Karten — etwas mehr als S1, aber dieselbe
+Klasse: <b>p50 6, p90 15</b>, Konfidenz 0.25 (n=1).</p>
+
+<p class="beleg">Erstellt 2026-08-17 · Wanduhrzeitstempel vom System (AGENTS.md §3.2).</p>
+</body>
+</html>
