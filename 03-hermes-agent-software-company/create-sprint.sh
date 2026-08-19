@@ -6,6 +6,7 @@
 #   ./create-sprint.sh 1     S1 — Wartung F-R1-5 + Feature F-R1-2      (R1)
 #   ./create-sprint.sh 2     S2 — F-R1-3 ∥ F-R1-4 (Tastatur · E2E-Netz) (R1)
 #   ./create-sprint.sh 3     S3 — Wartung Auflage R1-c + Feature F-R1-1 (R2)
+#   ./create-sprint.sh 4     S4 — F-R1-1b ∥ F-R2-1 (WeKan · MCP)        (R2)
 #
 # WARUM S3 OHNE EIN NEUES ROADMAP-GATE STARTET — einmal hier, damit es niemand
 # neu ausdiskutieren muss. Am Release-Gate R1 (t_d85e4216) hat der Supervisor
@@ -60,8 +61,8 @@ HEUTE="$(date '+%Y-%m-%d')"
 
 SPRINT="${1:-}"
 case "$SPRINT" in
-    1|2|3) ;;
-    *) echo "Aufruf: ./create-sprint.sh 1 | 2 | 3"; exit 2 ;;
+    1|2|3|4) ;;
+    *) echo "Aufruf: ./create-sprint.sh 1 | 2 | 3 | 4"; exit 2 ;;
 esac
 S="S$SPRINT"
 IDS="$HERE/task-ids-$(echo "$S" | tr 'A-Z' 'a-z').env"
@@ -427,6 +428,31 @@ EOF
     fi
     printf '\n\033[32m✓\033[0m Vorbedingung erfüllt: Release-Gate R1 ist beantwortet (%s)\n' \
         "$(printf '%s' "$gate" | jq -r '.id')"
+fi
+
+# ---------------------------------------------------------------------------
+# Die Vorbedingung von S4: der Neuschnitt R2 muss freigegeben sein
+# ---------------------------------------------------------------------------
+# S4 ist der erste Sprint NACH dem Roadmap-Gate R2. Sein Zuschnitt steht in
+# roadmap/r2-freigegeben.html; ohne diese Datei baute er gegen einen Plan, den
+# niemand freigegeben hat.
+if [ "$SPRINT" = "4" ]; then
+    if [ ! -f "$VAULT/roadmap/r2-freigegeben.html" ]; then
+        cat <<'EOF'
+
+VERWEIGERT — es gibt keine freigegebene R2-Roadmap
+(roadmap/r2-freigegeben.html).
+
+S4 setzt den Neuschnitt um, den der Supervisor am Roadmap-Gate R2 freigegeben
+hat. Ohne diese Freigabe waere sein Zuschnitt eine Behauptung.
+
+  ./create-roadmap-gate.sh R2
+  ./pump.sh
+  ./gate.sh
+EOF
+        exit 1
+    fi
+    printf '\n\033[32m✓\033[0m Vorbedingung: roadmap/r2-freigegeben.html liegt vor\n'
 fi
 
 # ===========================================================================
@@ -1503,6 +1529,610 @@ echo "  Karten-IDs an beide Schaetzer nachgereicht"
 
 FEATURES="F-R1-3 und F-R1-4"
 
+
+# ===========================================================================
+elif [ "$SPRINT" = "4" ]; then   # der erste Sprint NACH dem Neuschnitt R2
+# ===========================================================================
+SLUG_FA="r2-f1b-import-wekan"
+SLUG_FB="r2-f2-mcp-agentenkanal"
+BRANCH_FA="${PRAEFIX}esf-$SLUG_FA"
+BRANCH_FB="${PRAEFIX}esf-$SLUG_FB"
+
+# Der Zuschnitt kommt aus roadmap/r2-freigegeben.html, nicht aus diesem Skript.
+# Dort steht die Reihenfolge von R2 (F-R1-1b → F-R2-1 → F-R2-2 → F-R2-4 →
+# F-R2-5) und der Satz, an dem dieser Sprint haengt: "in drei weiteren Sprints
+# (Plan · Umsetzung · Umsetzung) bei 1–2 Features/Sprint umsetzbar".
+#
+# WARUM GENAU DIESE ZWEI PARALLEL, und warum 2FA NICHT dabei ist:
+#  · F-R1-1b und F-R2-1 sind beide feature-backend-M mit 97/230 min und je
+#    EINER Bau-Karte. Die Klasse impl-worktree-M ist seit S3 besetzt (n=1,
+#    Ist/Schaetzung 1,38) — das ist der Anker, auf den F-R1-1 in der Roadmap
+#    ausdruecklich warten sollte, und er traegt jetzt zwei Features.
+#  · Ihre Flaechen sind disjunkt: WeKan ist ein Schwester-Paket unter
+#    packages/ auf dem geteilten kaneo-client, MCP liegt in apps/api/src/mcp.
+#    Das ist dieselbe Bedingung, unter der S2 parallel getragen hat — dort war
+#    die Schnittmenge der beruehrten tests/-Dateien leer.
+#  · F-R2-2 (2FA) hat 262/620 min und VIER Bau-Karten. Es ist das Stueck mit
+#    der leeren Referenzklasse (feature-auth-L) und der hoechsten Bruchflaeche
+#    (codebase.html §6). Es laeuft allein, in einem eigenen Sprint. Zwei
+#    Unbekannte gleichzeitig zu fahren verteilt den Fehler auf zwei Ursachen.
+#
+# NEU AB S4, und der Grund steht in roadmap/r2-freigegeben.html §5: Die
+# Schaetzung wird von den Arbeitskarten NICHT mehr kopiert. ledger-sync.sh
+# holt sie beim Schaetzer, aufgeloest ueber die Karten-ID (Bedingung 2a).
+# Die Kartentexte verlangen sie trotzdem weiter im metadata — als Rueckfall
+# und weil ein Worker, der seine eigene Schaetzung liest, besser plant. Nur
+# ist ihr Ausfall jetzt kein Loch mehr im Ledger.
+
+say "S4 F1b 1/4  Spezifikation — F-R1-1b WeKan (Abschluss von F-R1-1)"
+# Der Architekt und nicht der Product Manager: Es ist die zweite Haelfte
+# SEINER eigenen Spezifikation. Er hat WeKan in specs/r2-f1-… §2 als benanntes
+# Folgestueck geschnitten; wer den Schnitt gemacht hat, schliesst ihn.
+FA_SPEC=$(k create "$S F1b 1/4 — Spezifikation F-R1-1b WeKan-Import" \
+    --assignee esf-architect \
+    --workspace "dir:$VAULT" \
+    --idempotency-key "s4-f1b-spec" \
+    --max-retries 2 --max-runtime 45m \
+    --body "Spezifiziere F-R1-1b: den WeKan-Teil des Imports. Das ist die zweite
+Haelfte eines Features, das DU geschnitten hast — kein neues.
+
+DEINE EIGENE VORARBEIT IST DIE GRUNDLAGE
+specs/$( printf 'r2-f1-import-csv-wekan' ).html (deine Spezifikation aus S3) fuehrt WeKan
+als benanntes Folgestueck. Lies zuerst, was du dort festgelegt hast, und halte
+dich daran, wo es noch gilt. Wo es NICHT mehr gilt, weil der Bau etwas gezeigt
+hat, schreibst du das ausdruecklich hin — ein widerlegter eigener Satz ist ein
+Ergebnis, kein Makel.
+
+WAS SEIT S3 EXISTIERT, und was du deshalb nicht neu erfindest
+  packages/kaneo-client   der geteilte Client (aus planka-import extrahiert)
+  packages/csv-import     das erste Schwester-Paket, mit seinen Tests
+  packages/planka-import  das aeltere Vorbild
+WeKan ist das dritte Paket derselben Familie. Pruef am Code nach, was der
+geteilte Client heute kann und was er koennen muesste — und wenn er sich
+erweitern muss, ist DAS die Architekturentscheidung dieser Karte.
+
+DIE FRAGE, DIE DIESES FEATURE AUSMACHT
+Ein WeKan-Export ist eine JSON-Datei, kein CSV. Die Abbildung ist damit
+strukturell reicher (Boards, Listen, Karten, Checklisten, Kommentare,
+Mitglieder) und nicht zeilenweise. Entscheide und begruende:
+ · Welche Ebenen des WeKan-Modells werden abgebildet, welche nicht?
+   Die Zeile 'was NICHT abbildbar ist' ist die ehrlichste jeder
+   Import-Spezifikation.
+ · Traegt die Abbildung aus csv-import? Oder braucht WeKan eine eigene?
+   Doppelter Code ist billiger als eine falsche Abstraktion — sag, welchen
+   Weg du nimmst und warum.
+
+DER ZUSCHNITT: EINE Bau-Karte, wie die Roadmap ihn bemisst
+roadmap/r2-freigegeben.html §3.1 fuehrt F-R1-1b mit 'spec + est + 1×impl-M +
+review-M + merge-S', p50 97 / p90 230 min, mit dem Beleg 'Eine Bau-Karte
+dieser Groesse ≈ Import-CSV (49 min Ist, t_de53e678)'. Passt dein Soll-Zustand
+nicht in EINE Bau-Karte, schneide ihn kleiner und benenne den Rest als
+Folgekarte. Was du bewusst liegen laesst, gehoert in die Spezifikation.
+
+SCHREIBE specs/$SLUG_FA.html. Sie muss beantworten:
+ · Der Ist-Zustand: Was traegt der geteilte Client, was traegt csv-import,
+   was davon ist wiederverwendbar? Mit Fundstellen (datei.ts:zeile).
+ · Die Abbildungstabelle WeKan -> Kaneo, mit der Zeile 'nicht abbildbar'.
+ · Fehlerverhalten: halb durchgelaufener Import, Wiederholbarkeit. Der
+   CSV-Weg hat das geloest (neues Projekt beim zweiten Lauf, das erste bleibt
+   unangetastet) — gilt dasselbe, oder ist WeKan anders?
+ · Was NICHT passieren darf: keine Aenderung bestehender Daten, keine
+   Aenderung an der oeffentlichen API, volle Suite bleibt gruen.
+ · Akzeptanzkriterien, pruefbar, einzeln abhakbar.
+
+E2E: wie bei F-R1-1 vermutlich KEINE — begruende es, statt es wegzulassen.
+Kommt doch eine Journey dazu, gehoert sie in DERSELBEN Karte in
+analysis/journeys.html (Auflage a des R1-Gates).
+
+$(metadata_pflicht 'spec-vault-M')
+Dazu ins metadata: acceptance als Liste, die Architekturentscheidung in einem
+Satz, und was auf eine Folgekarte geht.
+
+$(vault_format 'spec')
+
+$(gate_verbot)" \
+    --json | jq -r .id)
+echo "  FA_SPEC = $FA_SPEC"
+
+say "S4 F2 1/4  Spezifikation — F-R2-1 MCP-Agentenkanal"
+FB_SPEC=$(k create "$S F2 1/4 — Spezifikation F-R2-1 MCP-Agentenkanal haerten" \
+    --assignee esf-architect \
+    --workspace "dir:$VAULT" \
+    --parent "$FA_SPEC" \
+    --idempotency-key "s4-f2-spec" \
+    --max-retries 2 --max-runtime 45m \
+    --body "Spezifiziere F-R2-1: den MCP-Agentenkanal ausbauen und haerten.
+
+WARUM DIESE KARTE AN DER VORIGEN HAENGT
+Nur der Reihenfolge wegen — ihr wird derselbe Worker zugeteilt, und zwei
+gleichzeitige Auftraege an dasselbe Profil warten ohnehin aufeinander. Der
+Inhalt der Elternkarte geht dich nichts an; nimm nichts von dort mit.
+
+DER AUFTRAG AUS DER FREIGEGEBENEN ROADMAP (r2-freigegeben.html §3.1)
+Nutzeraufgabe: 'Aufgaben ueber KI-Assistenten fuehren und steuern' — ohne
+UI-Klicks und fragile Skripte. Marktbeleg: Kaneo ist der einzige offene,
+selbst gehostete Kanal im Korpus; Linear bietet MCP nur als geschlossenes
+Enterprise-Produkt (market.html §4, H1 Score 18,5). Der Kanal EXISTIERT
+bereits (codebase.html Modul 10, MCP-OAuth-Store getestet) — das hier ist
+Ausbau und Haertung, kein Neubau. Referenzklasse feature-backend-M,
+p50 97 / p90 230 min, EINE Bau-Karte.
+
+DEINE ERSTE PFLICHT: FESTSTELLEN, WAS DER KANAL HEUTE KANN
+apps/api/src/mcp und packages/mcp. Zaehl die Werkzeuge ab, die er anbietet,
+und pruefe je Werkzeug drei Dinge — mit Fundstelle:
+ · Autorisierung: Prueft es die Berechtigung des Aufrufers, oder verlaesst es
+   sich darauf, dass der Kanal schon der richtige ist? Das ist die Frage, aus
+   der ein Sicherheitsbefund wird.
+ · Eingabepruefung: Was passiert bei fehlenden oder unsinnigen Argumenten?
+ · Fehlerausgabe: Bekommt der Aufrufer etwas, mit dem er weiterarbeiten kann?
+Eine Aufzaehlung ohne diese drei Spalten ist eine Inhaltsangabe, keine
+Analyse.
+
+'HAERTEN' MUSS DU DEFINIEREN, sonst ist es ein Gefuehl
+Aus deiner Bestandsaufnahme leitest du eine LISTE ab: was fehlt, was
+gefaehrlich ist, was nur unbequem ist. Danach schneidest du: Was in EINE
+Bau-Karte passt, kommt hinein; der Rest wird benannte Folgekarte. Ein
+Haertungs-Feature ohne Grenze waechst, bis der Sprint reisst.
+
+Und sag ausdruecklich, was 'ausbauen' hier NICHT heisst. Neue Werkzeuge zu
+erfinden, weil sie nett waeren, ist die naheliegende Falle dieses Auftrags.
+
+SCHREIBE specs/$SLUG_FB.html. Sie muss beantworten:
+ · Die Bestandsaufnahme als Tabelle (Werkzeug | Autorisierung |
+   Eingabepruefung | Fehlerausgabe | Fundstelle).
+ · Die Haertungsliste, nach Schwere sortiert, mit Begruendung der Sortierung.
+ · Der Schnitt: was diese Bau-Karte macht, was ausdruecklich nicht.
+ · Was NICHT passieren darf: keine Aenderung am OAuth-Store ohne eigenes
+   Gate, keine Aenderung an der oeffentlichen API-Oberflaeche, volle Suite
+   bleibt gruen.
+ · Akzeptanzkriterien, pruefbar, einzeln abhakbar.
+
+FINDEST DU EINE ECHTE SICHERHEITSLUECKE, ist das nicht Teil dieser
+Spezifikation, sondern ein eigener Befund im metadata unter 'sicherheit' —
+mit Fundstelle und Auswirkung. Der Supervisor entscheidet dann, ob sie diesen
+Sprint vordraengt. Sie stillschweigend in die Haertungsliste zu schieben
+waere die falsche Entscheidung an der falschen Stelle.
+
+$(metadata_pflicht 'spec-vault-M')
+Dazu ins metadata: acceptance als Liste, die Zahl der geprueften Werkzeuge,
+die Haertungsliste in Kurzform, und was auf eine Folgekarte geht.
+
+$(vault_format 'spec')
+
+$(gate_verbot)" \
+    --json | jq -r .id)
+echo "  FB_SPEC = $FB_SPEC"
+
+say "S4  Schätzung — beide Features in EINER Karte"
+# Ein Schaetzer, eine Karte, sechs Zahlen. Zwei Schaetzkarten haetten
+# denselben Worker serialisiert und zweimal dasselbe Ledger gelesen.
+EST=$(k create "$S Schätzung — F-R1-1b und F-R2-1" \
+    --assignee esf-estimator \
+    --workspace "dir:$VAULT" \
+    --parent "$FA_SPEC" --parent "$FB_SPEC" \
+    --idempotency-key "s4-estimate" \
+    --max-retries 2 --max-runtime 40m \
+    --body "Schaetze die sechs Folgekarten dieses Sprints — drei je Feature. Beide
+Spezifikationen stehen in deinem Handoff-Kontext (specs/$SLUG_FA.html und
+specs/$SLUG_FB.html).
+
+DEINE ZAHL IST SEIT DIESEM SPRINT DIE EINZIGE QUELLE
+Bis S3 haben die Arbeitskarten deine Schaetzung in ihr eigenes metadata
+kopiert, und ledger-sync.sh las sie dort. Diese Kopie ist dreimal gerissen
+(2 von 12 Karten, 17 %, nach zwei Nachschaerfungen unveraendert). Seit dem
+Roadmap-Gate R2 holt ledger-sync.sh die Schaetzung DIREKT BEI DIR — aufgeloest
+ueber die Karten-ID. Konsequenz fuer dich: Ein falscher oder fehlender
+Schluessel ist kein Schoenheitsfehler mehr, sondern eine Luecke im Ledger, die
+niemand mehr auffaengt. Die sechs Karten-IDs haengen als Kommentar an dieser
+Karte.
+
+DAS LEDGER TRAEGT JETZT 12 PAARE IN 7 KLASSEN. Lies es, bevor du rechnest,
+und pruef bei jeder Zeile 'runs'. Zwei Karten (t_c35344ff, t_de53e678) tragen
+KEINE Schaetzung — die bekannten Luecken. Nimm sie nicht als 'Istwert ohne
+Schaetzung' in eine Velocity-Rechnung.
+
+Der wichtigste Anker fuer diesen Sprint: impl-worktree-M ist seit S3 besetzt
+(t_de53e678, Ist 49 min gegen p50 65). Beide Bau-Karten dieses Sprints sind
+derselben Klasse, und die freigegebene Roadmap beziffert beide Features mit
+p50 97 / p90 230 (r2-freigegeben.html §3.1). Diese Zahl ist eine SCHAETZUNG
+DES CHIEF OF STAFF aus Kartenketten, nicht deine. Du darfst ihr folgen oder
+widersprechen — aber du sagst, welches von beidem du tust, und warum.
+
+SCHAETZE DIESE SECHS KARTEN:
+
+  Feature   Karte        Referenzklasse     Lage im Ledger
+  ---------------------------------------------------------------------------
+  F-R1-1b   Umsetzung    impl-worktree-M    besetzt (n=1)
+  F-R1-1b   Review       review-repo-M      besetzt (n=3)
+  F-R1-1b   Merge        merge-repo-S       besetzt (n=3)
+  F-R2-1    Umsetzung    impl-worktree-M    besetzt (n=1)
+  F-R2-1    Review       review-repo-M      besetzt (n=3)
+  F-R2-1    Merge        merge-repo-S       besetzt (n=3)
+
+DIE BEIDEN UMSETZUNGEN SIND NICHT AUTOMATISCH GLEICH. Dieselbe Klasse heisst
+nicht dieselbe Flaeche: WeKan baut ein drittes Paket nach dem Muster zweier
+bestehender, MCP haertet Bestandscode mit unbekannter Zahl von Werkzeugen.
+Lies beide Spezifikationen und begruende den Unterschied — oder begruende,
+warum es keinen gibt. Zwei identische Zahlen ohne Begruendung sind das
+Zeichen, dass nicht gelesen wurde.
+
+DAS BUDGET-GATE HAENGT AN DEINEM P90. Ueberschreitet die Ist-Zeit das
+1,5-fache, feuert es. Ein absichtlich weites Intervall macht dieses Tor stumm,
+ein absichtlich enges macht es zum Fehlalarm. Schaetze, was du glaubst.
+
+tokens_k und cost_usd: 'null'. Hermes v0.20.0 misst keine Tokens; der
+OpenRouter-Zaehler laeuft je Rolle kumulativ.
+
+SCHREIBE ZWEIERLEI
+1. reports/schaetzung-s4.html (esf-typ 'report'): die sechs Intervalle, die
+   Klassen, die Ledger-Zeilen mit task_id, die Velocity-Rechnung, dein
+   Verhaeltnis zur Roadmap-Zahl, und die Konfidenz je Schaetzung mit Grund.
+2. Ins Abschluss-metadata ein Objekt 'estimates' mit sechs Eintraegen,
+   GESCHLUESSELT NACH KARTEN-ID (Kommentar an dieser Karte) — plus unter
+   'estimate' die Schaetzung DIESER Karte selbst (estimate-vault-S).
+
+$(metadata_pflicht 'estimate-vault-S')
+
+$(vault_format 'report')
+
+$(gate_verbot)" \
+    --json | jq -r .id)
+echo "  EST     = $EST"
+
+say "S4 F1b 2/4  Umsetzung WeKan  (eigener Worktree)"
+FA_IMPL=$(k create "$S F1b 2/4 — Umsetzung F-R1-1b WeKan-Import" \
+    --assignee esf-dev-a \
+    --workspace "worktree:$REPO" --branch "$BRANCH_FA" \
+    --parent "$EST" \
+    --idempotency-key "s4-f1b-impl" \
+    --max-retries 2 --max-runtime 150m \
+    --skill test-driven-development \
+    --body "Setze F-R1-1b um: den WeKan-Import nach specs/$SLUG_FA.html.
+
+DEIN BAUM
+Eigener Worktree auf Branch '$BRANCH_FA'. In diesem Sprint baut ein ZWEITES
+Feature gleichzeitig (F-R2-1, MCP, in apps/api/src/mcp). Du fasst dessen
+Dateien nicht an, und es fasst deine nicht an. Du mergst NICHT.
+
+$(env_hinweis)
+
+DEIN BESTES WERKZEUG IST DAS, WAS S3 GEBAUT HAT
+packages/csv-import loest dieselbe Aufgabe fuer ein anderes Quellformat, auf
+demselben geteilten packages/kaneo-client. Lies es zuerst — Trennung von
+Quellformat, Abbildung und Schreibweg. Uebernimm das Muster, statt ein eigenes
+zu erfinden. Wo du abweichst, gehoert ein Satz ins metadata, warum.
+
+DIE EINZIGE HARTE REGEL
+Ein Import schreibt fremde Daten in eine bestehende Instanz. Er aendert nichts
+Bestehendes und loescht nichts. Fuehrt die Spezifikation an eine Stelle, an
+der bestehende Daten ueberschrieben wuerden: nicht bauen, sondern Befund ins
+metadata.
+
+REIHENFOLGE
+1. Erst messen: pnpm exec turbo typecheck test --force. Wieviele Tests, wie
+   lange? Das ist dein Vergleichsmassstab.
+2. Test zuerst. Die Abbildung WeKan -> Kaneo ist reine Funktion und damit der
+   Teil, der sich am billigsten testen laesst — dort liegt auch der Fehler,
+   der beim Anwender ankommt.
+3. Fehlerverhalten bauen, wie die Spezifikation es festlegt. Steht es dort
+   nicht: Befund ins metadata, und den einfachsten sicheren Weg waehlen.
+4. Nachweis mit Zahlen:
+     pnpm exec turbo typecheck test --force
+     $E2E_VORBED
+     $E2E_BEFEHL
+   Das --force ist Pflicht: turbo spielt bei gleichem Hash das alte Ergebnis
+   ab, und genau das hat am 19.08.2026 einen Reviewer ein fremdes Protokoll
+   als eigene Messung melden lassen.
+5. Beruehrst du eine Journey aus analysis/journeys.html, ziehst du den Katalog
+   in DERSELBEN Karte nach. Beruehrst du keine, schreib das hin.
+6. Commit auf deinen Branch, Conventional Commits in Kleinschreibung.
+
+$(ak8 parallel)
+
+WENN DU NICHT DURCHKOMMST
+Liefere weniger, aber gruen. Was du weggelassen hast, gehoert ins metadata
+unter 'deliberately_not_done' mit deinem eigenen, geprueften Grund.
+
+$(metadata_pflicht 'impl-worktree-M')
+Dazu ins metadata: geaenderte und neue Dateien, Testergebnis vor und nach
+(Zahlen), E2E-Ergebnis, Zahl der neuen Tests, ob journeys.html betroffen war,
+Commit-Hash, und je Akzeptanzkriterium ein Haekchen mit Beleg.
+
+$(gate_verbot)" \
+    --json | jq -r .id)
+echo "  FA_IMPL = $FA_IMPL"
+
+say "S4 F2 2/4  Umsetzung MCP  (eigener Worktree)"
+FB_IMPL=$(k create "$S F2 2/4 — Umsetzung F-R2-1 MCP-Agentenkanal" \
+    --assignee esf-dev-b \
+    --workspace "worktree:$REPO" --branch "$BRANCH_FB" \
+    --parent "$EST" \
+    --idempotency-key "s4-f2-impl" \
+    --max-retries 2 --max-runtime 150m \
+    --skill test-driven-development \
+    --body "Setze F-R2-1 um: den MCP-Agentenkanal haerten, nach
+specs/$SLUG_FB.html.
+
+DEIN BAUM
+Eigener Worktree auf Branch '$BRANCH_FB'. In diesem Sprint baut ein ZWEITES
+Feature gleichzeitig (F-R1-1b, WeKan-Import, in packages/). Du fasst dessen
+Dateien nicht an, und es fasst deine nicht an. Du mergst NICHT.
+
+$(env_hinweis)
+
+DU HAERTEST BESTANDSCODE — das ist etwas anderes als bauen
+Der Kanal funktioniert. Jede Aenderung, die du machst, kann etwas kaputt
+machen, das heute jemand benutzt. Daraus folgt eine Reihenfolge, von der du
+nicht abweichst:
+1. Erst das REGRESSIONSNETZ, dann die Haertung. Fuer jedes Verhalten, das du
+   anfasst, muss VORHER ein Test existieren, der das heutige Verhalten
+   festhaelt — gruen, bevor du etwas aenderst. Ohne diesen Schritt weisst du
+   hinterher nicht, ob du gehaertet oder gebrochen hast.
+2. Dann die Aenderung, klein, je Befund der Spezifikation einzeln.
+3. Nach jeder Aenderung die Tests.
+
+Ein Test, der das ALTE Verhalten festhaelt und danach angepasst wird, weil das
+neue anders ist, ist in Ordnung — solange die Anpassung im Commit sichtbar ist
+und im metadata steht. Ein Test, der stillschweigend mitwaechst, ist kein Netz.
+
+DIE HARTE GRENZE
+Der OAuth-Store bleibt unangetastet. Die Spezifikation sagt es, und hier steht
+es noch einmal: Eine Aenderung an der Authentifizierung des Kanals ist
+gate-pflichtig und nicht Teil dieser Karte. Faellt dir dort etwas auf, ist das
+ein Befund im metadata unter 'sicherheit', kein Bauauftrag.
+
+REIHENFOLGE IM UEBRIGEN wie ueblich
+1. Erst messen: pnpm exec turbo typecheck test --force.
+2. Regressionsnetz, dann Haertung, in kleinen Schritten.
+3. Nachweis mit Zahlen:
+     pnpm exec turbo typecheck test --force
+     $E2E_VORBED
+     $E2E_BEFEHL
+   Das --force ist Pflicht (turbo spielt sonst zwischengespeicherte
+   Ergebnisse ab — am 19.08.2026 real passiert).
+4. Beruehrst du eine Journey, ziehst du analysis/journeys.html in DERSELBEN
+   Karte nach. Beruehrst du keine, schreib das hin.
+5. Commit auf deinen Branch, Conventional Commits in Kleinschreibung.
+
+$(ak8 parallel)
+
+WENN DU NICHT DURCHKOMMST
+Liefere weniger, aber gruen. Zwei gehaertete Werkzeuge mit Netz sind ein
+Ergebnis; fuenf halb gehaertete sind keins.
+
+$(metadata_pflicht 'impl-worktree-M')
+Dazu ins metadata: geaenderte Dateien, welche Werkzeuge du gehaertet hast und
+welche nicht, die Tests VOR der Haertung (das Netz) und danach mit Zahlen,
+E2E-Ergebnis, Commit-Hash, je Akzeptanzkriterium ein Haekchen mit Beleg, und
+alles unter 'sicherheit', was du gefunden aber nicht gebaut hast.
+
+$(gate_verbot)" \
+    --json | jq -r .id)
+echo "  FB_IMPL = $FB_IMPL"
+
+say "S4 F1b 3/4  Review WeKan"
+FA_REV=$(k create "$S F1b 3/4 — Review F-R1-1b" \
+    --assignee esf-reviewer \
+    --workspace "dir:$REPO" \
+    --parent "$FA_IMPL" --parent "$EST" \
+    --idempotency-key "s4-f1b-review" \
+    --max-retries 2 --max-runtime 90m \
+    --body "Pruefe die Umsetzung von F-R1-1b auf Branch '$BRANCH_FA'.
+
+DEIN ORT
+HAUPTBAUM ($REPO). Von hier siehst du in die fremden Baeume unter .worktrees/
+hinein. Kein 'git checkout $BRANCH_FA' — der Branch ist von einem Worktree
+beansprucht und der Befehl scheitert hart. In diesem Sprint liegen ZWEI fremde
+Baeume dort; sieh nach, dass du im richtigen liest.
+
+WAS DU PRUEFST — die erste Frage ist die teuerste
+1. WAS PASSIERT BEI EINEM HALB DURCHGELAUFENEN IMPORT? Geh den Weg durch.
+   Pruef, ob der in der Spezifikation vorgesehene Weg im Code EXISTIERT und
+   FUNKTIONIERT, nicht ob er beschrieben ist.
+2. WERDEN BESTEHENDE DATEN ANGEFASST? Zeig an der Fundstelle, welche
+   Schreibvorgaenge stattfinden.
+3. Enthaelt die Aenderung eine Datenmigration oder Schema-Aenderung? Wenn ja:
+   laeuft sie auf einer BESTEHENDEN Datenbank, ist sie ruecknehmbar? Eine
+   irreversible Migration ist nach Kapitel 7 gate-pflichtig — dann ist dein
+   Befund 'braucht ein Irreversibel-Gate', und das gehoert ins metadata.
+   Wenn nein: schreib auch das hin, mit dem, woran du es festgemacht hast.
+4. Jedes Akzeptanzkriterium einzeln, mit der Stelle, an der du es geprueft
+   hast. 'Sieht erfuellt aus' ist keine Pruefung.
+5. Deckt die Abbildung ab, was die Spezifikations-Tabelle sagt — und was
+   passiert mit den Feldern, die sie als 'nicht abbildbar' fuehrt? Stilles
+   Verschlucken ist der haeufigste Fehler eines Importers.
+6. Fuehre die Tests SELBST aus, im Baum des Entwicklers:
+     cd $REPO/.worktrees/<sein-verzeichnis>
+     pnpm exec turbo typecheck test --force
+     $E2E_VORBED
+     $E2E_BEFEHL
+   Das --force ist nicht verhandelbar.
+7. Hat sich das Feature an seinen Schnitt gehalten? Mehr gebaut als
+   geschnitten ist ein Befund, kein Bonus.
+8. Ist main unberuehrt?
+
+Dein Urteil ist 'approved' oder 'changes_requested' im metadata unter
+'verdict'. Du reparierst nichts selbst.
+
+Bekannter Stoerfaktor: mcp-internal-api-url.test.ts ist lastempfindlich und
+faellt reproduzierbar, wenn typecheck und test PARALLEL laufen (gemessen am
+19.08.2026, auch auf sauberem Baum). Faellt genau dieser Test und sonst
+nichts, lauf ihn allein nach; gruen allein ist ein Betriebsbefund.
+ACHTUNG in DIESEM Sprint: Das zweite Feature haertet genau den MCP-Kanal. Ein
+Fehler in dieser Datei koennte diesmal ECHT sein — er gehoert dann trotzdem
+nicht dir, sondern als Befund ins metadata mit dem Hinweis auf F-R2-1.
+
+$(metadata_pflicht 'review-repo-M')
+Dazu ins metadata: verdict, die Befunde, das selbst gemessene Testergebnis
+(Zahlen), und ausdruecklich die Antwort auf Punkt 3.
+
+$(gate_verbot)" \
+    --json | jq -r .id)
+echo "  FA_REV  = $FA_REV"
+
+say "S4 F2 3/4  Review MCP"
+FB_REV=$(k create "$S F2 3/4 — Review F-R2-1" \
+    --assignee esf-reviewer \
+    --workspace "dir:$REPO" \
+    --parent "$FB_IMPL" --parent "$FA_REV" --parent "$EST" \
+    --idempotency-key "s4-f2-review" \
+    --max-retries 2 --max-runtime 90m \
+    --body "Pruefe die Umsetzung von F-R2-1 auf Branch '$BRANCH_FB'.
+
+DREI ELTERN — UND NUR EINER TRAEGT DEINE ZAHL
+Deine Schaetzung steht im metadata der Schaetzkarte, nicht in dem der anderen
+Review-Karte; die haengt nur dran, um euch zu serialisieren (ein Reviewer,
+zwei Auftraege). Such die Zahl dort.
+
+DEIN ORT
+HAUPTBAUM ($REPO), Lesen im fremden Baum unter .worktrees/. Zwei fremde Baeume
+liegen dort; sieh nach, dass du im richtigen liest.
+
+WAS DU PRUEFST — die erste Frage ist die teuerste
+1. IST DAS REGRESSIONSNETZ ECHT? Der Entwickler sollte VOR jeder Haertung
+   einen Test geschrieben haben, der das heutige Verhalten festhaelt. Pruef
+   das am Commit-Verlauf, nicht an seiner Erzaehlung: Kam der Test vor der
+   Aenderung? Und ist er danach angepasst worden? Eine Anpassung ist erlaubt,
+   wenn sie sichtbar und begruendet ist — ein Test, der stillschweigend
+   mitgewachsen ist, ist kein Netz, und dann ist die ganze Karte ungedeckt.
+2. IST ETWAS KAPUTT, DAS VORHER GING? Das ist die Frage, die bei Haertung an
+   Bestandscode Nutzer trifft. Geh die geaenderten Werkzeuge durch und pruef
+   je Werkzeug den Weg, den ein Aufrufer heute geht.
+3. IST DER OAUTH-STORE UNANGETASTET? 'git diff main..$BRANCH_FB' auf die
+   Auth-Pfade. Jede Aenderung dort ist gate-pflichtig und nicht Teil dieser
+   Karte — dann ist dein Befund 'braucht ein Gate', nicht 'Fehler'.
+4. Jedes Akzeptanzkriterium einzeln, mit Fundstelle.
+5. Ist die Haertung wirklich eine? Nimm zwei der behobenen Punkte und pruef
+   am Code, ob der beschriebene Angriff oder Fehlerfall jetzt wirklich nicht
+   mehr geht. Eine Haertung, die nur eine Pruefung HINZUFUEGT, ohne den Weg
+   daneben zu schliessen, ist keine.
+6. Fuehre die Tests SELBST aus, im Baum des Entwicklers:
+     cd $REPO/.worktrees/<sein-verzeichnis>
+     pnpm exec turbo typecheck test --force
+     $E2E_VORBED
+     $E2E_BEFEHL
+7. Ist main unberuehrt?
+
+Dein Urteil ist 'approved' oder 'changes_requested' im metadata unter
+'verdict'. Du reparierst nichts selbst.
+
+$(metadata_pflicht 'review-repo-M')
+Dazu ins metadata: verdict, die Befunde, das selbst gemessene Testergebnis
+(Zahlen), die Antwort auf Punkt 1 (Netz echt: ja/nein, woran festgemacht) und
+auf Punkt 3.
+
+$(gate_verbot)" \
+    --json | jq -r .id)
+echo "  FB_REV  = $FB_REV"
+
+say "S4 Merge F1b  (zuerst)"
+FA_MERGE=$(k create "$S Merge F1b — F-R1-1b am Riegel" \
+    --assignee esf-qa-release \
+    --workspace "dir:$REPO" \
+    --parent "$FA_REV" --parent "$EST" \
+    --idempotency-key "s4-f1b-merge" \
+    --max-retries 2 --max-runtime 90m \
+    --body "Bringe F-R1-1b nach main — ueber den Riegel.
+
+DER EINZIGE ERLAUBTE WEG
+    $HERE/scripts/merge-riegel.sh $BRANCH_FA --protokoll $VAULT/reports/riegel-r2-f1b.txt
+
+Du rufst kein 'git merge'. Sechs Pruefungen: Erreichbarkeit, Konfliktfreiheit,
+Linter auf den geaenderten Dateien, Typecheck, Unit-Tests, volle E2E-Suite.
+
+DU BIST DER ERSTE VON ZWEI MERGES in diesem Sprint. Der zweite (F-R2-1)
+haengt an dir und laeuft erst danach — zwei Riegel-Laeufe gleichzeitig auf
+demselben main waeren ein Rennen.
+
+VORBEDINGUNGEN, die du selbst herstellst
+1. Reviewer-Urteil 'approved'. Steht 'changes_requested': NICHT mergen,
+   abschliessen, neue Karte fuer die Nacharbeit.
+2. Meldet der Reviewer 'braucht ein Irreversibel-Gate': NICHT mergen. Karte
+   mit Titel-Praefix 'GATE Irreversibel' anlegen, die sich selbst per
+   kanban_block blockiert. Darueber entscheidet ein Mensch (Kapitel 7).
+3. Arbeitsbaum von $REPO sauber ('git status --short').
+4. Postgres laeuft: $E2E_VORBED
+5. Keine fremden Dev-Server auf den E2E-Ports — 'reuseExistingServer' testete
+   sonst die FALSCHE Anwendung und die Suite waere trotzdem gruen.
+
+WENN ER VERWEIGERT: Sachgrund (Konflikt, roter Test, Linter auf neuen Zeilen)
+-> nicht mergen, neue Karte. Betriebsgrund (schmutziger Baum,
+lastempfindlicher Test) -> Ursache benennen, EINMAL sauber nachlaufen lassen.
+Du ueberstimmst den Riegel nicht und benutzt kein --no-verify.
+
+DANACH
+· Das Riegel-Protokoll bleibt als Rohbeleg liegen (reports/riegel-r2-f1b.txt).
+· Ist gemerged: den Worktree des Entwicklers ABRAEUMEN, den Branch behalten.
+    git -C \$(git rev-parse --show-toplevel) worktree remove .worktrees/<karten-id>
+  Der Beleg ist die Branch-Referenz, nicht das Verzeichnis — und ein
+  liegengebliebener Worktree bricht den Pre-Commit-Hook des Hauptbaums
+  (gemessen am 19.08.2026: eine verschachtelte biome.json in drei alten
+  Worktrees liess 'biome ci .' abbrechen). Den Branch loeschst du nie.
+
+$(metadata_pflicht 'merge-repo-S')
+Dazu ins metadata: Riegel-Ergebnis, welche der sechs Pruefungen wie ausging,
+Merge-Commit auf main, Testzahlen aus dem Riegel-Lauf.
+
+$(gate_verbot)" \
+    --json | jq -r .id)
+echo "  FA_MERGE= $FA_MERGE"
+
+say "S4 Merge F2  (danach — serialisiert)"
+FB_MERGE=$(k create "$S Merge F2 — F-R2-1 am Riegel" \
+    --assignee esf-qa-release \
+    --workspace "dir:$REPO" \
+    --parent "$FB_REV" --parent "$FA_MERGE" --parent "$EST" \
+    --idempotency-key "s4-f2-merge" \
+    --max-retries 2 --max-runtime 90m \
+    --body "Bringe F-R2-1 nach main — ueber den Riegel, NACH F-R1-1b.
+
+DREI ELTERN, UND NUR EINER TRAEGT DIE ZAHL
+Deine Schaetzung steht im metadata der SCHAETZKARTE. Der Merge F1b haengt nur
+dran, um die Reihenfolge zu erzwingen; er traegt keine Zahl fuer dich. Genau
+diese Verwechslung hat am 19.08.2026 in S2 ein zerrissenes Paar erzeugt.
+(Seit dem Roadmap-Gate R2 faengt ledger-sync.sh das ab, indem es die Zahl beim
+Schaetzer holt — aber ins metadata gehoert sie trotzdem.)
+
+DER EINZIGE ERLAUBTE WEG
+    $HERE/scripts/merge-riegel.sh $BRANCH_FB --protokoll $VAULT/reports/riegel-r2-f2.txt
+
+DU BIST DER ZWEITE. main hat sich seit dem Review veraendert — F-R1-1b liegt
+jetzt darauf. Der Riegel prueft deshalb gegen einen anderen Stand, als der
+Reviewer gesehen hat. Ein Konflikt hier ist kein Fehler des Entwicklers,
+sondern die normale Folge parallelen Bauens; er ist trotzdem ein Sachgrund.
+Die Flaechen sollten disjunkt sein (packages/ gegen apps/api/src/mcp) — ist
+das NICHT so, gehoert die Ueberschneidung ins metadata, weil sie den Zuschnitt
+des naechsten Sprints betrifft.
+
+VORBEDINGUNGEN wie bei Merge F1b: Reviewer-Urteil 'approved'; bei 'braucht ein
+Irreversibel-Gate' nicht mergen, sondern Gate-Karte; sauberer Arbeitsbaum;
+Postgres laeuft ($E2E_VORBED); keine fremden Dev-Server auf den E2E-Ports.
+
+WENN ER VERWEIGERT: Sachgrund -> nicht mergen, neue Karte. Betriebsgrund ->
+benennen, EINMAL sauber nachlaufen lassen. Kein Ueberstimmen, kein --no-verify.
+
+DANACH
+· Riegel-Protokoll bleibt liegen (reports/riegel-r2-f2.txt).
+· Beide Worktrees dieses Sprints ABRAEUMEN, beide Branches behalten
+  (git worktree remove; der Branch ist der Beleg, das Verzeichnis bricht den
+  Pre-Commit-Hook des Hauptbaums).
+
+$(metadata_pflicht 'merge-repo-S')
+Dazu ins metadata: Riegel-Ergebnis, welche der sechs Pruefungen wie ausging,
+Merge-Commit, Testzahlen, und ob es Konflikte gegen den neuen main gab.
+
+$(gate_verbot)" \
+    --json | jq -r .id)
+echo "  FB_MERGE= $FB_MERGE"
+
+schluessel_an_schaetzer "$EST" \
+    "$S F1b 2/4 Umsetzung=$FA_IMPL" "$S F1b 3/4 Review=$FA_REV" "$S Merge F1b=$FA_MERGE" \
+    "$S F2 2/4 Umsetzung=$FB_IMPL"  "$S F2 3/4 Review=$FB_REV"  "$S Merge F2=$FB_MERGE"
+echo "  Karten-IDs an den Schaetzer $EST nachgereicht"
+
+LETZTE="$FB_MERGE"
+FEATURES="F-R1-1b (WeKan) und F-R2-1 (MCP)"
+
 # ===========================================================================
 else   # SPRINT 3 — der erste Sprint von Release 2
 # ===========================================================================
@@ -2236,6 +2866,18 @@ echo "  ABSCHLUSS = $ABSCHLUSS"
         echo "S3_F1_REV='$REV'"
         echo "S3_F1_MERGE='$MERGE'"
         echo "S3_BRANCH='$BRANCH'"
+    elif [ "$SPRINT" = "4" ]; then
+        echo "S4_F1B_SPEC='$FA_SPEC'"
+        echo "S4_F2_SPEC='$FB_SPEC'"
+        echo "S4_EST='$EST'"
+        echo "S4_F1B_IMPL='$FA_IMPL'"
+        echo "S4_F2_IMPL='$FB_IMPL'"
+        echo "S4_F1B_REV='$FA_REV'"
+        echo "S4_F2_REV='$FB_REV'"
+        echo "S4_MERGE_F1B='$FA_MERGE'"
+        echo "S4_MERGE_F2='$FB_MERGE'"
+        echo "S4_BRANCH_F1B='$BRANCH_FA'"
+        echo "S4_BRANCH_F2='$BRANCH_FB'"
     fi
     echo "${S}_KAL='$KAL'"
     echo "${S}_ABSCHLUSS='$ABSCHLUSS'"
@@ -2260,6 +2902,11 @@ EOF
    ;;
 2) cat <<EOF
   ./create-release.sh                Release-Abschluss + Release-Gate
+EOF
+   ;;
+4) cat <<EOF
+  ./create-sprint.sh 5               der naechste R2-Sprint (F-R2-2 2FA, allein:
+                                     vier Bau-Karten, feature-auth-L ist leer)
 EOF
    ;;
 3) cat <<EOF
