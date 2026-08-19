@@ -92,6 +92,28 @@ if [ "$SELBSTTEST" -eq 1 ]; then
         ok "Budget-Gate verweigert approve"
     fi
 
+    # (e) Reihenfolge-Wache: der Schatten-Block MUSS vor dem escalate-Zweig
+    #     stehen. Diese Prüfung liest die eigene Datei, weil der Fehler vom
+    #     19.08.2026 sich anders nicht hermes-frei fangen lässt: Steht
+    #     escalate vorn, endet es mit `continue`, `schatten-validiert` wird
+    #     nie geschrieben, und das Gate liefert nie einen schatten-vergleich.
+    #     Der Schaden zeigt sich erst am laufenden Board — dann ist das Gate
+    #     schon verbraucht.
+    #     Die Muster sind bewusst zeilengenau verankert (^ und $), sonst
+    #     fänden sie sich selbst in diesen beiden Zeilen wieder.
+    z_schatten="$(grep -nE '^    if \[ "\$MODUS" = "schatten" \]; then$' "$HERE/ceo-tick.sh" | cut -d: -f1)"
+    z_escal="$(grep -nE '^    if \[ "\$verb" = "escalate" \]; then$' "$HERE/ceo-tick.sh" | cut -d: -f1)"
+    if [ "$(printf '%s\n' "$z_schatten" | wc -l | tr -d ' ')" != "1" ] \
+    || [ "$(printf '%s\n' "$z_escal" | wc -l | tr -d ' ')" != "1" ]; then
+        nein "Reihenfolge-Wache: Ankerzeilen nicht eindeutig (Schatten='$z_schatten', escalate='$z_escal')"
+        fehler=1
+    elif [ "$z_schatten" -lt "$z_escal" ]; then
+        ok "Schatten-Block (Zeile $z_schatten) steht vor escalate (Zeile $z_escal)"
+    else
+        nein "escalate (Zeile $z_escal) steht vor dem Schatten-Block (Zeile $z_schatten) — jedes eskalierte Gate verlöre seinen Vergleich"
+        fehler=1
+    fi
+
     exit "$fehler"
 fi
 
@@ -278,25 +300,37 @@ Supervisor." --json | jq -r .id >/dev/null
     antwort="$(printf '%s\n' "$lint_aus" | sed -n 's/^ANTWORT=//p')"
 
     # ------------------------------------------------------------------
-    # Fall 3: gültig → escalate / Schatten / Frist / ausführen
+    # Fall 3: gültig → Schatten / escalate / Frist / ausführen
+    #
+    # Der Schatten-Block steht VOR dem escalate-Zweig, und das ist die
+    # ganze Pointe: Im Schatten wird nichts ausgeführt, also ist ein
+    # escalate hier kein Notfall, sondern ein URTEIL — "der CEO traut sich
+    # nicht" — und Urteile gehören in den Vergleich. Stand der Block
+    # dahinter (bis 19.08.2026), verlor jedes eskalierte Gate seinen
+    # schatten-vergleich, weil escalate mit `continue` endet und
+    # `schatten-validiert` nie geschrieben wurde. Nebenwirkung derselben
+    # Reihenfolge: kein `notfall`, kein `exit 1` im Schatten — unter Cron
+    # schlug der Tick sonst fehl, obwohl nichts gefährdet war.
     # ------------------------------------------------------------------
-    if [ "$verb" = "escalate" ]; then
-        warn "$id  esf-ceo eskaliert: $antwort"
-        warn "     Das Gate bleibt blockiert — Antwort des Supervisors: ./gate.sh"
-        journal "$id" "$rel" "$verb" "eskaliert" '{"grund":"escalate durch esf-ceo"}'
-        notfall=$((notfall + 1))
-        continue
-    fi
-
     if [ "$MODUS" = "schatten" ]; then
-        # Nichts ausführen. Hat der Supervisor schon geantwortet (Gate nicht
-        # mehr blockiert), Verben vergleichen und festhalten.
+        [ "$verb" = "escalate" ] && \
+            warn "$id  esf-ceo würde eskalieren: $antwort (im Schatten kein Notfall)"
+        # Hat der Supervisor schon geantwortet (Gate nicht mehr blockiert),
+        # übernimmt die Nachlese unten den Vergleich.
         status_jetzt="$(printf '%s' "$liste" | jq -r --arg i "$id" '.[] | select(.id==$i) | .status')"
         if [ "$status_jetzt" = "blocked" ]; then
             ok "$id  Schatten: Dokument gültig (VERB=$verb) — wartet auf die Supervisor-Antwort"
             [ -z "$(journal_stand "$id" '^schatten-validiert$')" ] && \
                 journal "$id" "$rel" "$verb" "schatten-validiert" '{}'
         fi
+        continue
+    fi
+
+    if [ "$verb" = "escalate" ]; then
+        warn "$id  esf-ceo eskaliert: $antwort"
+        warn "     Das Gate bleibt blockiert — Antwort des Supervisors: ./gate.sh"
+        journal "$id" "$rel" "$verb" "eskaliert" '{"grund":"escalate durch esf-ceo"}'
+        notfall=$((notfall + 1))
         continue
     fi
 
