@@ -1,0 +1,54 @@
+{
+	"name": "@kaneo/wekan-import",
+	"version": "0.1.0",
+	"description": "Import boards from a WeKan JSON export into Kaneo over the public API",
+	"license": "MIT",
+	"author": "Kaneo (https://kaneo.app)",
+	"homepage": "https://kaneo.app/docs/core/migrations/from-wekan",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/usekaneo/kaneo/",
+		"directory": "packages/wekan-import"
+	},
+	"type": "module",
+	"bin": {
+		"kaneo-wekan-import": "dist/index.js"
+	},
+	"publishConfig": {
+		"access": "public"
+	},
+	"files": [
+		"dist",
+		"README.md",
+		"LICENSE"
+	],
+	"keywords": [
+		"wekan",
+		"kaneo",
+		"import",
+		"migration",
+		"kanban",
+		"project-management",
+		"cli"
+	],
+	"engines": {
+		"node": ">=20"
+	},
+	"scripts": {
+		"build": "tsc -p tsconfig.json",
+		"prepublishOnly": "pnpm run build",
+		"lint": "biome check --write .",
+		"start": "node dist/index.js",
+		"test": "vitest run --config vitest.config.ts",
+		"test:watch": "vitest --config vitest.config.ts"
+	},
+	"dependencies": {
+		"@kaneo/kaneo-client": "workspace:*"
+	},
+	"devDependencies": {
+		"@kaneo/typescript-config": "workspace:*",
+		"@types/node": "^26.1.2",
+		"typescript": "^7.0.2",
+		"vitest": "^4.1.10"
+	}
+}

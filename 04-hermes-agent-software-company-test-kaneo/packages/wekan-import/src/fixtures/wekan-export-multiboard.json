@@ -1,0 +1,66 @@
+{
+	"boards": [
+		{
+			"_format": "wekan-board-1.0.0",
+			"title": "Board A",
+			"slug": "board-a",
+			"members": [],
+			"labels": [],
+			"lists": [
+				{ "_id": "b1l1", "title": "Open", "sort": 1, "archived": false }
+			],
+			"cards": [
+				{
+					"_id": "b1c1",
+					"title": "A task",
+					"listId": "b1l1",
+					"sort": 1,
+					"archived": false,
+					"labelIds": [],
+					"members": []
+				}
+			],
+			"comments": [],
+			"checklists": [],
+			"checklistItems": [],
+			"attachments": [],
+			"users": []
+		},
+		{
+			"_format": "wekan-board-1.0.0",
+			"title": "Board B",
+			"slug": "board-b",
+			"members": [],
+			"labels": [],
+			"lists": [
+				{ "_id": "b2l1", "title": "Backlog", "sort": 1, "archived": false },
+				{ "_id": "b2l2", "title": "Todo", "sort": 2, "archived": false }
+			],
+			"cards": [
+				{
+					"_id": "b2c1",
+					"title": "B task",
+					"listId": "b2l2",
+					"sort": 1,
+					"archived": false,
+					"labelIds": [],
+					"members": []
+				},
+				{
+					"_id": "b2c2",
+					"title": "B task 2",
+					"listId": "b2l1",
+					"sort": 1,
+					"archived": false,
+					"labelIds": [],
+					"members": []
+				}
+			],
+			"comments": [],
+			"checklists": [],
+			"checklistItems": [],
+			"attachments": [],
+			"users": []
+		}
+	]
+}

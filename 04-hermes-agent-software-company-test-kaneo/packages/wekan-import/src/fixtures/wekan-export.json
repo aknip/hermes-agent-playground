@@ -1,0 +1,118 @@
+{
+	"_format": "wekan-board-1.0.0",
+	"title": "Produkt-Booster",
+	"slug": "produkt-booster",
+	"description": "Sprint board for the product booster",
+	"members": [{ "userId": "U1" }, { "userId": "U2" }],
+	"labels": [
+		{ "_id": "L1", "name": "Bug", "color": "#eb5a46" },
+		{ "_id": "L2", "name": "Feature", "color": "#61bd4f" }
+	],
+	"lists": [
+		{ "_id": "Li1", "title": "To Do", "sort": 1, "archived": false },
+		{ "_id": "Li2", "title": "In Progress", "sort": 2, "archived": false },
+		{ "_id": "Li3", "title": "Done", "sort": 3, "archived": false },
+		{ "_id": "Li4", "title": "Alte Liste", "sort": 4, "archived": true }
+	],
+	"cards": [
+		{
+			"_id": "C1",
+			"title": "Anleitung schreiben",
+			"description": "Den Umzug erklären",
+			"listId": "Li1",
+			"sort": 1,
+			"archived": false,
+			"dueAt": "2026-08-25T09:00:00.000Z",
+			"labelIds": ["L1"],
+			"members": ["U1"]
+		},
+		{
+			"_id": "C2",
+			"title": "Testdaten anlegen",
+			"listId": "Li1",
+			"sort": 2,
+			"archived": false,
+			"dueAt": "2026-08-26T00:00:00.000Z",
+			"labelIds": ["L1", "L2"],
+			"members": ["U2"]
+		},
+		{
+			"_id": "C3",
+			"title": "Checkliste durchsehen",
+			"description": "Karten müssen importiert werden",
+			"listId": "Li2",
+			"sort": 1,
+			"archived": false,
+			"labelIds": [],
+			"members": ["U1", "U2"]
+		},
+		{
+			"_id": "C4",
+			"title": "Alte Idee",
+			"listId": "Li1",
+			"sort": 3,
+			"archived": true
+		}
+	],
+	"comments": [
+		{
+			"_id": "Cm1",
+			"cardId": "C1",
+			"text": "Bitte Screenshots ergänzen",
+			"userId": "U2",
+			"createdAt": "2026-08-10T08:00:00.000Z"
+		},
+		{
+			"_id": "Cm2",
+			"cardId": "C1",
+			"text": "Erledigt, siehe unten",
+			"userId": "U1",
+			"createdAt": "2026-08-11T09:30:00.000Z"
+		}
+	],
+	"checklists": [{ "_id": "Ch1", "cardId": "C3", "title": "Release-Schritte" }],
+	"checklistItems": [
+		{
+			"_id": "Ci1",
+			"checklistId": "Ch1",
+			"cardId": "C3",
+			"title": "Version erhöhen",
+			"isFinished": true,
+			"sort": 1
+		},
+		{
+			"_id": "Ci2",
+			"checklistId": "Ch1",
+			"cardId": "C3",
+			"title": "Release taggen",
+			"isFinished": false,
+			"sort": 2
+		}
+	],
+	"attachments": [
+		{
+			"_id": "A1",
+			"cardId": "C1",
+			"name": "screenshot.png",
+			"type": "image/png"
+		},
+		{
+			"_id": "A2",
+			"cardId": "C4",
+			"name": "alt.pdf",
+			"type": "application/pdf"
+		}
+	],
+	"users": [
+		{
+			"_id": "U1",
+			"username": "alex",
+			"profile": { "fullname": "Alex Beispiel" }
+		},
+		{
+			"_id": "U2",
+			"username": "sam",
+			"profile": { "fullname": "Sam Mustermann" }
+		}
+	]
+}
