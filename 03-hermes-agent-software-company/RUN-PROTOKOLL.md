@@ -1104,3 +1104,234 @@ Protokoll vom 17.08. nennt.
 Der erste Lauf endete mit dem Satz, der erste, der nachsah, sei ein Agent
 gewesen. Diesmal war es umgekehrt — aber die Regel dahinter ist dieselbe: Wer
 einer Zahl glaubt, ohne sie nachrechnen zu können, hat nichts verifiziert.
+
+---
+
+# Phase 2 im zweiten Rundlauf — 18./19.08.2026
+
+Zwei Sprints, 22 Karten, **558 Minuten Kartenzeit**, drei Features auf `main`,
+Release R1 durch das Gate. `check-phase2.sh` grün: alle drei Nachweise aus
+Kapitel 12.
+
+Der Lauf ist nicht deshalb interessant, weil er dieselben Nachweise erbrachte
+wie der erste, sondern weil er sie mit einer **anderen Roadmap** erbrachte —
+und weil dabei sechs Befunde entstanden, von denen fünf in meiner eigenen
+Arbeit saßen.
+
+## Was vor dem ersten Kartenzug im Weg stand
+
+Drei Blockaden, alle vor dem ersten Token gefunden:
+
+- **`create-sprint.sh` war auf die Features des ERSTEN Laufs verdrahtet** —
+  R1-F5, R1-F1, R1-F2. Keines davon steht in der Roadmap, die am 18.08. durch
+  das Gate ging. Die Kartentexte hätten Worker auf einen Abschnitt von
+  `q1-freigegeben.html` geschickt, den es nicht gibt; genau diese Drift hat in
+  Phase 0 des ersten Laufs eine Gate-Karte in die Triage gefahren. Beide
+  Sprint-Blöcke wurden inhaltlich neu geschrieben, die Graph-Struktur blieb.
+- **`restore-phase1.sh --ledger` hätte die eigenen Analysen überschrieben.**
+  Der Modus spielt erst die Artefakte der Akte zurück und bucht dann nach; die
+  Dateinamen sind identisch. Ein neuer `--nur-ledger <akte>`-Modus bucht nur
+  nach. Belegt an unveränderten md5-Summen der vier Analyse-Dateien.
+- **Dem Estimator fehlten die Referenzklassen für Bau, Review und Merge.** Der
+  Probelauf war in Phase 1 übersprungen worden — er ist die einzige Quelle
+  dieser Klassen. Nachgeholt; er lieferte nebenbei den Phase-0-Nachweis
+  (Kette durchgelaufen, Probe-Gate hielt, Riegel merged nach der Freigabe
+  wirklich: `ecac536`).
+
+## Der schwerste Befund: der Turbo-Cache hat Riegel und Review blind gemacht
+
+Das Review von F-R1-2 meldete `approved` nach **3,6 Minuten** — für eine Karte,
+die Typecheck, 374 Unit-Tests und die volle E2E-Suite fahren soll. Die Zahlen im
+`metadata` waren spezifisch und die E2E-Zahl unabhängig belegt (`results.json`
+im Worktree: 39230,7 ms, 7 expected, 0 unexpected, mitten im Laufzeitfenster).
+Nur ging die Rechnung nicht auf.
+
+Nachgemessen im selben Worktree:
+
+    pnpm typecheck
+    Tasks:    6 successful, 6 total
+    Cached:   6 cached, 6 total
+    Time:     170ms >>> FULL TURBO
+
+turbo hasht seine Eingaben und spielt bei gleichem Hash das alte Ergebnis ab,
+ohne etwas auszuführen. Der Reviewer hatte seine Anweisung — „Führe die Tests
+SELBST aus. Nicht sein Protokoll lesen — laufen lassen. Der Unterschied zwischen
+Behauptung und geprüfter Tatsache ist dein ganzer Daseinsgrund" — **befolgt**.
+turbo antwortete mit dem Protokoll dessen, den er prüfen sollte, und er meldete
+es als eigene Messung. Kein Modellfehler, kein Regelverstoß: ein Build-Werkzeug
+entwertet die Regel lautlos.
+
+Schwerer wiegt die zweite Fundstelle. `merge-riegel.sh` fuhr `turbo typecheck`
+und `turbo test` genauso ohne `--force`. Der Riegel ist die Stelle, an der „Code
+entscheidet, kein Modell" hängt — zwei seiner sechs Prüfungen konnten aus dem
+Cache kommen. **Ein Cache-Treffer ist kein Urteil.**
+
+Warum es nie auffiel: `playwright test` läuft nicht über turbo. Eine der sechs
+Prüfungen war immer echt, und genau die prüft man zuerst. Aufgefallen ist es
+nur, weil die *Laufzeit nicht zur behaupteten Arbeit passte*.
+
+Behoben mit `--force` an beiden Stellen. Das Riegel-Protokoll des nächsten
+Merges belegt den Fix in seiner ersten Zeile:
+
+    Befehl: pnpm exec turbo typecheck --concurrency=1 --force
+    Befehl: pnpm exec turbo test --concurrency=1 --force
+
+## Die Kalibrierung hat gedreht — der Zweck des Ledgers, erfüllt
+
+| Klasse | S1 (Ist/Schätzung) | S2 (Ist/Schätzung) |
+|--------|--------------------|--------------------|
+| Umsetzung | 0,21 | **1,38** |
+| Review | 0,09 | **0,88** |
+| E2E-Bau | — | **0,63** |
+| Merge | 0,87 | 0,57 (n=2) |
+
+In S1 rechnete der Estimator aus Dummy-Ankern des Probelaufs — eine
+dreizeilige Markdown-Datei als Referenz für ein Frontend-Feature — und lag um
+Faktor fünf bis elf daneben. In S2, mit echten Paaren als Grundlage, liegt er
+innerhalb eines Faktors von etwa 1,6.
+
+Zwei Dinge daran sind mehr als Arithmetik:
+
+- Der S2-Estimator hat den Faktor 0,21 **nicht blind übernommen**, sondern den
+  Umfangssprung von S nach M eigens beziffert („Ist 16 × Skalar 2,5") und die
+  Merge-Klasse *unverändert* gelassen, weil sie als einzige schon traf. Er hat
+  also nicht reflexhaft alles nach unten gezogen.
+- Der F-R1-4-Estimator hat die verzerrte Ledger-Zeile erkannt und bereinigt:
+  „Anker `e2e-repo-L` 103 min **runs:2 bereinigt auf ~50**". Die 103 Minuten
+  enthalten einen verlorenen Lauf; wer sie ungefiltert weiterreicht, schreibt
+  die eigenen Betriebsunfälle als Normalfall fort.
+
+## Die Zeitgrenzen waren für ein schnelleres Modell kalibriert
+
+Zweimal riss eine Karte ihre Grenze **um Sekunden** und verlor dadurch ihren
+ganzen Lauf:
+
+| Karte | Grenze | Gebraucht |
+|-------|--------|-----------|
+| Onboarding 4/6 (E2E) | 5400 s | 5406 s |
+| Probelauf 2/4 (Bau) | 1500 s | 1516 s |
+
+Die Bau-Karte schreibt eine dreizeilige Markdown-Datei; ihr erfolgreicher
+zweiter Lauf brauchte dafür 11 Minuten. Das ist kein Hänger, sondern die
+Arbeitsgeschwindigkeit dieses Modells. Der Ausgang ist der teuerste denkbare:
+voller Preis, kein Ergebnis, vollständige Wiederholung — **und die verlorene
+Zeit landet als Wanduhr im Ledger**. Genau deshalb steht `impl-worktree-S` dort
+mit 36 Minuten für 11 Minuten Arbeit. Die Karten mit voller Suite stehen jetzt
+auf 90 statt 60 Minuten.
+
+## Parallele Git-Arbeit — die Probe, die der erste Lauf verloren hatte
+
+S2 baute zwei Features gleichzeitig in eigenen Worktrees, und beide fassten
+`tests/` an. Im ersten Lauf war parallele Git-Arbeit der häufigste Ausfallgrund.
+
+Diesmal blieb die Schnittmenge der berührten Test-Dateien **leer**:
+
+| F-R1-3 (`esf-dev-a`) | F-R1-4 (`esf-dev-b`) |
+|----------------------|----------------------|
+| `projekt-anlegen.spec.ts` | `teammitglied-einladen.spec.ts` |
+| `tastatur-command-palette.spec.ts` | `vorgang-ins-detail-pflegen.spec.ts` |
+| `vorgang-im-board-weiterziehen.spec.ts` | `support/einladung.ts` |
+| `support/tastatur.ts` | |
+
+Beide Entwickler haben ihren Helfer in eine **eigene** Datei gelegt, statt das
+gemeinsame `tests/e2e/support/journey.ts` zu erweitern — die Regel stand in
+beiden Kartentexten, und beide Reviewer haben ihre Einhaltung einzeln
+nachgewiesen. Der zweite Merge-Wart hat die Schnittmenge selbst gebildet und
+mit beiden Dateilisten belegt, bevor der Riegel lief.
+
+## Drei Karten, die über ihren Auftrag hinausgingen
+
+- Der **Product Manager widerlegte die Prämisse seiner eigenen Karte.** Das
+  Marktbild hatte aus dem Korpus geschlossen, Kaneo habe keine
+  Tastaturbedienung. Der Korpus enthält aber nur Wettbewerber-Changelogs,
+  keinen Kaneo-Code. Er sah nach, fand ein vollständiges System und schnitt die
+  Aufgabe um: „Vereinheitlichen und Sichtbarmachen" statt Neubau, mit drei
+  gemessenen Lücken.
+- Der **F-R1-4-Reviewer prüfte nicht, ob die Tests grün sind, sondern ob sie rot
+  werden können.** Er machte gezielt zwei Selektoren kaputt, sah beide Specs
+  fallen, nahm die Änderung zurück — und der Worktree war danach nachweislich
+  wieder sauber. Eine Spec, die immer besteht, ist Dekoration.
+- Die **Gate-Vorlage meldete den eigenen Mangel.** Punkt 3 nannte ungefragt den
+  Katalog-Widerspruch (J-03 im Katalog mit 6 Schritten, im Code mit 5), Punkt 5
+  den zerrissenen Schätz-Handoff. Nachgemessen: beides stimmt.
+
+## Das Release-Gate: `approve` mit drei Auflagen
+
+Selbst nachgemessen statt der Vorlage geglaubt: volle Suite auf `main` **13
+passed in 1,1 min** (die Rechnung geht auf: 7 vor dem Sprint + 4 Szenarien aus
+F-R1-3 + 2 Journeys aus F-R1-4), Schnittmenge der Test-Dateien wirklich leer,
+Katalog-Widerspruch wirklich vorhanden.
+
+`approve`, nicht `modify`: Das Paket ist in Ordnung — `main` grün, jedes Feature
+einzeln am Riegel 6/6, keine Migration, keine API- oder Schema-Änderung,
+rücknehmbar ohne Tag und Deploy. Die offenen Punkte sind Mängel der **eigenen
+Dokumentation** und Betriebsbefunde, keine Produktrisiken. Ein grünes Release
+wegen einer veralteten Zahl im Katalog anzuhalten wäre Zeremonie.
+
+Die Auflagen: **(a)** der Katalog-Widerspruch wird strukturell behoben — wer die
+Schrittzahl einer Journey ändert, zieht `journeys.html` in derselben Karte nach;
+`journeys.html` ist der Katalog, gegen den `check-onboarding.sh` zählt.
+**(b)** Der zerrissene Handoff bleibt stehen und wird benannt; nachträglich
+hineinschreiben wäre die Fälschung, die das Ledger verbietet. **(c)** Der
+präexistente Keydown-Handler bekommt eine eigene Karte — ein Befund, der nur in
+einer Gate-Vorlage steht, ist in zwei Wochen vergessen. Horizont bleibt
+`release`.
+
+Bewusst **keine** Auflage zur Schätzgüte: Sie hat gedreht. Eine Auflage an etwas,
+das funktioniert, ist eine Forderung ohne Adressat.
+
+## Zwei Befunde in meinem eigenen Kartenbau
+
+**Der dritte Elternteil verdrängt die Schätzung.** Zwei Karten derselben Art,
+im selben Sprint:
+
+| Karte | Eltern | `estimate` im `metadata` |
+|-------|--------|--------------------------|
+| Merge F3 | 2 (Review + Schätzung) | vollständig kopiert |
+| Merge F4 | 3 (Review + **Merge F3** + Schätzung) | fehlt ganz |
+
+Den dritten Elternteil hatte ich nur zur *Serialisierung* der Riegel-Läufe
+eingezogen. Er trägt keine Zahl — und verdrängte den, der eine trug. Der erste
+Lauf hatte denselben zerrissenen Handoff an derselben Kartenart und behob ihn
+mit einem zweiten Elternteil; der dritte macht ihn wieder auf. Der
+Handoff-Kontext ist ein begrenzter Kanal. Behoben nicht durch Entfernen — die
+Serialisierung ist nötig —, sondern indem beide Kartentexte jetzt sagen, welcher
+Elternteil die Zahl trägt und wo sie steht.
+
+**`metadata_pflicht` sprach fast nur vom Kopieren.** Die Spezifikationskarte von
+F-R1-2 schrieb ein vollständiges `metadata` — und ließ das `estimate`-Objekt
+ganz weg. Sie läuft *vor* dem Estimator, hat also kein Intervall im Handoff, las
+die Bedingung „trägst du ein Intervall, dann kopiere" korrekt als nicht erfüllt
+und verlor dabei die unbedingte Pflicht zur Referenzklasse. Fehler im
+Kartentext, nicht im Modell. Jetzt stehen beide Fälle da, mit dem JSON für den
+Fall ohne Intervall.
+
+Und ein dritter, rein operativer: Ich habe **`merge-riegel.sh` bearbeitet,
+während die Merge-Karte lief.** Bash liest Skripte häppchenweise nach; der Lauf
+ging verloren. Der Worker ordnete es korrekt als Betriebsgrund ein und setzte
+neu an — die Ursache saß an meiner Tastatur.
+
+## Was rot bleibt, und warum es rot bleibt
+
+`check-sprint.sh` meldet in **beiden** Sprints je einen Punkt rot: In S1 trägt
+die Spezifikationskarte `t_e70f40ff` keine Referenzklasse, in S2 die Merge-Karte
+`t_c35344ff` keine Schätzung. Beide Ursachen sind behoben, beide Befunde sind
+historisch nicht heilbar — das Ledger wird nur angehängt, nie umgeschrieben.
+
+Dem Prüfer das Verzeihen beizubringen wäre der teuerste Fehler, den man an
+einem Riegel machen kann. `check-phase2.sh` zählt deshalb die Paare im Ledger
+und nicht den Exit-Code von `check-sprint.sh` — die Phase ist nachgewiesen, und
+die Lücken bleiben trotzdem sichtbar.
+
+## Bilanz
+
+Sechs neue Befunde, fünf davon in ESF-Code oder in meiner eigenen Arbeit, einer
+in der Umgebung. Der teuerste — der Turbo-Cache — saß seit dem ersten Lauf im
+Riegel und war dort nie aufgefallen, weil eine der sechs Prüfungen immer echt
+lief.
+
+Was der Lauf zeigt, ist nicht, dass die Organisation Features bauen kann; das
+hatte der erste schon gezeigt. Es ist, dass ihre **Prüfer** die Stelle sind, an
+der man zuerst nachsehen muss. Zwei falsche Grün-Meldungen in Phase 1, ein
+blinder Riegel in Phase 2 — jedes Mal meldete das System Erfolg, und jedes Mal
+fiel es nur auf, weil eine Zahl nicht zu einer anderen passte.
