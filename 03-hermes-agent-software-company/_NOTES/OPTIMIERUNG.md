@@ -316,6 +316,64 @@ Zwei Ehrlichkeiten zum Netz selbst:
 | `bash -n` auf allen 36 Skripten | Exit 0 | alle Exit 0 | **alle Exit 0** |
 | die drei Selbsttests am Ende von `setup.sh` | grün | nicht messbar ohne Lauf | siehe BLOCK 4 |
 
-## BLOCK 4 — Nachher
+## BLOCK 4 — Nachher: **nicht gefahren**
 
-*(wird nach dem Validierungslauf gefüllt)*
+Der Validierungslauf ist **nicht gelaufen**. Das ist kein offener Punkt, den
+jemand vergessen hat, sondern eine Entscheidung mit Grund — und nach dem
+Verifikationsvertrag gehört sie hierher und nicht in eine Fußnote.
+
+**Warum nicht.** Der Turn-Deckel der Bedingung (50) war bei abgeschlossenem
+BLOCK 3 erreicht. Ein Phase-0-Lauf braucht nach der eigenen Baseline vier Karten
+mit 11–36 Minuten Wanduhr, dazwischen Gate-Antworten über `gate.sh` und
+`pump.sh`-Takte — das ist mehr Wanduhr und mehr Turns, als übrig waren. Ihn
+**anzufangen** und nicht zu beenden wäre schlechter als ihn zu lassen: Worker
+laufen dann weiter und verbrauchen Modell-Token, während niemand zusieht, und
+`reset-workspace.sh` hätte vorher `workspace/` gelöscht — Zustand weg, Nachweis
+nicht da.
+
+**Was dadurch unverifiziert bleibt** — nichts davon wird als verbessert gemeldet:
+
+| offen geblieben | Grund |
+|-----------------|-------|
+| 0 `timed_out`, 0 `crashed`, 0 `respawn_guarded`, 0 `block_loop_detected` in einem eigenen Lauf | kein Lauf |
+| 0 hängende Worker über `scripts/watchdog.sh` **an echten Prozessen** | der Wachhund ist nur gegen eine Attrappe belegt (Fall 2), nicht gegen einen echten Hänger |
+| 0 Unblocks ohne `gate.sh`-Verb | kein Gate beantwortet |
+| die drei Selbsttests am Ende von `setup.sh` | `setup.sh` nicht gelaufen — dieselbe Zeile steht offen in 3(b) |
+| **Kartenzeiten als Nachher-Spalte neben der Baseline** | nicht gemessen |
+| der Normalpfad von `dump-lauf.sh` (Schritte 2–5) | nur Schritt 1/5 gegen das Live-Board angelaufen; die Laufzeit-Arithmetik ist über `--nur-laufzeiten` und die beiden echten Akten belegt, der schreibende Pfad nicht |
+
+**Und die wichtigste Ehrlichkeit: Diese Runde belegt keine Effizienzverbesserung.**
+Alle sieben Maßnahmen sind **Erkennungs- und Sichtbarkeitsänderungen** — sie
+machen Verlust messbar, sie beseitigen ihn nicht. Dass ein früher erkannter
+Hänger und ein nicht mehr verschluckter Dispatcher-Fehler Wanduhr sparen, ist
+eine **Begründung, keine Messung**. Die einzige Maßnahme, die unmittelbar
+Verlustzeit verhindert, ist Nr. 4 (60 m → 90 m), und auch die ist nur an der
+Häufigkeit der Vorgeschichte plausibel, nicht an einem eigenen Lauf gemessen.
+Was diese Runde **belegt** hat: sieben Defekte, jeder vor dem Fix rot und nach
+dem Fix grün, in 17 Prüfungen, bei unveränderten Riegeln.
+
+**Kostenstand vor dem Lauf** (`scripts/assign-keys.sh --verbrauch`, kumulativ
+über alle 13 Rollen-Keys, also über *alle* bisherigen Läufe hinweg):
+**19,98 USD**. Diese Runde hat davon **0,00 USD** verursacht — Blöcke 1 bis 3
+sind modellfrei. Der 5-USD-Deckel der Bedingung gilt als Delta auf diesen Stand
+und ist damit die Zahl, gegen die ein späterer Lauf zu messen ist.
+
+### So wird der Lauf nachgeholt
+
+```bash
+cd 03-hermes-agent-software-company
+./scripts/assign-keys.sh --verbrauch   # Startwert notieren (Deckel = Start + 5 USD)
+./reset-workspace.sh
+./setup.sh                             # die drei Selbsttests am Ende schliessen 3(b)
+./probelauf.sh
+./pump.sh                              # taktet, meldet jetzt Wachhund und Abbrueche
+./gate.sh                              # jede Antwort mit Begruendung protokollieren
+./probelauf.sh --pruefen               # bis gruen
+scripts/monitor.sh                     # 0 timed_out / crashed / respawn_guarded / block_loop_detected
+scripts/watchdog.sh                    # 0 haengende Worker
+scripts/dump-lauf.sh beispiel-lauf-4   # Akte sichern, VOR jedem Rueckbau
+```
+
+`install-cron.sh` bleibt dabei ungenutzt, `teardown.sh` erst nach
+`dump-lauf.sh` — beides Randbedingungen der Aufgabe, beide in dieser Runde
+eingehalten (keines der beiden Skripte wurde aufgerufen).
