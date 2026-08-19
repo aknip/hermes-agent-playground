@@ -1,9 +1,28 @@
 #!/usr/bin/env bash
 #
-# ESF — Phase 2: Der Release-Abschluss von R1 und das Release-Gate
-# ===============================================================
+# ESF — Der Release-Abschluss und das Release-Gate
+# ================================================
 #
-#   ./create-release.sh R1
+#   ./create-release.sh R1              die Sprints aus der Vorgabe (S1 S2)
+#   ./create-release.sh R2 S4 S5        Release und seine Sprints ausdruecklich
+#   ./create-release.sh R2 S4 --dry-run zeigen, nichts anlegen
+#
+# BIS ZUM 19.08.2026 WAR HIER R1 FEST VERDRAHTET, und zwar an drei Stellen mit
+# drei verschiedenen Preisen:
+#   · die Sprintliste `for s in S1 S2` und der Elternteil "Sprint-Abschluss S2"
+#     — ein R2-Aufruf haette gegen die falschen Karten geprueft;
+#   · die Report-Pfade sprint-s1/s2-report.html im Gate-Kartentext;
+#   · und, am teuersten, eine BESCHREIBUNG des Release im Kartentext:
+#     "R1 heisst 'Auffindbar & vertrauenswuerdig' und traegt drei Features:
+#      R1-F5, R1-F1, R1-F2." Das stammte aus einem frueheren Lauf und war
+#     schon fuer R1 falsch — die freigegebene Roadmap fuehrt R1 als "Der
+#     taegliche Kern" mit F-R1-2/3/4/5. Ein Kartentext, der dem Worker eine
+#     falsche Release-Zusammensetzung nennt, ist schlimmer als einer, der gar
+#     keine nennt: Er gibt ihm etwas zu glauben.
+# Die Beschreibung ist deshalb nicht parametrisiert, sondern ENTFERNT. Der
+# Worker liest die freigegebene Roadmap und stellt selbst fest, was das Release
+# traegt — das musste er ohnehin ("Was davon tatsaechlich auf main liegt,
+# stellst du fest").
 #
 # Zwei Karten. Kapitel 5 verortet den Release-Abschluss so: "abgeschlossen, wenn
 # der Härtungs-Sprint fertig ist: Integration, Release Notes, voller
@@ -26,12 +45,34 @@ BOARD="sw-company"
 VAULT="$HERE/workspace/company"
 HEUTE="$(date '+%Y-%m-%d')"
 
-R="${1:-R1}"
-case "$R" in
-    R[0-9]) ;;
-    *) echo "Aufruf: ./create-release.sh R1"; exit 2 ;;
-esac
+R=""; DRY=0; SPRINTS=""
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --dry-run) DRY=1 ;;
+        R[0-9])    R="$1" ;;
+        S[0-9]|S[0-9][0-9]) SPRINTS="$SPRINTS $1" ;;
+        *) echo "Unbekanntes Argument '$1'"; echo "Aufruf: ./create-release.sh R2 S4 S5 [--dry-run]"; exit 2 ;;
+    esac
+    shift
+done
+R="${R:-R1}"
+# Vorgabe nur fuer R1 — sie ist die dokumentierte Aufrufform der Stories und
+# soll weiter ohne Argumente laufen. Fuer jedes andere Release ist die
+# Sprintliste Pflicht: Sie zu raten hiesse, die Vorbedingung zu erfinden.
+SPRINTS="$(printf '%s' "${SPRINTS# }")"
+if [ -z "$SPRINTS" ]; then
+    if [ "$R" = "R1" ]; then SPRINTS="S1 S2"
+    else
+        echo "FEHLER: Fuer $R fehlt die Sprintliste."
+        echo "        Aufruf: ./create-release.sh $R S4 S5"
+        echo "        Nur R1 hat eine Vorgabe (S1 S2) — welche Sprints zu einem"
+        echo "        Release gehoeren, steht in der freigegebenen Roadmap, nicht"
+        echo "        in diesem Skript."
+        exit 2
+    fi
+fi
 KLEIN="$(printf '%s' "$R" | tr 'A-Z' 'a-z')"
+LETZTER_SPRINT="$(printf '%s' "$SPRINTS" | awk '{print $NF}')"
 IDS="$HERE/task-ids-$KLEIN.env"
 
 command -v jq >/dev/null || { echo "FEHLER: 'jq' fehlt"; exit 1; }
@@ -56,7 +97,7 @@ say() { printf '\n\033[1m%s\033[0m\n' "$*"; }
 # Kein Modell entscheidet das, und dieses Skript entscheidet es auch nicht neu —
 # es fragt die Abschluss-Karten, die ihrerseits check-sprint.sh gehorchen.
 offen=""
-for s in S1 S2; do
+for s in $SPRINTS; do
     karte="$(k list --json 2>/dev/null | jq -r --arg t "Sprint-Abschluss $s" \
              '[.[] | select(.title==$t)] | last // null')"
     if [ "$karte" = "null" ]; then
@@ -72,16 +113,64 @@ if [ -n "$offen" ]; then
     echo "Kapitel 5: Das Release ist abgeschlossen, wenn seine Sprints fertig sind —"
     echo "nicht, wenn jemand findet, es sei so weit. Erst takten:"
     echo "  ./pump.sh"
-    echo "  ./scripts/check-sprint.sh S1   bzw.  S2"
+    for s in $SPRINTS; do echo "  ./scripts/check-sprint.sh $s"; done
     exit 1
 fi
-printf '\n\033[32m✓\033[0m Sprint-Abschluss S1 und S2 sind fertig\n'
+printf '\n\033[32m✓\033[0m Sprint-Abschluss%s sind fertig\n' "$(printf '%s' "$SPRINTS" | sed 's/ /, /g' | sed 's/^/ /')"
 
 echo "Release:  $R von $PRODUKT"
 echo "Repo:     $REPO ($(git -C "$REPO" rev-parse --short HEAD))"
 echo "Horizont: autonomie_horizont: $HORIZONT"
 
-ELTERN="$(k list --json | jq -r '[.[] | select(.title=="Sprint-Abschluss S2")] | last | .id')"
+ELTERN="$(k list --json | jq -r --arg t "Sprint-Abschluss $LETZTER_SPRINT" \
+          '[.[] | select(.title==$t)] | last | .id')"
+
+# Die Quellenlisten der Kartentexte, aus der Sprintliste erzeugt statt getippt.
+SPRINT_REPORTS=""; CONTROLLER_REPORTS=""
+for s in $SPRINTS; do
+    sk="$(printf '%s' "$s" | tr 'A-Z' 'a-z')"
+    SPRINT_REPORTS="$SPRINT_REPORTS  reports/sprint-$sk-report.html   (Schätzung, Ist) aus $s
+"
+    CONTROLLER_REPORTS="$CONTROLLER_REPORTS  reports/controller-$sk.html      Schätzgüte $s
+"
+done
+SPRINT_REPORTS="${SPRINT_REPORTS%
+}"; CONTROLLER_REPORTS="${CONTROLLER_REPORTS%
+}"
+
+# Die freigegebene Roadmap DIESES Release, sonst die des Quartals. Seit dem
+# Roadmap-Gate R2 friert jeder Neuschnitt unter roadmap/<klein>-freigegeben.html
+# ein; für R1 gibt es nur die Quartalsfreigabe.
+if [ -f "$VAULT/roadmap/$KLEIN-freigegeben.html" ]; then
+    ROADMAP_REL="roadmap/$KLEIN-freigegeben.html"
+else
+    ROADMAP_REL="roadmap/q1-freigegeben.html"
+fi
+[ -f "$VAULT/$ROADMAP_REL" ] || {
+    echo "FEHLER: keine freigegebene Roadmap unter $ROADMAP_REL"
+    echo "        Ohne Freigabe waere dieses Release Arbeit auf Verdacht."
+    exit 1
+}
+echo "Roadmap:  $ROADMAP_REL"
+echo "Sprints:  $SPRINTS"
+
+if [ "$DRY" -eq 1 ]; then
+    printf '\n\033[1mTrockenlauf — es wird keine Karte angelegt\033[0m\n'
+    printf '  Release-Abschluss %s      esf-qa-release,      Elternteil %s\n' "$R" "$ELTERN"
+    printf '  GATE Release — %s         esf-chief-of-staff\n' "$R"
+    # Die Schluessel werden aus DEM SKRIPT gelesen, nicht danebengeschrieben.
+    # Der erste Trockenlauf meldete 'release-gate-R1', tatsaechlich heisst der
+    # Schluessel 'gate-release-R1' — ein Trockenlauf, der falsche Namen nennt,
+    # ist genau die Scheinpruefung, gegen die er gebaut ist.
+    printf '  Idempotenzschluessel:     %s\n' \
+        "$(grep -o -- '--idempotency-key "[^\"]*"' "$0" | sed 's/--idempotency-key //;s/\"//g' \
+           | sed "s/\$R/$R/g" | tr '\n' ' ')"
+    printf '  Release Notes nach:       reports/release-%s.html\n' "$KLEIN"
+    printf '  Quellen im Kartentext:\n%s\n%s\n  %s\n' \
+        "$SPRINT_REPORTS" "$CONTROLLER_REPORTS" "$ROADMAP_REL"
+    printf '  IDs kaemen nach:          %s\n' "$(basename "$IDS")"
+    exit 0
+fi
 
 # ---------------------------------------------------------------------------
 say "1/2  Release-Abschluss $R"
@@ -96,12 +185,22 @@ ABSCHLUSS=$(k create "Release-Abschluss $R" \
 ($REPO) auf main — hier wird nichts mehr gebaut, hier wird integriert und
 geprüft.
 
-DAS RELEASE, wie die freigegebene Roadmap es definiert
-$R heisst 'Auffindbar & vertrauenswürdig' und trägt drei Features:
-R1-F5 (technische Härtung), R1-F1 (globaler Sucheinstieg), R1-F2 (2FA).
-Was davon tatsächlich auf main liegt, stellst du fest — nicht was geplant war.
-Die Sprint-Reports (reports/sprint-s1-report.html, reports/sprint-s2-report.html)
-stehen im Vault; sie sind dein Ausgangspunkt, nicht dein Ergebnis.
+DAS RELEASE — was $R trägt, stellst DU fest
+Dieser Kartentext nennt dir bewusst keine Feature-Liste. Bis zum 19.08.2026
+stand hier eine, und sie war falsch: aus einem früheren Lauf stehengeblieben,
+mit einem Release-Namen und drei Features, die die freigegebene Roadmap so
+nicht führt. Ein Kartentext, der dir eine falsche Zusammensetzung nennt, ist
+schlimmer als einer, der keine nennt — er gibt dir etwas zu glauben.
+
+Deine Quellen, in dieser Reihenfolge:
+  $ROADMAP_REL   was $R laut Freigabe liefern sollte
+$SPRINT_REPORTS
+  git log auf main            was tatsächlich gemergt wurde
+
+Massgeblich ist der letzte Punkt. Die Roadmap sagt, was geplant war; die
+Sprint-Reports sagen, was ein Sprint zu liefern glaubte; main sagt, was da ist.
+Weicht das voneinander ab, ist genau diese Abweichung der wertvollste Absatz
+deiner Release Notes.
 
 VIER PFLICHTEN AUS KAPITEL 5 — in dieser Reihenfolge
 
@@ -198,11 +297,9 @@ Organisation läuft vollautomatisch bis hierher und hält für den Menschen an.
 ERSTER LAUF
 1. Lies, was zu entscheiden ist:
      reports/release-$KLEIN.html          die Release Notes und der Prüfstand
-     reports/sprint-s1-report.html        (Schätzung, Ist) aus S1
-     reports/sprint-s2-report.html        (Schätzung, Ist) aus S2
-     reports/controller-s1.html
-     reports/controller-s2.html           die Schätzgüte-Baseline
-     roadmap/q1-freigegeben.html          was $R laut Freigabe liefern sollte
+$SPRINT_REPORTS
+$CONTROLLER_REPORTS
+     $ROADMAP_REL   was $R laut Freigabe liefern sollte
 
 2. Blockiere dich SELBST:  kanban_block(kind=\"needs_input\", reason=\"…\")
 
