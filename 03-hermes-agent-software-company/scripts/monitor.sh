@@ -16,6 +16,18 @@
 #                       und ist still nach `triage` gekippt. Sie fragt niemanden
 #                       mehr, und nichts warnt davor.
 #   crashed             abgebrochener Lauf
+#   timed_out           Lauf am --max-runtime abgeschnitten. NACHGERUESTET am
+#                       20.08.2026: In beispiel-lauf-3 ist das die EINZIGE
+#                       Verlustklasse — 165 von 541 min Kartenzeit, drei Laeufe
+#                       —, und der Monitor kannte sie nicht. Er meldete "keine
+#                       Befunde" fuer einen Lauf, der ein Drittel seiner Zeit
+#                       verloren hatte. Mit dem UEBERSCHUSS ueber den Deckel,
+#                       denn der unterscheidet zwei ganz verschiedene Faelle:
+#                       vier von fuenf gemessenen Rissen lagen unter 7 s
+#                       (VERIFIKATION.md 354 — die Karte waechst in den Deckel
+#                       hinein, der Deckel muss hoch), einer bei 26 s.
+#   gave_up             Retries erschoepft oder Iterationsbudget leer
+#   spawn_failed        Worker kam nie hoch (meist 'git worktree add failed')
 #   unblock ohne Verb   ein Worker hat sich selbst freigeschaltet
 #                       (Governance-Verstoss, siehe AGENTS.md 7)
 #
@@ -51,7 +63,7 @@ for id in $(printf '%s' "$liste" | jq -r '.[].id'); do
     ereignisse="$(printf '%s' "$karte" | jq -c '.events // []')"
     [ -n "$ereignisse" ] || continue
 
-    for art in respawn_guarded block_loop_detected crashed; do
+    for art in respawn_guarded block_loop_detected crashed timed_out gave_up spawn_failed; do
         n="$(printf '%s' "$ereignisse" | jq --arg a "$art" '[.[] | select(.kind==$a)] | length')"
         # ${n} geklammert: Ohne Klammern liest Bash 3.2 das folgende '×'
         # (Mehrbyte-Zeichen) als Teil des Variablennamens und bricht unter
@@ -61,6 +73,33 @@ for id in $(printf '%s' "$liste" | jq -r '.[].id'); do
             melde ERROR "$art (${n}x)" "$id"
         fi
     done
+
+    # Der Überschuss über den Deckel, je `timed_out`-Lauf.
+    #
+    # Warum das eine eigene Zeile bekommt und nicht in "timed_out (1x)" aufgeht:
+    # Ein Riss um 6 Sekunden und ein Riss um 40 Minuten sind zwei verschiedene
+    # Befunde mit zwei verschiedenen Massnahmen, und das Ereignis-Log
+    # unterscheidet sie nicht. Gemessen (OPTIMIERUNG.md 1.3): 7214/7200,
+    # 3626/3600, 5406/5400, 2704/2700, 1806/1800 — fünf von fünf unter 30 s.
+    # Das ist keine Streuung um einen Erwartungswert, sondern die Signatur
+    # eines Modells, das arbeitet, bis es abgeschnitten wird.
+    #
+    # Die Grenze 60 s ist gesetzt, nicht gemessen: Sie liegt über allen fünf
+    # bekannten Rissen und weit unter jeder Dauer, bei der "zu viel Arbeit auf
+    # einer Karte" die plausiblere Erklärung wäre.
+    while IFS='|' read -r elapsed limit; do
+        [ -n "${elapsed:-}" ] || continue
+        ueber=$((elapsed - limit))
+        if [ "$ueber" -le 60 ]; then
+            melde ERROR "timed_out ${elapsed}s gegen Deckel ${limit}s — Überschuss ${ueber} s: die Karte ist IN DEN DECKEL GEWACHSEN. Deckel anheben, Karte nicht kürzen (VERIFIKATION.md 354)" "$id"
+        else
+            melde ERROR "timed_out ${elapsed}s gegen Deckel ${limit}s — Überschuss ${ueber} s: hier hilft ein höherer Deckel vermutlich nicht, das ist ein Hänger oder zu viel Arbeit auf einer Karte" "$id"
+        fi
+    done < <(printf '%s' "$karte" | jq -r '
+        .runs[]? | select(.outcome=="timed_out") | (.error // "")
+        | select(test("elapsed [0-9]+s > limit [0-9]+s"))
+        | capture("elapsed (?<e>[0-9]+)s > limit (?<l>[0-9]+)s")
+        | "\(.e)|\(.l)"' 2>/dev/null || true)
 
     # AGENTS.md 7: Ein Unblock ohne gültiges Verb-Präfix kam nicht von gate.sh.
     #
