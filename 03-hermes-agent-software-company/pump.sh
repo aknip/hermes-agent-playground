@@ -47,6 +47,25 @@ MAX_TICKS="${2:-120}"
 # und nennt den Befehl. 0 schaltet die Prüfung ab.
 WACHHUND_TAKT="${ESF_WACHHUND_TAKT:-10}"
 
+# Wie oft die Pumpe nach abgebrochenen Läufen sieht. Geprüft werden genau die
+# vier Klassen, die Zeit kosten und nichts hinterlassen:
+#
+#   timed_out     am --max-runtime abgeschnitten
+#   crashed       `pid … not alive`
+#   gave_up       Retries oder Iterationsbudget erschöpft
+#   spawn_failed  der Worker kam nie hoch
+#
+# `blocked` (Gate wartet), `review_requested` (Arbeit fertig, übergeben) und
+# `scheduled` stehen bewusst NICHT dabei — das sind Normalzustände.
+#
+# Warum die Pumpe das braucht: Eine Karte, die ihre Retries verbrennt, sieht im
+# Lagebild aus wie `running`. Gemessen (OPTIMIERUNG.md 1.1) sind das 387 von
+# 1114 Minuten in beispiel-lauf-2 und 165 von 541 in beispiel-lauf-3 — rund ein
+# Drittel der Kartenzeit, das erst nach dem Lauf im Board.json auffiel. Wer
+# zusieht, soll es sehen, während es passiert.
+LAGE_TAKT="${ESF_LAGE_TAKT:-5}"
+GEMELDET=""
+
 lage() {
     local json triage blocked
     json="$(hermes kanban --board "$BOARD" list --json 2>/dev/null || echo '[]')"
@@ -63,6 +82,34 @@ lage() {
     printf '\n\033[1m%s Gate(s) warten auf den CEO:\033[0m\n' "$blocked"
     printf '%s' "$json" | jq -r '.[] | select(.status=="blocked") | "   \(.id)  \(.title)"'
     printf '\nVollständige Vorlagen:  ./gate.sh\n'
+}
+
+abbrueche() { # braucht $json und $tick
+    [ "$LAGE_TAKT" -gt 0 ] || return 0
+    [ $((tick % LAGE_TAKT)) -eq 0 ] || return 0
+    local id zeile neu=""
+    for id in $(printf '%s' "$json" | jq -r '.[].id'); do
+        zeile="$(hermes kanban --board "$BOARD" show "$id" --json 2>/dev/null \
+            | jq -r '[.runs[]? | .outcome
+                      | select(. == "timed_out" or . == "crashed"
+                               or . == "gave_up" or . == "spawn_failed")]
+                     | if length == 0 then empty
+                       else (group_by(.) | map("\(.[0])=\(length)") | join(" ")) end' \
+              2>/dev/null || true)"
+        [ -n "$zeile" ] || continue
+        # Nur NEUES melden — sonst steht derselbe Abbruch bei jedem Bericht
+        # wieder da und der Leser hört nach dem dritten Mal auf hinzusehen.
+        case " $GEMELDET " in *" $id:$zeile "*) continue ;; esac
+        GEMELDET="$GEMELDET $id:$zeile"
+        neu="$neu   abgebrochen: $id  $zeile
+"
+    done
+    [ -n "$neu" ] || return 0
+    printf '\n\033[31m⚠ Läufe ohne Ergebnis, neu seit dem letzten Bericht:\033[0m\n'
+    printf '%s' "$neu"
+    printf '   Diese Wanduhr ist bezahlt und hat nichts hinterlassen — und sie landet\n'
+    printf '   als Istwert im Ledger, wo sie jede künftige Schätzung verzerrt.\n'
+    printf '   Einzelheiten:  scripts/monitor.sh\n\n'
 }
 
 wachhund() {
@@ -118,6 +165,7 @@ for tick in $(seq 1 "$MAX_TICKS"); do
     printf '[%03d %s] %s\n' "$tick" "$(date '+%H:%M:%S')" "${lagebild:-leer}"
 
     wachhund
+    abbrueche
 
     if [ "$offen" -eq 0 ]; then
         echo; echo "Nichts mehr in Arbeit — Pumpe beendet."
