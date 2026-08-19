@@ -5,6 +5,7 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import { isEditableTarget } from "@/lib/is-editable-target";
 
 export function getModifierKeyText(): string {
   if (typeof window === "undefined") return "";
@@ -163,11 +164,7 @@ export function KeyboardShortcutsProvider({
 
   const handleKeyPress = useCallback(
     (event: KeyboardEvent) => {
-      const target = event.target as HTMLElement;
-      const isEditingText =
-        target.tagName === "INPUT" ||
-        target.tagName === "TEXTAREA" ||
-        target.contentEditable === "true";
+      const isEditingText = isEditableTarget(event.target);
       if (isEditingText && !event.metaKey && !event.ctrlKey) {
         return;
       }

@@ -26,6 +26,7 @@ import { shortcuts } from "@/constants/shortcuts";
 import useGetProjects from "@/hooks/queries/project/use-get-projects";
 import useActiveWorkspace from "@/hooks/queries/workspace/use-active-workspace";
 import { useRegisterShortcuts } from "@/hooks/use-keyboard-shortcuts";
+import { isEditableTarget } from "@/lib/is-editable-target";
 import { useUserPreferencesStore } from "@/store/user-preferences";
 import CreateProjectModal from "../shared/modals/create-project-modal";
 import { buildProjectsBoardGroup } from "./projects-board-group";
@@ -248,6 +249,13 @@ function CommandPalette() {
         event.altKey ||
         event.key === "Shift"
       ) {
+        return;
+      }
+
+      // Nie ein Kürzel auslösen, wenn in ein bearbeitbares Textelement
+      // getippt wird (z. B. das Suchfeld der Palette selbst). Dieselbe
+      // Prüfung wie der globale Guard in use-keyboard-shortcuts.ts.
+      if (isEditableTarget(event.target)) {
         return;
       }
 

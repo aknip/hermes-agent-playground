@@ -6,7 +6,7 @@ import {
   projektAnlegen,
   vorgangAnlegen,
 } from "../support/journey";
-import { paletteBefehl, paletteOeffnen } from "../support/tastatur";
+import { paletteOeffnen } from "../support/tastatur";
 
 /**
  * F-R1-3 — Tastaturbedienung & Command-Palette (zusätzliche E2E-Szenarien)
@@ -34,7 +34,13 @@ test.describe("F-R1-3 Command-Palette & Eingabeschutz", () => {
     });
 
     await paletteOeffnen(page);
-    await paletteBefehl(page, "pc");
+    // „Create project" über das Suchfeld filtern und mit Enter ausführen —
+    // die Kürzel-Sequenz „pc" löst in einem Textfeld (Suchfeld) nichts aus.
+    const suchfeld = page.getByPlaceholder("Search for apps and commands...");
+    await expect(suchfeld).toBeFocused();
+    await suchfeld.type("create project");
+    await page.keyboard.press("Enter");
+    await expect(page.getByPlaceholder("Project name")).toBeVisible();
     await page.keyboard.type(`Beta ${Date.now()}`);
     await page.keyboard.press("Enter");
     await expect(page).toHaveURL(/\/project\/[^/]+\/board/, {
@@ -87,6 +93,38 @@ test.describe("F-R1-3 Command-Palette & Eingabeschutz", () => {
     ).not.toBeVisible();
     await expect(
       page.getByRole("button", { name: "Create Project", exact: true }),
+    ).not.toBeVisible();
+  });
+
+  test("Tippen ins Suchfeld der Palette löst kein Kürzel aus (pc/tc bleiben Suche)", async ({
+    page,
+  }) => {
+    const ich = neueIdentitaet("f13c");
+    await kontoAnlegen(page, ich);
+    await arbeitsbereichAnlegen(page, `ESF Probe ${Date.now()}`);
+    await projektAnlegen(page, `Projekt ${Date.now()}`);
+
+    // Palette öffnen — das Suchfeld (CommandInput) übernimmt den Fokus.
+    await paletteOeffnen(page);
+    const suchfeld = page.getByPlaceholder("Search for apps and commands...");
+    await expect(suchfeld).toBeFocused();
+
+    // 'pc' („Projekt anlegen") als reine Suche tippen: kein Modal, die
+    // Palette bleibt offen, und das Getippte steht unverändert im Feld.
+    await page.keyboard.type("pc");
+    await expect(suchfeld).toHaveValue("pc");
+    await expect(suchfeld).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Create Project", exact: true }),
+    ).not.toBeVisible();
+
+    // 'tc' („Task anlegen") — erneut als reine Suche, kein Task-Modal.
+    await suchfeld.fill("");
+    await page.keyboard.type("tc");
+    await expect(suchfeld).toHaveValue("tc");
+    await expect(suchfeld).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Create Task", exact: true }),
     ).not.toBeVisible();
   });
 });

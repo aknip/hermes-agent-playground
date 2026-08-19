@@ -4,7 +4,7 @@ import {
   kontoAnlegen,
   neueIdentitaet,
 } from "../support/journey";
-import { paletteBefehl, paletteOeffnen } from "../support/tastatur";
+import { paletteOeffnen } from "../support/tastatur";
 
 /**
  * Journey J-02 — Erstes Projekt anlegen
@@ -69,9 +69,14 @@ test.describe("J-02 Erstes Projekt anlegen", () => {
     // Schritt 1 — Die Palette öffnet sich per ⌘K/Ctrl+K (keine Maus).
     await paletteOeffnen(page);
 
-    // Schritt 2 — „Projekt anlegen“ wird per Tastatur-Sequenz (p c) gewählt;
-    // das Anlegeformular öffnet sich, das Namensfeld ist fokussiert.
-    await paletteBefehl(page, "pc");
+    // Schritt 2 — „Projekt anlegen" per Tastatur wählen: das Suchfeld filtert
+    // die Befehle, „create project" + Enter öffnet das Anlegeformular. Die
+    // Kürzel-Sequenz „pc" löst in einem Textfeld (Suchfeld) bewusst nichts aus
+    // (Befund R1-c: Suchtexteingabe darf nie eine Aktion auslösen).
+    const suchfeld = page.getByPlaceholder("Search for apps and commands...");
+    await expect(suchfeld).toBeFocused();
+    await suchfeld.type("create project");
+    await page.keyboard.press("Enter");
     await expect(page.getByPlaceholder("Project name")).toBeVisible();
 
     // Schritt 3 — Nur der Name eintippen und mit Enter absenden.

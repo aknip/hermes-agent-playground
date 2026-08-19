@@ -828,7 +828,19 @@ DANACH
   .txt und nicht .html — AGENTS.md 2.1 nimmt Maschinenprotokolle aus der
   HTML-Pflicht aus; ein Rohbeleg, den jemand fuer die Darstellung angefasst hat,
   ist keiner mehr).
-· Ist gemerged: den Worktree des Entwicklers NICHT aufraeumen. Er ist Beleg.
+· Ist gemerged: den Worktree des Entwicklers ABRAEUMEN, den Branch behalten.
+    git -C \$(git rev-parse --show-toplevel) worktree remove .worktrees/<seine-karten-id>
+  Das war bis zum 19.08.2026 umgekehrt formuliert ('nicht aufraeumen, er ist
+  Beleg') — und die Formulierung war falsch. Der Beleg ist die Branch-Referenz:
+  Sie zeigt exakt auf den Commit, den der Riegel geprueft hat, und ueberlebt das
+  Entfernen des Verzeichnisses. Das Verzeichnis selbst traegt nur zusaetzlich
+  Unverfolgtes (node_modules, .env-Symlink, Testartefakte).
+  Gemessen, warum es SCHADET, wenn es liegen bleibt: Am 19.08.2026 konnte die
+  Wartungskarte von S3 auf main nicht committen, weil 'biome ci .' des
+  Pre-Commit-Hooks in den drei liegengebliebenen Worktrees je eine
+  verschachtelte biome.json fand und abbrach. Der Worker hat sie entfernt, um
+  ueberhaupt arbeiten zu koennen — und tat damit genau das, was diese Zeile ihm
+  auf einer ANDEREN Karte verboten hatte. Den Branch loeschst du nie.
 
 $(metadata_pflicht 'merge-repo-S')
 Dazu ins metadata: das Riegel-Ergebnis (bestanden/verweigert), welche der sechs
@@ -1368,7 +1380,10 @@ WENN ER VERWEIGERT
    Bestehen mergen. Verweigert er erneut, ist es ein Sachgrund.
 
 Du ueberstimmst den Riegel nicht und du benutzt kein --no-verify. Kein Modell
-merged (Kapitel 6). Den Worktree des Entwicklers nicht aufraeumen — er ist Beleg.
+merged (Kapitel 6). Den Worktree des Entwicklers nach erfolgreichem Merge
+abraeumen (git worktree remove), den BRANCH aber behalten — der Branch ist der
+Beleg, und ein liegengebliebener Worktree bricht den Pre-Commit-Hook des
+Hauptbaums (gemessen am 19.08.2026, siehe die Merge-Karte).
 
 $(metadata_pflicht 'merge-repo-S')
 Dazu ins metadata: Riegel-Ergebnis, welche der sechs Pruefungen wie ausging,
@@ -1959,7 +1974,19 @@ DANACH
 · Das Riegel-Protokoll bleibt als Rohbeleg liegen (reports/riegel-r2-f1.txt,
   .txt und nicht .html — AGENTS.md 2.1 nimmt Maschinenprotokolle aus der
   HTML-Pflicht aus).
-· Ist gemerged: den Worktree des Entwicklers NICHT aufraeumen. Er ist Beleg.
+· Ist gemerged: den Worktree des Entwicklers ABRAEUMEN, den Branch behalten.
+    git -C \$(git rev-parse --show-toplevel) worktree remove .worktrees/<seine-karten-id>
+  Das war bis zum 19.08.2026 umgekehrt formuliert ('nicht aufraeumen, er ist
+  Beleg') — und die Formulierung war falsch. Der Beleg ist die Branch-Referenz:
+  Sie zeigt exakt auf den Commit, den der Riegel geprueft hat, und ueberlebt das
+  Entfernen des Verzeichnisses. Das Verzeichnis selbst traegt nur zusaetzlich
+  Unverfolgtes (node_modules, .env-Symlink, Testartefakte).
+  Gemessen, warum es SCHADET, wenn es liegen bleibt: Am 19.08.2026 konnte die
+  Wartungskarte von S3 auf main nicht committen, weil 'biome ci .' des
+  Pre-Commit-Hooks in den drei liegengebliebenen Worktrees je eine
+  verschachtelte biome.json fand und abbrach. Der Worker hat sie entfernt, um
+  ueberhaupt arbeiten zu koennen — und tat damit genau das, was diese Zeile ihm
+  auf einer ANDEREN Karte verboten hatte. Den Branch loeschst du nie.
 
 $(metadata_pflicht 'merge-repo-S')
 Dazu ins metadata: das Riegel-Ergebnis (bestanden/verweigert), welche der sechs
