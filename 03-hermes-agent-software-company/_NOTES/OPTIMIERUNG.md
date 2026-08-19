@@ -230,7 +230,91 @@ Gemessen am HEAD `e528909`, bevor irgendetwas geändert wurde:
 
 ## BLOCK 2 — Maßnahmen
 
-*(wird beim Umsetzen gefüllt)*
+Priorisiert nach **Schaden × Häufigkeit**, gemessen an 1.1 bis 1.3. Alle sieben
+sitzen in der ESF (`pump.sh`, `scripts/`), keine im Produktrepo, keine in
+`~/.hermes/hermes-agent/`. Je Maßnahme ein Commit, dessen Message den Befund
+benennt.
+
+| # | Befund | Schaden (gemessen) | Häufigkeit | Datei | Commit |
+|---|--------|--------------------|------------|-------|--------|
+| **1** | `monitor.sh` war blind für `timed_out`, `gave_up`, `spawn_failed` — genau die Klassen, die Zeit kosten und nichts hinterlassen. Für einen Lauf, der 30 % seiner Zeit verlor, hätte er „Keine Befunde" gemeldet. | **345 min** (180 + 165) | 5 `timed_out`, 2 `gave_up`, 1 `spawn_failed` in 2 Akten | `scripts/monitor.sh` | `a7ba798` |
+| **2** | `pump.sh` zeigte abgebrochene Läufe im Takt nicht — eine Karte, die ihre Retries verbrennt, sieht aus wie `running`. | **387 + 165 min**, erst nach dem Lauf sichtbar | jeder Lauf | `pump.sh` | `31383a4` |
+| **3** | `pump.sh` rief `watchdog.sh` nie auf. Das Werkzeug erkennt den Hänger bei 0 % CPU, wurde aber nur von Hand gestartet. | 16 min gemessen, dazu 51 + 30 min später beendet | 2 Hänger beim ersten Wachhund-Lauf | `pump.sh` | `6474689` |
+| **4** | `scripts/tick.sh:176` setzte `--max-runtime 60m`, unter der nach dem dritten Riss festgelegten Untergrenze von 75 m. Die Entscheidung stand als Kommentar da und wurde von nichts erzwungen. | 6 Risse × voller Lauf | 1 offene Fundstelle, jetzt durch Test gesperrt | `scripts/tick.sh` | `e783a34` |
+| **5** | `pump.sh` schluckte Dispatcher-Fehler (`dispatch >/dev/null 2>&1 \|\| true`). Der Fehlertext existierte nie. | 1 `spawn_failed` + 1 `gave_up`, Ursache unsichtbar | jeder Fehlschlag | `pump.sh` | `8a370ea` |
+| **6** | `laufzeiten.txt` widersprach seiner eigenen Summe um 17 min. Die Messbasis jeder Vorher/Nachher-Aussage — auch dieser. | 17 min in beiden Akten, Zahl nicht nachrechenbar | 2 von 2 Akten | `scripts/dump-lauf.sh` | `b6dfc3d` |
+| **7** | `monitor.sh` starb still, wenn `cadence.yaml` fehlte: `2>/dev/null` verschluckt die Meldung, nicht den Exit-Code — `sed` gibt 2, `pipefail` trägt es durch, `set -e` beendet vor der Ausgabe. Ergebnis: leere Ausgabe, Exit 1 — dasselbe Signal wie „ich habe Befunde". | Monitor unbrauchbar zwischen `reset-workspace.sh` und `setup.sh` | jeder Aufruf in diesem Zustand | `scripts/monitor.sh` | `9b1dd5f` |
+
+**Befund 7 war vorher nicht bekannt.** Er ist beim Bauen von Testfall 1
+aufgefallen, weil der Test das Skript in einer Umgebung aufrief, in der noch
+kein Vault stand — dieselbe Fehlerklasse wie der `set -u`-Abbruch, der 200
+Zeilen darüber schon kommentiert steht: *ein Prüfer, der still ausfällt.*
+
+**Was ausdrücklich NICHT angefasst wurde**, obwohl es der teuerste Kartentyp ist:
+die Nacharbeit (400 von 1114 min in Lauf 2, 73 % ungeplante Arbeit). Sie entsteht
+aus Review-Befunden und CEO-Auflagen — das ist der arbeitende Prüfapparat, nicht
+ein Defekt. Ihn kleiner zu machen wäre keine Optimierung, sondern eine
+Verschlechterung mit besseren Zahlen.
+
+### Zur Lesart von BLOCK 1
+
+Drei der vier im Ziel namentlich genannten Befunde waren am Ausgangsstand
+`e528909` **bereits behoben** (Turbo-Cache im Riegel, Turbo-Cache im Review,
+falsche Grün-Meldungen des Phase-1-Prüfers — siehe 1.4 mit Commit-Nachweis). Ein
+behobener Defekt lässt sich nicht mehr rot zeigen, und BLOCK 3(a) verlangt genau
+das. Die Liste in BLOCK 1 ist deshalb als **Dokumentationspflicht** gelesen
+(Befund + Status + Commit), die Priorisierung in BLOCK 2 als Priorisierung über
+die **offene** Menge. Vom genannten Quartett ist nur der vierte offen gewesen —
+die Zeitgrenzen-Risse — und der ist in dieser Runde zweimal adressiert:
+Detektion (Maßnahme 1) und Untergrenze (Maßnahme 4).
+
+## BLOCK 3 — Regressionsnetz
+
+### (a) Je Maßnahme ein deterministischer Nachweis
+
+`scripts/test-optimierung.sh` — **modellfrei, netzfrei, kostet keine Token.**
+Jeder Fall baut in einem Wegwerf-Verzeichnis eine Miniatur-ESF: ein `hermes` auf
+dem `PATH`, das Fixtures wiedergibt, und ein **Symlink auf das echte Skript**,
+nicht auf eine Kopie — sonst prüft der Test seine eigene Kopie und nicht das,
+was im Betrieb läuft.
+
+| Fall | Maßnahme | rot vor dem Fix | grün nach dem Fix |
+|------|----------|-----------------|-------------------|
+| 1 | 1 | „timed_out NICHT gemeldet", kein Überschuss, keine Handlung | `timed_out` + „Überschuss 6 s" + „Deckel anheben" |
+| 2 | 3 | „der Wachhund wurde NIE aufgerufen" | „2x in 2 Ticks", Pumpe meldet die Prüfung |
+| 3 | 5 | „der Dispatcher-Fehler ist verschluckt" | Fehlertext `worktree add failed` steht in der Ausgabe |
+| 4 | 2 | kein `timed_out`, kein `crashed`, keine Karten-ID im Bericht | beide Klassen + `t_aaa1`; die gesunde `t_bbb2` bleibt ungemeldet (kein Fehlalarm) |
+| 5 | 6 | „`--nur-laufzeiten` gibt es nicht — die Arithmetik ist nicht prüfbar, ohne einen Lauf zu fahren" | Spaltensumme (30) = Summenzeile (30), Sekundenzahl daneben |
+| 6 | 4 | `scripts/tick.sh:176: --max-runtime 60m` namentlich | „kein Deckel unter 75 min" |
+| 7 | 7 | „leere Ausgabe — der Monitor ist mitten im Lauf gestorben" | gültiges JSON, Bericht abgegeben |
+
+Beide Ausgaben stehen im Transkript dieser Runde. Reihenfolge je Maßnahme: Test
+schreiben → rot zeigen → Fix → grün zeigen → Test **und** Fix zusammen
+committen. Der erste Commit (`0acb8d5`) zeigt alle sechs damals bekannten Fälle
+rot am unveränderten Ausgangsstand.
+
+Voller Lauf nach allen sieben Fixes: **17 Prüfungen, alle grün, Exit 0.**
+
+Zwei Ehrlichkeiten zum Netz selbst:
+
+- Der erste rote Lauf von Fall 1 war **kontaminiert**: `monitor.sh` starb an
+  Befund 7, bevor es überhaupt zur `timed_out`-Prüfung kam. Der Fall war rot,
+  aber aus dem falschen Grund. Deshalb wurde Befund 7 zuerst behoben und Fall 1
+  danach **noch einmal rot gezeigt** — diesmal mit einem Monitor, der einen
+  Bericht abgab, in dem `timed_out` fehlte.
+- Fall 4 prüfte zunächst die ganze Pumpen-Ausgabe auf Karten-IDs und war damit
+  wertlos: Die Pumpe druckt am Ende ohnehin die Kartenliste, also erschien jede
+  ID immer. Der Fall liest jetzt nur die Zeilen des Abbruch-Berichts.
+
+### (b) Die bestehenden Riegel bleiben grün
+
+| Riegel | erwartet | vor der Runde (`e528909`) | nach der Runde (`e783a34`) |
+|--------|----------|---------------------------|----------------------------|
+| `vault-lint.py seed/lint-selbsttest` | 9 | **9 ERROR**, 2 WARN | **9 ERROR**, 2 WARN |
+| `ceo-lint.py seed/ceo-selbsttest/*.html` | 5 | **5** (1+0+2+2) | **5** (1+0+2+2) |
+| `bash -n` auf jedem geänderten Skript | Exit 0 | — | **5 von 5 Exit 0** (`pump.sh`, `monitor.sh`, `dump-lauf.sh`, `tick.sh`, `test-optimierung.sh`) |
+| `bash -n` auf allen 36 Skripten | Exit 0 | alle Exit 0 | **alle Exit 0** |
+| die drei Selbsttests am Ende von `setup.sh` | grün | nicht messbar ohne Lauf | siehe BLOCK 4 |
 
 ## BLOCK 4 — Nachher
 
