@@ -1,5 +1,5 @@
+import type { KaneoClient } from "@kaneo/kaneo-client";
 import { describe, expect, it } from "vitest";
-import type { KaneoClient } from "./kaneo.js";
 import { migrate } from "./migrate.js";
 import type { BoardBundle, PlankaClient } from "./planka.js";
 

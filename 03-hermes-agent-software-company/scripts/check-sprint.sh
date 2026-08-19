@@ -212,13 +212,24 @@ REPO="$(sed -n 's/^[[:space:]]*repo:[[:space:]]*//p' "$VAULT/cadence.yaml" 2>/de
 if [ ! -d "$REPO/.git" ]; then
     nein "produkt.repo aus cadence.yaml ist kein Git-Repo: $REPO"
 else
-    # Welche Branches gehören zu diesem Sprint? Die, die die Merge-Karten
-    # genannt haben. Verlässlicher als raten: die Branch-Liste mit dem
-    # ESF-Präfix, und dann prüfen, ob main sie enthält.
-    branches="$(git -C "$REPO" for-each-ref --format='%(refname:short)' refs/heads \
-                | grep -E '^feat/esf-r1-' || true)"
+    # Welche Branches gehören zu diesem Sprint? Die, die die MERGE-KARTEN DIESES
+    # SPRINTS genannt haben — nicht die, die zufällig ein Präfix teilen.
+    #
+    # Bis zum 19.08.2026 stand hier `grep -E '^feat/esf-r1-'`, hart auf Release 1
+    # verdrahtet. Der Effekt war eine falsche Grüne der übelsten Sorte: Beim
+    # Check von S3 (Branch feat/esf-r2-f1-…) prüfte die Schleife drei R1-Branches,
+    # die mit S3 nichts zu tun haben, meldete sie als enthalten — und die einzige
+    # Frage, für die diese Prüfung existiert, wurde nie gestellt. Genau die
+    # Scheinvollständigkeit, gegen die dieser Prüfer gebaut ist.
+    branches="$(printf '%s' "$sprintkarten" | jq -r '.[] | select(.title | test("Merge")) | .id' \
+        | while read -r mid; do
+              [ -n "$mid" ] || continue
+              k show "$mid" --json 2>/dev/null \
+                  | jq -r '.. | strings | select(test("feat/[a-z0-9./-]*esf-"))' \
+                  | grep -oE 'feat/[a-zA-Z0-9._/-]*esf-[a-zA-Z0-9._-]+' || true
+          done | sort -u)"
     if [ -z "$branches" ]; then
-        info "keine feat/esf-r1-*-Branches vorhanden — nichts zu prüfen"
+        info "keine Merge-Karte dieses Sprints nennt einen Branch — nichts zu prüfen"
     else
         for b in $branches; do
             if git -C "$REPO" merge-base --is-ancestor "$b" main 2>/dev/null; then

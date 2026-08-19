@@ -1,18 +1,23 @@
 {
-	"name": "@kaneo/planka-import",
-	"version": "0.2.0",
-	"description": "Migrate PLANKA boards into Kaneo: projects, lists, cards, labels, assignees, checklists and comments, over the public APIs of both",
+	"name": "@kaneo/kaneo-client",
+	"version": "0.1.0",
+	"description": "Typed HTTP client for the public Kaneo API, shared by Kaneo's importers",
 	"license": "MIT",
 	"author": "Kaneo (https://kaneo.app)",
-	"homepage": "https://kaneo.app/docs/core/migrations/from-planka",
+	"homepage": "https://kaneo.app/docs",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/usekaneo/kaneo/",
-		"directory": "packages/planka-import"
+		"directory": "packages/kaneo-client"
 	},
 	"type": "module",
-	"bin": {
-		"kaneo-planka-import": "dist/index.js"
+	"main": "./dist/index.js",
+	"types": "./dist/index.d.ts",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"import": "./dist/index.js"
+		}
 	},
 	"publishConfig": {
 		"access": "public"
@@ -23,13 +28,11 @@
 		"LICENSE"
 	],
 	"keywords": [
-		"planka",
 		"kaneo",
-		"migration",
+		"api",
+		"client",
 		"import",
-		"kanban",
-		"project-management",
-		"cli"
+		"migration"
 	],
 	"engines": {
 		"node": ">=20"
@@ -38,19 +41,12 @@
 		"build": "tsc -p tsconfig.json",
 		"prepublishOnly": "pnpm run build",
 		"lint": "biome check --write .",
-		"start": "node dist/index.js",
 		"test": "vitest run --config vitest.config.ts",
 		"test:watch": "vitest --config vitest.config.ts"
 	},
-	"dependencies": {
-		"prompts": "^2.4.2",
-		"@kaneo/kaneo-client": "workspace:*"
-	},
+	"dependencies": {},
 	"devDependencies": {
 		"@kaneo/typescript-config": "workspace:*",
-		"@types/node": "^26.1.2",
-		"@types/prompts": "^2.4.9",
-		"tsx": "^4.23.9",
 		"typescript": "^7.0.2",
 		"vitest": "^4.1.10"
 	}

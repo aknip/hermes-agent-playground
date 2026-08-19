@@ -1,6 +1,6 @@
+import type { KaneoClient } from "@kaneo/kaneo-client";
+import { toProjectKey, uniqueKey } from "@kaneo/kaneo-client";
 import { labelColorToHex } from "./colors.js";
-import type { KaneoClient } from "./kaneo.js";
-import { toProjectKey, uniqueKey } from "./keys.js";
 import {
   boardProjectName,
   buildDescription,

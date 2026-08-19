@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 import { writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
+import { KaneoClient } from "@kaneo/kaneo-client";
 import prompts from "prompts";
 import { DEFAULT_KANEO_URL, HELP_TEXT, parseArgs } from "./args.js";
-import { KaneoClient } from "./kaneo.js";
 import { type BoardReport, type BoardTarget, migrate } from "./migrate.js";
 import { PlankaClient } from "./planka.js";
 

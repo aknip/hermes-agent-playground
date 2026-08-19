@@ -1,4 +1,4 @@
-import { RESERVED_COLUMN_SLUGS, toColumnSlug } from "./keys.js";
+import { RESERVED_COLUMN_SLUGS, toColumnSlug } from "@kaneo/kaneo-client";
 import type {
   PlankaCard,
   PlankaComment,
