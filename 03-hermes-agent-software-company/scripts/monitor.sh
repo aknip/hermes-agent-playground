@@ -261,7 +261,19 @@ fi
 # Der Monitor entfernt nichts. Ein Worktree kann uncommittete Arbeit tragen, und
 # die wegzuwerfen waere teurer als jede Wartezeit. Er meldet und nennt den
 # Befehl.
-REPO_M="$(sed -n 's/^[[:space:]]*repo:[[:space:]]*//p' "$VAULT/cadence.yaml" 2>/dev/null | head -1 | sed 's/[[:space:]]*#.*$//')"
+# `2>/dev/null` hat hier NICHT gereicht, und das ist die Lehre: Es verschluckt
+# die Meldung, nicht den Exit-Code. Fehlt cadence.yaml — der Normalzustand
+# zwischen reset-workspace.sh und setup.sh —, gibt sed 2 zurück, `pipefail`
+# trägt das durch die Pipe, und `set -e` beendet das Skript MITTEN DRIN, vor
+# der Ausgabe. Der Aufrufer sah dann: leere Ausgabe, Exit 1 — genau das Signal,
+# mit dem dieser Monitor "ich habe Befunde" meldet. Ein Monitor, der still
+# ausfällt und dabei aussieht wie einer mit Befunden, ist schlimmer als keiner.
+# Dieselbe Fehlerklasse wie der `set -u`-Abbruch, der oben kommentiert steht;
+# gefunden am 20.08.2026, als der erste Fixture-Test dieses Skript aufrief.
+REPO_M=""
+if [ -f "$VAULT/cadence.yaml" ]; then
+    REPO_M="$(sed -n 's/^[[:space:]]*repo:[[:space:]]*//p' "$VAULT/cadence.yaml" | head -1 | sed 's/[[:space:]]*#.*$//')"
+fi
 if [ -n "$REPO_M" ] && [ -d "$REPO_M/.git" ]; then
     lebende_ids="$(printf '%s' "$liste" | jq -r '.[].id' | tr '\n' ' ')"
     while read -r pfad; do

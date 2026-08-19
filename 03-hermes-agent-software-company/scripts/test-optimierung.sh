@@ -24,6 +24,7 @@
 #   4  pump.sh zeigt abgebrochene Laeufe im Takt nicht
 #   5  dump-lauf.sh: die Tabelle widerspricht ihrer eigenen Summe um 17 min
 #   6  Keine Zeitgrenze unter 75 min in den kartenlegenden Skripten
+#   7  monitor.sh stirbt still, wenn cadence.yaml fehlt (Exit 1, keine Ausgabe)
 #
 set -uo pipefail
 
@@ -37,7 +38,7 @@ fall() { printf '\n\033[1mFall %s — %s\033[0m\n' "$1" "$2"; }
 
 command -v jq >/dev/null || { echo "FEHLER: 'jq' fehlt"; exit 2; }
 
-WILL="${*:-1 2 3 4 5 6}"
+WILL="${*:-1 2 3 4 5 6 7}"
 soll() { case " $WILL " in *" $1 "*) return 0 ;; *) return 1 ;; esac; }
 
 # ---------------------------------------------------------------------------
@@ -297,6 +298,47 @@ if [ "$gefunden" -eq 0 ]; then
 else
     nein "$gefunden Deckel unter 75 min — jeder davon ist ein Riss, der auf seinen Anlass wartet"
 fi
+fi
+
+# ===========================================================================
+if soll 7; then
+fall 7 "monitor.sh liefert einen Bericht, auch wenn cadence.yaml fehlt"
+# Gefunden beim Bauen von Fall 1 (20.08.2026), nicht vorher bekannt:
+#
+#   REPO_M="$(sed -n '...' "$VAULT/cadence.yaml" 2>/dev/null | head -1 | ...)"
+#
+# `2>/dev/null` verschluckt die Meldung, nicht den Exit-Code. Fehlt die Datei,
+# gibt sed 2 zurueck, `pipefail` traegt das durch die Pipe, `set -e` beendet das
+# Skript — MITTEN DRIN, vor der Ausgabe. Was der Aufrufer sieht: leere Ausgabe,
+# Exit 1. Das ist genau das Signal, mit dem der Monitor "ich habe Befunde"
+# meldet. Ein Monitor, der still ausfaellt und dabei aussieht wie ein Monitor
+# mit Befunden, ist schlimmer als keiner — dieselbe Fehlerklasse wie der
+# `set -u`-Abbruch, der in Zeile 56 dieses Skripts kommentiert steht.
+T="$(tempdir)"; FIX="$T/fix"; mkdir -p "$FIX" "$T/scripts" "$T/bin"
+fake_hermes "$T/bin"
+ln -s "$HERE/monitor.sh" "$T/scripts/monitor.sh"
+printf '#!/usr/bin/env bash\nexit 0\n' > "$T/scripts/assign-keys.sh"
+chmod +x "$T/scripts/assign-keys.sh"
+cat > "$FIX/list.json" <<'EOS'
+[{"id":"t_aaa1","status":"running","title":"Irgendeine Karte"}]
+EOS
+cat > "$FIX/show-t_aaa1.json" <<'EOS'
+{"task":{"id":"t_aaa1"},"events":[],"runs":[{"outcome":null}],"comments":[]}
+EOS
+# KEIN workspace/company/cadence.yaml — genau der Zustand nach reset-workspace.sh
+# und vor setup.sh.
+aus="$(cd "$T" && FIX="$FIX" PATH="$T/bin:$PATH" OPENROUTER_API_KEY="" \
+        "$T/scripts/monitor.sh" --json 2>/dev/null)" || true
+if [ -z "$aus" ]; then
+    nein "leere Ausgabe — der Monitor ist mitten im Lauf gestorben, und Exit 1 sieht aus wie 'Befunde gefunden'"
+    nein "(Folgepruefung 'gueltiges JSON' nicht ausfuehrbar)"
+else
+    ok "der Monitor gibt einen Bericht ab"
+    printf '%s' "$aus" | jq -e 'type=="array"' >/dev/null 2>&1 \
+        && ok "die Ausgabe ist gueltiges JSON" \
+        || nein "die Ausgabe ist kein gueltiges JSON: $(printf '%s' "$aus" | head -2)"
+fi
+rm -rf "$T"
 fi
 
 # ===========================================================================
