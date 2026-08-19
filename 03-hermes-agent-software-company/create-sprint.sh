@@ -152,6 +152,19 @@ sie nicht mitnimmt, hinterlässt einen Istwert ohne Paar — und scripts/check-s
 schlägt darauf fehl, weil zwei Sprint-Reports MIT Paaren der Nachweis sind, den
 Phase 2 erbringen muss.
 
+WARNUNG BEI MEHR ALS ZWEI ELTERN
+Hat deine Karte drei Eltern, ist einer davon vermutlich nur da, um eine
+REIHENFOLGE zu erzwingen (etwa "erst der andere Merge, dann du"). Er traegt
+keine Zahl. Deine Schaetzung steht in der metadata der esf-estimator-Karte,
+nicht in der des Reihenfolge-Elternteils. Such sie dort, bevor du abschliesst.
+
+Gemessen am 19.08.2026 in S2, an zwei Karten derselben Art:
+  Merge F3, zwei Eltern (Review + Schaetzung)          -> estimate kopiert
+  Merge F4, drei Eltern (Review + Merge F3 + Schaetzung) -> estimate FEHLT ganz
+Der dritte Elternteil stand nur fuer die Serialisierung der Riegel-Laeufe da
+und hat den verdraengt, der die Zahl trug. check-sprint.sh S2 meldete den
+zerrissenen Handoff.
+
 Damit die Schätzung dich überhaupt erreicht, ist die Estimator-Karte ein
 ZWEITER Elternteil dieser Karte — nicht nur der Karte vor dir. Das ist am
 17.08.2026 nachgerüstet worden: In S1 hing die Kette
@@ -1323,11 +1336,17 @@ dieses Sprints; F-R1-3 liegt bereits auf main.
 
     $HERE/scripts/merge-riegel.sh $BRANCH_FB --protokoll $VAULT/reports/riegel-r1-f4.txt
 
-WARUM DU AN DREI ELTERN HAENGST
+WARUM DU AN DREI ELTERN HAENGST — und welcher davon deine Zahl traegt
 An deiner Review-Karte, weil du ihr Urteil brauchst. An 'Merge F3', weil zwei
 gleichzeitige Riegel-Laeufe sich unter Last setzen und eine Verweigerung ohne
 Sachgrund produzieren. Und an der Schaetzkarte, damit dein (Schaetzung,
 Ist)-Paar zusammenbleibt.
+
+ACHTUNG: 'Merge F3' ist ein REIHENFOLGE-Elternteil. Er traegt keine Zahl fuer
+dich. Deine Schaetzung steht in der metadata der Karte
+'$S F4 2/4 — Schaetzung F-R1-4', unter estimates mit deinem Kartentitel als
+Schluessel. Genau hier ist es am 19.08.2026 schiefgegangen: Die Merge-Karte mit
+zwei Eltern kopierte ihre Schaetzung, die mit drei Eltern liess sie ganz weg.
 
 DAS BESONDERE AN DEINEM MERGE
 Dein Branch startete von einem main OHNE F-R1-3. Inzwischen liegt es dort. Beide
