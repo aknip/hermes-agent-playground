@@ -1323,10 +1323,37 @@ einem Riegel machen kann. `check-phase2.sh` zählt deshalb die Paare im Ledger
 und nicht den Exit-Code von `check-sprint.sh` — die Phase ist nachgewiesen, und
 die Lücken bleiben trotzdem sichtbar.
 
+## Drei Nachträge, alle im eigenen Vorgehen
+
+**Die Auflagen hatten keinen Träger.** Ich hatte am Gate geschrieben, ein Befund,
+der nur in einer Gate-Vorlage stehe, sei in zwei Wochen vergessen — und meine
+eigenen drei Auflagen dann nur in den Gate-Kommentar geschrieben. Das Board ist
+das Protokoll, also gehören sie aufs Board: drei Karten (`t_28c5032d`,
+`t_c735aff4`, `t_2616e83d`) tragen sie jetzt nach R2. Den eigenen Maßstab an
+den Agenten anzulegen und nicht an sich selbst ist die Asymmetrie, auf die es
+ankommt.
+
+**Beide READMEs beschrieben einen Lauf, den es nicht mehr gab.** Sie führten
+`beispiel-lauf-3/` als „Phasen 0 und 1, 6 Karten, 160 Minuten"; die Akte hält
+25 Karten, 558 Minuten, zwei Sprints und Release R1. Dieselbe Fehlerklasse, für
+die ich am Release-Gate Auflage a) erteilt habe — eine Zahl, die nicht
+nachgezogen wurde —, und sie stand ausgerechnet in dem Dokument, das den Lauf
+den Rückbau überleben lassen soll. `dump-lauf.sh` meldet bei jedem erneuten
+Sichern „README.md existiert — unverändert gelassen": Es schützt den Text und
+veraltet ihn zugleich.
+
+**Ein Versprechen ohne Erfüller.** `merge-riegel.sh` schreibt ins Protokoll
+„Der Worktree des Branches bleibt bestehen — der Reviewer braucht ihn noch.
+Aufgeräumt wird beim Sprint-Abschluss." Die Abschluss-Karte hat dazu keinen
+Auftrag; die drei Worktrees stehen noch. Das ist nicht falsch — die Kartentexte
+sagen ausdrücklich „Worktree nicht aufräumen, er ist Beleg" —, aber der Riegel
+kündigt etwas an, das niemand tut. Entweder bekommt der Sprint-Abschluss den
+Auftrag, oder der Riegel hört auf, ihn zu versprechen.
+
 ## Bilanz
 
-Sechs neue Befunde, fünf davon in ESF-Code oder in meiner eigenen Arbeit, einer
-in der Umgebung. Der teuerste — der Turbo-Cache — saß seit dem ersten Lauf im
+Sechs neue Befunde in Phase 2, fünf davon in ESF-Code oder in meiner eigenen
+Arbeit, einer in der Umgebung — dazu die drei Nachträge oben. Der teuerste — der Turbo-Cache — saß seit dem ersten Lauf im
 Riegel und war dort nie aufgefallen, weil eine der sechs Prüfungen immer echt
 lief.
 
