@@ -84,8 +84,32 @@ wachhund() {
     fi
 }
 
+DISPATCH_FEHLER=0
+
 for tick in $(seq 1 "$MAX_TICKS"); do
-    hermes kanban --board "$BOARD" dispatch >/dev/null 2>&1 || true
+    # `dispatch >/dev/null 2>&1 || true` stand hier bis zum 20.08.2026, und der
+    # Fehlertext eines fehlgeschlagenen Dispatch existierte damit nie. Gemessen
+    # in beispiel-lauf-2: einmal `spawn_failed` und einmal `gave_up`, beide mit
+    # `workspace: git worktree add failed` — die Ursache stand in genau der
+    # Ausgabe, die dieses `2>&1` verworfen hat. Die Pumpe tickte weiter, das
+    # Lagebild blieb unverändert, und die Karte kam nie hoch.
+    if dispatch_aus="$(hermes kanban --board "$BOARD" dispatch 2>&1)"; then
+        DISPATCH_FEHLER=0
+    else
+        DISPATCH_FEHLER=$((DISPATCH_FEHLER + 1))
+        printf '\n\033[31m⚠ Dispatch fehlgeschlagen (Tick %s, %s. Mal in Folge):\033[0m\n' \
+            "$tick" "$DISPATCH_FEHLER"
+        printf '%s\n' "$dispatch_aus" | sed 's/^/   /'
+        # Fünf in Folge sind kein Ausrutscher. Eine Pumpe, die 120 Ticks lang
+        # gegen einen kaputten Dispatcher tickt, verbraucht Wanduhr und meldet
+        # am Ende "es ist noch Arbeit offen" — richtig, aber nutzlos.
+        if [ "$DISPATCH_FEHLER" -ge 5 ]; then
+            printf '\n\033[31mFünf fehlgeschlagene Dispatches in Folge — die Pumpe hält an.\033[0m\n'
+            printf 'Häufigste Ursache: ein Worktree, dessen Karte nicht mehr auf dem Board ist.\n'
+            printf 'Nachsehen mit:  scripts/monitor.sh   und   git -C <repo> worktree list\n'
+            exit 1
+        fi
+    fi
 
     json="$(hermes kanban --board "$BOARD" list --json 2>/dev/null || echo '[]')"
     offen="$(printf '%s' "$json" | jq '[.[] | select(.status=="ready" or .status=="running" or .status=="todo")] | length')"
