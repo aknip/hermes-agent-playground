@@ -111,7 +111,7 @@ elif [ -d "$REPO" ] && ! "$HERE/e2e-video.sh" --headless-waechter "$REPO" "$E2E_
         --assignee esf-qa-release \
         --workspace "dir:$REPO" \
         --idempotency-key "headless-verstoss-$HEUTE" \
-        --max-retries 2 --max-runtime 30m \
+        --max-retries 2 --max-runtime 75m \
         --body "Der tägliche E2E-Lauf wurde übersprungen: $(cat "/tmp/esf-headless-befund.$$")
 
 Entferne --headed bzw. headless: false aus Konfiguration oder e2e_befehl.
@@ -144,7 +144,7 @@ elif [ -d "$REPO" ]; then
                 --assignee esf-qa-release \
                 --workspace "dir:$VAULT" \
                 --idempotency-key "e2e-rot-$HEUTE" \
-                --max-retries 2 --max-runtime 30m \
+                --max-retries 2 --max-runtime 75m \
                 --body "Der tägliche Regressionslauf vom $HEUTE ist fehlgeschlagen.
 
 Protokoll: reports/e2e-$HEUTE/lauf.txt
@@ -173,7 +173,7 @@ if [ -d "$ZIEL" ] && [ -n "$(ls -A "$ZIEL" 2>/dev/null)" ]; then
             --assignee esf-market-scout \
             --workspace "dir:$VAULT" \
             --idempotency-key "markt-sichtung-$HEUTE" \
-            --max-retries 2 --max-runtime 20m \
+            --max-retries 2 --max-runtime 60m \
             --body "Werte JEDE Datei unter sources/$HEUTE/ aus — alle, nicht stichprobenartig.
 
 Dateien mit der Endung .fehler sind Quellen, die heute nicht geantwortet

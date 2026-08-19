@@ -217,7 +217,7 @@ for id in $gates; do
             --assignee esf-ceo \
             --workspace "dir:$VAULT" \
             --idempotency-key "ceo-entscheid-$id" \
-            --max-retries 2 --max-runtime 45m \
+            --max-retries 2 --max-runtime 90m \
             --body "Entscheide das blockierte ${art}-Gate $id ('$titel').
 
 DEINE ARBEIT — genau ein Dokument, dann fertig
@@ -281,7 +281,7 @@ wenn etwas fehlt, ist esf-verb 'escalate' der Weg." \
                 --assignee esf-ceo \
                 --workspace "dir:$VAULT" \
                 --idempotency-key "ceo-entscheid-$id-2" \
-                --max-retries 2 --max-runtime 45m \
+                --max-retries 2 --max-runtime 90m \
                 --body "Dein Entscheidungsdokument $rel wurde vom Riegel abgewiesen.
 
 Die Befunde, wörtlich:

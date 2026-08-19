@@ -84,7 +84,7 @@ SCHNITT=$(k create "Neuschnitt $REL — gegen gemessene Intervalle" \
     --assignee esf-chief-of-staff \
     --workspace "dir:$VAULT" \
     --idempotency-key "roadmap-$KLEIN-neuschnitt" \
-    --max-retries 2 --max-runtime 60m \
+    --max-retries 2 --max-runtime 90m \
     --body "Schneide $REL und R3 neu. Nicht neu ERFINDEN — neu SCHNEIDEN: Die
 freigegebene Roadmap bleibt die Grundlage, und was du aenderst, begruendest du
 gegen eine Zahl.
@@ -191,7 +191,7 @@ GATE=$(k create "GATE Roadmap — Neuschnitt $REL" \
     --workspace "dir:$VAULT" \
     --parent "$SCHNITT" \
     --idempotency-key "roadmap-$KLEIN-gate" \
-    --max-retries 2 --max-runtime 30m \
+    --max-retries 2 --max-runtime 75m \
     --body "Lege dem Supervisor den Neuschnitt $REL zur Entscheidung vor.
 
 ERSTER LAUF

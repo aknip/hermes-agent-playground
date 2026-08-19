@@ -193,7 +193,7 @@ for sprint in $(printf '%s' "$liste" | jq -r '.[].title' | sed -n 's/^\(S[0-9][0
                 --assignee esf-chief-of-staff \
                 --workspace "dir:$VAULT" \
                 --idempotency-key "sprint-abschluss-$sprint" \
-                --max-retries 2 --max-runtime 30m \
+                --max-retries 2 --max-runtime 75m \
                 --body "Alle $gesamt Karten von Sprint $sprint sind fertig.
 
 Schliesse den Sprint ab:

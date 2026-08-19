@@ -472,7 +472,7 @@ if [ "$AUFTRAEGE" -eq 1 ]; then
             --assignee esf-video-designer \
             --workspace "dir:$komp" \
             --idempotency-key "video-komposition-$(printf '%s' "$rel" | tr -c 'a-zA-Z0-9' '-')-$(printf '%s' "$dauer" | tr -c '0-9' '-')" \
-            --max-retries 2 --max-runtime 30m \
+            --max-retries 2 --max-runtime 75m \
             --body "Gestalte die Video-Zusammenfassung von $rel.
 
 DEIN ARBEITSVERZEICHNIS ist dieses Kompositionsverzeichnis. Dort liegen:

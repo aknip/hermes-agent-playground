@@ -67,7 +67,7 @@ CODE=$(k create "Onboarding 1/6 — Codebasis-Analyse" \
     --assignee esf-architect \
     --workspace "dir:$VAULT" \
     --idempotency-key "onboarding-codebase-$HEUTE" \
-    --max-retries 2 --max-runtime 45m \
+    --max-retries 2 --max-runtime 90m \
     --body "Analysiere die Codebasis von $PRODUKT unter
 
     $REPO
@@ -107,7 +107,7 @@ PROD=$(k create "Onboarding 2/6 — Produkt- und Nutzeranalyse" \
     --assignee esf-product-manager \
     --workspace "dir:$VAULT" \
     --idempotency-key "onboarding-product-$HEUTE" \
-    --max-retries 2 --max-runtime 45m \
+    --max-retries 2 --max-runtime 90m \
     --body "Analysiere, was $PRODUKT für wen tut. Das Repo liegt unter
 
     $REPO
@@ -148,7 +148,7 @@ MARKT=$(k create "Onboarding 3/6 — Marktbild" \
     --assignee esf-market-analyst \
     --workspace "dir:$VAULT" \
     --idempotency-key "onboarding-market-$HEUTE" \
-    --max-retries 2 --max-runtime 45m \
+    --max-retries 2 --max-runtime 90m \
     --body "Erstelle das erste Marktbild für $PRODUKT.
 
 DEIN KORPUS IST $KORPUS_REL — und nur der.
@@ -267,7 +267,7 @@ ROADMAP=$(k create "Onboarding 5/6 — Erste Roadmap mit Schätzintervallen" \
     --workspace "dir:$VAULT" \
     --parent "$MARKT" --parent "$E2E" \
     --idempotency-key "onboarding-roadmap-$HEUTE" \
-    --max-retries 2 --max-runtime 60m \
+    --max-retries 2 --max-runtime 90m \
     --body "Schreibe die erste Roadmap für $PRODUKT.
 
 GRUNDLAGE — lies alle vier, sie liegen im Vault:
@@ -318,7 +318,7 @@ GATE=$(k create "GATE Roadmap — Q1-Freigabe" \
     --workspace "dir:$VAULT" \
     --parent "$ROADMAP" \
     --idempotency-key "onboarding-gate-$HEUTE" \
-    --max-retries 2 --max-runtime 30m \
+    --max-retries 2 --max-runtime 75m \
     --body "Lege dem CEO die Roadmap zur Freigabe vor.
 
 ERSTER LAUF

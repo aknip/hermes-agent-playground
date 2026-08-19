@@ -112,6 +112,26 @@ say() { printf '\n\033[1m%s\033[0m\n' "$*"; }
 # Review, Merge), stehen deshalb auf 90 Minuten statt 60. Ein zu hoher Deckel
 # kostet nichts, wenn er nicht erreicht wird; ein zu niedriger kostet einen
 # ganzen Lauf.
+#
+# NACHTRAG 19.08.2026 — der dritte Riss derselben Art, und jetzt ist es ein
+# Muster statt eines Zufalls:
+#
+#   Onboarding 4/6 (E2E)      5406 s gegen 5400 s   Ueberschuss  6 s
+#   Probelauf 2/4 (Bau)       1516 s gegen 1500 s   Ueberschuss 16 s
+#   S4 F2 1/4 (Spezifikation) 2704 s gegen 2700 s   Ueberschuss  4 s
+#
+# Dreimal um WENIGER ALS ZWANZIG SEKUNDEN. Das ist keine Streuung um einen
+# Erwartungswert — es ist die Signatur eines Modells, das arbeitet, bis es
+# abgeschnitten wird. Die Karte wird nicht frueher fertig, sie WAECHST IN DEN
+# DECKEL HINEIN. Damit ist --max-runtime kein Sicherheitsabstand, sondern ein
+# Ziel; und der Preis fuers Ueberschreiten ist nicht eine knappe Karte,
+# sondern der ganze Lauf.
+#
+# Konsequenz: KEIN Deckel liegt mehr nahe an der erwarteten Dauer. Die
+# Spezifikations- und Schaetzkarten stehen jetzt auf 75–90 Minuten statt
+# 30–45, obwohl sie gemessen 14–21 Minuten brauchen. Der zweite Lauf der
+# gerissenen Karte brauchte 20 Minuten — die 45 waren also nie zu knapp fuer
+# die ARBEIT, nur zu knapp fuer einen Lauf, der sich ausdehnt.
 
 # ---------------------------------------------------------------------------
 # Bausteine, die in jedem Kartentext gleich lauten
@@ -557,7 +577,7 @@ SPEC=$(k create "$S F2 1/5 — Spezifikation F-R1-2 Create-Task-Dialog entschlac
     --workspace "dir:$VAULT" \
     --parent "$WARTUNG" \
     --idempotency-key "s1-f2-spec" \
-    --max-retries 2 --max-runtime 45m \
+    --max-retries 2 --max-runtime 90m \
     --body "Spezifiziere F-R1-2 der freigegebenen Roadmap: die Subtraktion am
 Create-Task-Dialog.
 
@@ -626,7 +646,7 @@ EST=$(k create "$S F2 2/5 — Schätzung F-R1-2" \
     --workspace "dir:$VAULT" \
     --parent "$SPEC" \
     --idempotency-key "s1-f2-estimate" \
-    --max-retries 2 --max-runtime 30m \
+    --max-retries 2 --max-runtime 75m \
     --body "Schaetze die drei Folgekarten von F-R1-2. Die Spezifikation deiner
 Elternkarte (specs/r1-f2-create-task-subtraktion.html) steht in deinem
 Handoff-Kontext.
@@ -942,7 +962,7 @@ FA_SPEC=$(k create "$S F3 1/4 — Spezifikation F-R1-3 Tastatur & Command-Palett
     --assignee esf-product-manager \
     --workspace "dir:$VAULT" \
     --idempotency-key "s2-f3-spec" \
-    --max-retries 2 --max-runtime 45m \
+    --max-retries 2 --max-runtime 90m \
     --body "Spezifiziere F-R1-3 der freigegebenen Roadmap: Tastaturbedienung und
 eine Command-Palette.
 
@@ -1006,7 +1026,7 @@ FA_EST=$(k create "$S F3 2/4 — Schätzung F-R1-3" \
     --workspace "dir:$VAULT" \
     --parent "$FA_SPEC" \
     --idempotency-key "s2-f3-estimate" \
-    --max-retries 2 --max-runtime 30m \
+    --max-retries 2 --max-runtime 75m \
     --body "Schaetze die zwei Folgekarten von F-R1-3 und die Merge-Karte.
 
 DAS LEDGER TRAEGT JETZT ECHTE PAARE
@@ -1176,7 +1196,7 @@ FB_SPEC=$(k create "$S F4 1/4 — Spezifikation F-R1-4 E2E-Netz J-05 + J-06" \
     --assignee esf-qa-release \
     --workspace "dir:$VAULT" \
     --idempotency-key "s2-f4-spec" \
-    --max-retries 2 --max-runtime 45m \
+    --max-retries 2 --max-runtime 90m \
     --body "Spezifiziere F-R1-4 der freigegebenen Roadmap: die Journeys J-05 und
 J-06 e2e-fest machen.
 
@@ -1243,7 +1263,7 @@ FB_EST=$(k create "$S F4 2/4 — Schätzung F-R1-4" \
     --workspace "dir:$VAULT" \
     --parent "$FB_SPEC" \
     --idempotency-key "s2-f4-estimate" \
-    --max-retries 2 --max-runtime 30m \
+    --max-retries 2 --max-runtime 75m \
     --body "Schaetze die zwei Folgekarten von F-R1-4 und die Merge-Karte.
 
 DEINE BESTE UND SCHLECHTESTE ZEILE IST DIESELBE
@@ -1572,7 +1592,7 @@ FA_SPEC=$(k create "$S F1b 1/4 — Spezifikation F-R1-1b WeKan-Import" \
     --assignee esf-architect \
     --workspace "dir:$VAULT" \
     --idempotency-key "s4-f1b-spec" \
-    --max-retries 2 --max-runtime 45m \
+    --max-retries 2 --max-runtime 90m \
     --body "Spezifiziere F-R1-1b: den WeKan-Teil des Imports. Das ist die zweite
 Haelfte eines Features, das DU geschnitten hast — kein neues.
 
@@ -1640,7 +1660,7 @@ FB_SPEC=$(k create "$S F2 1/4 — Spezifikation F-R2-1 MCP-Agentenkanal haerten"
     --workspace "dir:$VAULT" \
     --parent "$FA_SPEC" \
     --idempotency-key "s4-f2-spec" \
-    --max-retries 2 --max-runtime 45m \
+    --max-retries 2 --max-runtime 90m \
     --body "Spezifiziere F-R2-1: den MCP-Agentenkanal ausbauen und haerten.
 
 WARUM DIESE KARTE AN DER VORIGEN HAENGT
@@ -1711,7 +1731,7 @@ EST=$(k create "$S Schätzung — F-R1-1b und F-R2-1" \
     --workspace "dir:$VAULT" \
     --parent "$FA_SPEC" --parent "$FB_SPEC" \
     --idempotency-key "s4-estimate" \
-    --max-retries 2 --max-runtime 40m \
+    --max-retries 2 --max-runtime 75m \
     --body "Schaetze die sechs Folgekarten dieses Sprints — drei je Feature. Beide
 Spezifikationen stehen in deinem Handoff-Kontext (specs/$SLUG_FA.html und
 specs/$SLUG_FB.html).
@@ -2263,7 +2283,7 @@ SPEC=$(k create "$S F1 1/5 — Spezifikation F-R1-1 Import CSV + WeKan" \
     --workspace "dir:$VAULT" \
     --parent "$WARTUNG" \
     --idempotency-key "s3-f1-spec" \
-    --max-retries 2 --max-runtime 60m \
+    --max-retries 2 --max-runtime 90m \
     --body "Spezifiziere F-R1-1 der freigegebenen Roadmap: den Import aus CSV und
 WeKan.
 
@@ -2356,7 +2376,7 @@ EST=$(k create "$S F1 2/5 — Schätzung F-R1-1" \
     --workspace "dir:$VAULT" \
     --parent "$SPEC" \
     --idempotency-key "s3-f1-estimate" \
-    --max-retries 2 --max-runtime 30m \
+    --max-retries 2 --max-runtime 75m \
     --body "Schaetze die drei Folgekarten von F-R1-1. Die Spezifikation deiner
 Elternkarte (specs/$SLUG.html) steht in deinem Handoff-Kontext.
 
@@ -2701,7 +2721,7 @@ KAL=$(k create "Kalibrierung $S" \
     --workspace "dir:$VAULT" \
     --parent "$LETZTE" \
     --idempotency-key "kalibrierung-$S" \
-    --max-retries 2 --max-runtime 45m \
+    --max-retries 2 --max-runtime 90m \
     --body "Sprint $S ist inhaltlich fertig ($FEATURES). Miss, was er gekostet
 hat, und vergleiche es mit dem, was geschätzt wurde.
 
@@ -2781,7 +2801,7 @@ ABSCHLUSS=$(k create "Sprint-Abschluss $S" \
     --workspace "dir:$VAULT" \
     --parent "$KAL" \
     --idempotency-key "sprint-abschluss-$S" \
-    --max-retries 2 --max-runtime 45m \
+    --max-retries 2 --max-runtime 90m \
     --body "Schliesse Sprint $S ab ($FEATURES).
 
 SCHRITT 1 — der Check entscheidet, nicht du

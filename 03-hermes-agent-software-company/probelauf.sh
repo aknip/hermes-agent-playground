@@ -143,7 +143,7 @@ SPEC=$(k create "Probelauf 1/4 — Spezifikation" \
     --assignee esf-product-manager \
     --workspace "dir:$VAULT" \
     --idempotency-key "probelauf-spec" \
-    --max-retries 2 --max-runtime 15m \
+    --max-retries 2 --max-runtime 90m \
     --body "Das hier ist ein Mechanik-Test der Organisation, kein echtes Feature.
 Halte dich trotzdem exakt an deine Rolle — geprüft wird, ob die Übergabe trägt.
 
@@ -172,7 +172,7 @@ BAU=$(k create "Probelauf 2/4 — Bau" \
     --workspace "worktree:$REPO" --branch "$BRANCH" \
     --parent "$SPEC" \
     --idempotency-key "probelauf-bau" \
-    --max-retries 2 --max-runtime 25m \
+    --max-retries 2 --max-runtime 75m \
     --body "Setze die Spezifikation deiner Elternkarte um. Sie steht in deinem
 Kontext unter '## Parent task results'; die Datei liegt im Vault unter
 specs/probelauf.html, aber der Handoff sollte reichen.
@@ -210,7 +210,7 @@ REVIEW=$(k create "Probelauf 3/4 — Review" \
     --workspace "dir:$REPO" \
     --parent "$BAU" \
     --idempotency-key "probelauf-review" \
-    --max-retries 2 --max-runtime 25m \
+    --max-retries 2 --max-runtime 75m \
     --body "Prüfe den Branch $BRANCH.
 
 Du arbeitest im Hauptbaum des Repos. Der Baum des Entwicklers liegt daneben:
@@ -239,7 +239,7 @@ GATE=$(k create "GATE Roadmap — Probelauf 4/4" \
     --workspace "dir:$VAULT" \
     --parent "$REVIEW" \
     --idempotency-key "probelauf-gate" \
-    --max-retries 2 --max-runtime 20m \
+    --max-retries 2 --max-runtime 90m \
     --body "Diese Karte ist das Probe-Gate. Ihr Zweck ist NICHT, eine echte
 Entscheidung herbeizuführen, sondern zu beweisen, dass ein Gate den
 Dispatcher wirklich anhält.

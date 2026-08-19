@@ -289,7 +289,7 @@ GATE=$(k create "GATE Release — $R" \
     --workspace "dir:$VAULT" \
     --parent "$ABSCHLUSS" \
     --idempotency-key "gate-release-$R" \
-    --max-retries 2 --max-runtime 45m \
+    --max-retries 2 --max-runtime 90m \
     --body "Lege dem CEO das Release $R zur Freigabe vor. Das ist die Stelle, an
 der der Autonomie-Horizont endet: 'autonomie_horizont: $HORIZONT' — die
 Organisation läuft vollautomatisch bis hierher und hält für den Menschen an.
