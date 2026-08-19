@@ -109,7 +109,17 @@ videos:
   # Sprünge statt Bedienung — real: 14 Journeys in 1,3 Minuten.
   # Sie wirkt NUR auf den Aufzeichnungslauf. Der Lauf, der ueber den Merge
   # entscheidet, ist ein anderer und bleibt unberuehrt schnell.
-  e2e_video_slowmo_ms: 350
+  #
+  # 900 ist gemessen, nicht geraten (19.08.2026, drei Laeufe derselben Suite):
+  #        0 ms   350 ms   900 ms   Suite gesamt
+  #   ---------------------------------------------
+  #   J-03  5,3 s   8,4 s   15,9 s   68 s -> 112 s -> 204 s
+  #   J-06  6,6 s  12,3 s   24,2 s   1,3 min -> 1,9 min -> 3,3 min
+  # 350 ms brachte nur ~1,5x — zu wenig zum Mitlesen. 900 ms bringt 2,5–3,5x
+  # auf den bedienungsintensiven Journeys. Reine Navigations-Journeys bleiben
+  # kurz (2,9 s), weil slowMo nur AKTIONEN verzoegert und nicht Ladezeiten —
+  # dort gibt es auch nichts nachzuvollziehen.
+  e2e_video_slowmo_ms: 900
   # Dehnungsfaktor fuer `--nachziehen`, also fuer Aufzeichnungen, die es schon
   # gibt. Sie lassen sich nicht nachtraeglich langsamer AUFNEHMEN, nur
   # langsamer ABSPIELEN (ffmpeg setpts). Das ist kein Ersatz: Eine gedehnte

@@ -6,6 +6,7 @@
 #   scripts/e2e-video.sh --feature <spec> [<spec> …]   die Journey(s) EINES Features
 #   scripts/e2e-video.sh --alle                        die volle Suite
 #   scripts/e2e-video.sh --anlass <slug>               benennt die Akte (s.u.)
+#   scripts/e2e-video.sh --slowmo <ms>                 ueberstimmt cadence.yaml
 #   scripts/e2e-video.sh --nachziehen [<pfad>]         bestehende Akten auf .mp4 ziehen
 #   scripts/e2e-video.sh --selbsttest                  offline: Config-Erzeugung + Headless-Wächter
 #   scripts/e2e-video.sh --headless-waechter <repo> "<befehl>"   nur der Wächter
@@ -410,12 +411,13 @@ fi
 # ---------------------------------------------------------------------------
 # Aufzeichnen
 # ---------------------------------------------------------------------------
-MODUS=""; DRY=0; ANLASS=""; SPECS=()
+MODUS=""; DRY=0; ANLASS=""; SLOWMO_CLI=""; SPECS=()
 while [ $# -gt 0 ]; do
     case "$1" in
         --feature) MODUS=feature ;;
         --alle)    MODUS=alle ;;
         --anlass)  shift; ANLASS="${1:-}" ;;
+        --slowmo)  shift; SLOWMO_CLI="${1:-}" ;;
         --dry-run) DRY=1 ;;
         -*)        echo "Unbekannte Option '$1'"; exit 2 ;;
         *)         SPECS+=("$1") ;;
@@ -432,7 +434,11 @@ fi
 
 REPO="$(cad repo)"
 E2E_VORBED="$(cad e2e_vorbedingung)"
-SLOWMO="$(cad e2e_video_slowmo_ms)"; SLOWMO="${SLOWMO:-0}"
+# --slowmo schlaegt cadence.yaml. Der Wert ist eine Messgroesse, keine
+# Glaubensfrage: Wie langsam ein Video laufen MUSS, damit man es nachvollziehen
+# kann, findet man durch Messen. Der Schalter ist da, damit das ohne Bearbeiten
+# der cadence.yaml geht — was gemessen gut war, wandert danach dorthin.
+SLOWMO="${SLOWMO_CLI:-$(cad e2e_video_slowmo_ms)}"; SLOWMO="${SLOWMO:-0}"
 case "$SLOWMO" in
     ''|*[!0-9]*) warn "videos.e2e_video_slowmo_ms ist keine Zahl ('$SLOWMO') — 0 angenommen"; SLOWMO=0 ;;
 esac
