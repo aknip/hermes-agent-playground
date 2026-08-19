@@ -275,6 +275,62 @@ else
 fi
 rm -f /tmp/esf-cs-lint.$$
 
+# ---------------------------------------------------------------------------
+echo
+echo "7. metadata-Vollständigkeit — als Zahl, nicht als Tor"
+# ---------------------------------------------------------------------------
+# Bedingung 2c des Roadmap-Gates R2 (roadmap/r2-freigegeben.html §5).
+#
+# Seit Bedingung 2a/2b holt ledger-sync.sh die Schätzung beim Schätzer; die
+# manuelle Kopie je Karte ist als Fehlerquelle weg. Damit verliert Prüfung 3
+# aber auch ihre Nebenwirkung: Sie war das einzige Instrument, das gemessen
+# hat, ob eine Karte ihr Abschluss-metadata ÜBERHAUPT vollständig schreibt.
+# t_de53e678 hat neben der Schätzung auch changed_files, tests und commit
+# weggelassen — zwei Schlüssel von acht geforderten, während die Review-Karte
+# desselben Sprints aus derselben Kartentext-Form achtzehn schrieb.
+#
+# Diese Prüfung ersetzt das. Sie misst RELATIV, weil sich absolut nicht sagen
+# lässt, wieviele Schlüssel eine Karte schulden würde: Der Kartentext fordert
+# je Rolle Verschiedenes, und ihn zu parsen wäre Raterei. Ein Ausreisser weit
+# unter dem Median seiner Geschwister ist dagegen ein belastbares Signal.
+#
+# Sie setzt NIE `fehler`. Das ist so entschieden: „als Zahl im
+# Controller-Report, nicht als hartes Tor." Ein Tor auf eine relative Grösse
+# wäre ein Tor auf die Streuung der eigenen Kartentexte.
+zaehlung=""
+for id in $(printf '%s' "$sprintkarten" | jq -r '.[] | select(.status=="done") | .id'); do
+    karte="$(k show "$id" --json 2>/dev/null || echo '{}')"
+    n="$(printf '%s' "$karte" | jq '[.runs[]?.metadata // empty] | last // {} | keys | length')"
+    zaehlung="$zaehlung$id ${n:-0}
+"
+done
+if [ -z "$(printf '%s' "$zaehlung" | grep -c . 2>/dev/null)" ] || [ "$(printf '%s' "$zaehlung" | grep -c .)" -eq 0 ]; then
+    info "keine fertigen Karten — nichts zu zählen"
+else
+    median="$(printf '%s' "$zaehlung" | awk '{print $2}' | sort -n | awk '{a[NR]=$1} END{print a[int((NR+1)/2)]}')"
+    schwelle="$(awk -v m="${median:-0}" 'BEGIN{s=int(m/3); if (s<3) s=3; print s}')"
+    schnitt="$(printf '%s' "$zaehlung" | awk '{s+=$2; n++} END{if(n) printf "%.1f", s/n}')"
+    info "Schlüssel je Karte: Median ${median:-0}, Mittel ${schnitt:-0}; Ausreisser-Schwelle $schwelle"
+    duenn="$(printf '%s' "$zaehlung" | awk -v g="$schwelle" '$2 < g {print}')"
+    if [ -n "$duenn" ]; then
+        # printf '%s' statt '%s\n' liesse die LETZTE Zeile verschwinden: $( )
+        # schneidet den abschliessenden Zeilenumbruch ab, `read` gibt am EOF
+        # ohne Umbruch einen Fehlercode zurueck, und der Schleifenrumpf laeuft
+        # fuer diese Zeile nie. Bei genau einem Ausreisser — dem haeufigsten
+        # Fall — waere die Prueflung damit stumm. Beim ersten Lauf am
+        # 19.08.2026 genau so passiert.
+        printf '%s\n' "$duenn" | while read -r kid kn; do
+            [ -n "$kid" ] || continue
+            titel="$(printf '%s' "$sprintkarten" | jq -r --arg i "$kid" '.[] | select(.id==$i) | .title')"
+            info "dünn: $kid trägt $kn Schlüssel — $titel"
+        done
+        info "Quote: $(printf '%s' "$duenn" | grep -c .) von $(printf '%s' "$zaehlung" | grep -c .) Karten unter der Schwelle"
+        info "Kein Tor. Der Controller führt die Zahl im Report; ein Ausreisser ist ein Hinweis, kein Urteil."
+    else
+        ok "keine Karte fällt unter die Schwelle"
+    fi
+fi
+
 printf '\n'
 printf '%.0s─' $(seq 1 70); echo
 if [ "$fehler" -eq 0 ]; then

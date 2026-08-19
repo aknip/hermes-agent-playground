@@ -293,6 +293,37 @@ bestehende Zeilen um. Lintе nur, was du selbst geschrieben hast.
 EOF
 }
 
+# ---------------------------------------------------------------------------
+# Die Karten-IDs an den Schaetzer nachreichen (Bedingung 2a, Roadmap-Gate R2)
+# ---------------------------------------------------------------------------
+# Warum als Kommentar und nicht im Kartentext: Die Schaetzkarte entsteht VOR
+# ihren Folgekarten — sie ist deren Elternteil, und Hermes vergibt die ID erst
+# beim Anlegen. Ein Kartentext kann eine ID also nicht enthalten, die es noch
+# nicht gibt. Der Kommentar-Thread ist derselbe Weg, auf dem auch die
+# Gate-Antworten ankommen; der Worker liest ihn in seinem Handoff-Kontext.
+schluessel_an_schaetzer() { # <estimator-id> <rolle>=<karten-id> …
+    local est="$1"; shift
+    local text p
+    text="DIE KARTEN-IDs DEINER FOLGEKARTEN — Schluessel fuer dein estimates-Objekt.
+
+Angehaengt vom Supervisor, weil es diese IDs beim Anlegen deiner Karte noch
+nicht gab. Nimm sie woertlich als Schluessel, NICHT die Kartentitel:
+"
+    for p in "$@"; do
+        text="$text
+  ${p#*=}   fuer die Karte \"${p%%=*}\""
+    done
+    text="$text
+
+Gemessen am 19.08.2026, deshalb steht das hier: Ein Schaetzer schluesselte
+\"S3 F1 3/5 Umsetzung\", die Karte hiess \"S3 F1 3/5 — Umsetzung F-R1-1 Import
+CSV + WeKan\". Ueber den Titel findet ledger-sync.sh nichts und die Schaetzung
+faellt still aus dem Ledger — und seit dem Roadmap-Gate R2 ist DEINE Zahl die
+einzige Quelle: Die Arbeitskarten kopieren sie nicht mehr, ledger-sync.sh holt
+sie hier ab. Ein falscher Schluessel ist damit kein Schoenheitsfehler mehr."
+    k comment "$est" --author supervisor "$text" >/dev/null
+}
+
 gate_verbot() {
 cat <<'EOF'
 DIE GRENZE
@@ -629,9 +660,16 @@ SCHREIBE ZWEIERLEI
    zusaetzlich unter 'estimate' die Schaetzung DIESER Karte selbst
    (reference_class 'estimate-vault-S').
 
-   Das metadata ist der Weg, auf dem die Zahlen bei den Folgekarten ankommen:
-   sie lesen es in ihrem Handoff-Kontext. Schreib es maschinenlesbar, mit
-   genau den Kartentiteln oben als Schluessel.
+   DIE SCHLUESSEL SIND KARTEN-IDs, KEINE TITEL. Du findest die drei IDs als
+   Kommentar an DIESER Karte — der Supervisor haengt sie an, sobald die
+   Folgekarten stehen. Nimm sie woertlich.
+   Warum, gemessen am 19.08.2026: Ein Schaetzer schluesselte
+   'S3 F1 3/5 Umsetzung', die Karte hiess aber
+   'S3 F1 3/5 — Umsetzung F-R1-1 Import CSV + WeKan'. Ueber den Titel findet
+   ledger-sync.sh nichts, und die Schaetzung faellt still aus dem Ledger.
+   Findest du den Kommentar nicht: schreib die Titel wie oben UND sag im
+   metadata unter 'schluessel_notbehelf' hin, dass die IDs fehlten. Still
+   raten ist die eine Sache, die hier nicht geht.
 
 $(metadata_pflicht 'estimate-vault-S')
 
@@ -851,6 +889,10 @@ $(gate_verbot)" \
     --json | jq -r .id)
 echo "  MERGE= $MERGE"
 
+schluessel_an_schaetzer "$EST" \
+    "$S F2 3/5 Umsetzung=$IMPL" "$S F2 4/5 Review=$REV" "$S F2 5/5 Merge=$MERGE"
+echo "  Karten-IDs an den Schaetzer $EST nachgereicht"
+
 LETZTE="$MERGE"
 FEATURES="F-R1-2 (dazu die Wartungskarte F-R1-5)"
 
@@ -979,7 +1021,8 @@ SCHREIBE ZWEIERLEI
    Klassen, die Ledger-Zeilen mit task_id, die gerechnete Velocity je Klasse
    und die Konfidenz je Schaetzung.
 2. Ins Abschluss-metadata ein Objekt 'estimates' mit den drei Schaetzungen, je
-   Karte eines, mit genau den Kartentiteln oben als Schluessel — plus unter
+   Karte eines, geschluesselt nach der KARTEN-ID (nicht nach dem Titel; die
+   drei IDs haengen als Kommentar an dieser Karte, siehe unten) — plus unter
    'estimate' die Schaetzung DIESER Karte (reference_class 'estimate-vault-S').
 
 $(metadata_pflicht 'estimate-vault-S')
@@ -1214,7 +1257,8 @@ SCHREIBE ZWEIERLEI
    Klassen, die Ledger-Zeilen mit task_id, die Bereinigung der verzerrten Zeile
    mit Rechnung, die Konfidenz je Schaetzung.
 2. Ins Abschluss-metadata ein Objekt 'estimates' mit den drei Schaetzungen, je
-   Karte eines, mit genau den Kartentiteln oben als Schluessel — plus unter
+   Karte eines, geschluesselt nach der KARTEN-ID (nicht nach dem Titel; die
+   drei IDs haengen als Kommentar an dieser Karte, siehe unten) — plus unter
    'estimate' die Schaetzung DIESER Karte (reference_class 'estimate-vault-S').
 
 $(metadata_pflicht 'estimate-vault-S')
@@ -1451,6 +1495,12 @@ $(gate_verbot)" \
 echo "  FB_MERGE= $FB_MERGE"
 
 LETZTE="$FB_MERGE"
+schluessel_an_schaetzer "$FA_EST" \
+    "$S F3 3/4 Umsetzung=$FA_IMPL" "$S F3 4/4 Review=$FA_REV" "$S Merge F3=$FA_MERGE"
+schluessel_an_schaetzer "$FB_EST" \
+    "$S F4 3/4 Umsetzung=$FB_IMPL" "$S F4 4/4 Review=$FB_REV" "$S Merge F4=$FB_MERGE"
+echo "  Karten-IDs an beide Schaetzer nachgereicht"
+
 FEATURES="F-R1-3 und F-R1-4"
 
 # ===========================================================================
@@ -1745,9 +1795,16 @@ SCHREIBE ZWEIERLEI
    zusaetzlich unter 'estimate' die Schaetzung DIESER Karte selbst
    (reference_class 'estimate-vault-S').
 
-   Das metadata ist der Weg, auf dem die Zahlen bei den Folgekarten ankommen:
-   sie lesen es in ihrem Handoff-Kontext. Schreib es maschinenlesbar, mit
-   genau den Kartentiteln oben als Schluessel.
+   DIE SCHLUESSEL SIND KARTEN-IDs, KEINE TITEL. Du findest die drei IDs als
+   Kommentar an DIESER Karte — der Supervisor haengt sie an, sobald die
+   Folgekarten stehen. Nimm sie woertlich.
+   Warum, gemessen am 19.08.2026: Ein Schaetzer schluesselte
+   'S3 F1 3/5 Umsetzung', die Karte hiess aber
+   'S3 F1 3/5 — Umsetzung F-R1-1 Import CSV + WeKan'. Ueber den Titel findet
+   ledger-sync.sh nichts, und die Schaetzung faellt still aus dem Ledger.
+   Findest du den Kommentar nicht: schreib die Titel wie oben UND sag im
+   metadata unter 'schluessel_notbehelf' hin, dass die IDs fehlten. Still
+   raten ist die eine Sache, die hier nicht geht.
 
 $(metadata_pflicht 'estimate-vault-S')
 
@@ -1996,6 +2053,10 @@ Riegel-Lauf.
 $(gate_verbot)" \
     --json | jq -r .id)
 echo "  MERGE= $MERGE"
+
+schluessel_an_schaetzer "$EST" \
+    "$S F1 3/5 Umsetzung=$IMPL" "$S F1 4/5 Review=$REV" "$S F1 5/5 Merge=$MERGE"
+echo "  Karten-IDs an den Schaetzer $EST nachgereicht"
 
 LETZTE="$MERGE"
 FEATURES="F-R1-1 (dazu die Wartungskarte aus Auflage c des R1-Gates)"

@@ -23,14 +23,144 @@ BOARD="sw-company"
 VAULT="$ESF/workspace/company"
 LEDGER="$VAULT/ledger/estimates.jsonl"
 HEUTE="$(date '+%Y-%m-%d')"
-DRY=0
+DRY=0; SELBSTTEST=0
 [ "${1:-}" = "--dry-run" ] && DRY=1
+[ "${1:-}" = "--selbsttest" ] && SELBSTTEST=1
 
 command -v jq >/dev/null || { echo "FEHLER: 'jq' fehlt"; exit 1; }
-[ -d "$VAULT" ] || { echo "FEHLER: Kein Vault unter $VAULT"; exit 1; }
-mkdir -p "$(dirname "$LEDGER")"; : >> "$LEDGER"
+[ "$SELBSTTEST" -eq 1 ] || [ -d "$VAULT" ] || { echo "FEHLER: Kein Vault unter $VAULT"; exit 1; }
+[ "$SELBSTTEST" -eq 1 ] || { mkdir -p "$(dirname "$LEDGER")"; : >> "$LEDGER"; }
 
 k() { hermes kanban --board "$BOARD" "$@"; }
+
+# ---------------------------------------------------------------------------
+# Die Schaetzung beim Schaetzer holen (Bedingung 2a/2b, Roadmap-Gate R2)
+# ---------------------------------------------------------------------------
+# Eingabe : das Karten-JSON und die Karten-ID
+# Ausgabe : das estimate-Objekt auf stdout, oder leer, wenn es gar keinen
+#           Schaetzer-Elternteil gibt (dann ist nichts zu holen — S1 hatte den
+#           zweiten Elternteil noch nicht, und Spezifikationskarten laufen VOR
+#           dem Schaetzer).
+# Exit    : 0 = in Ordnung, 1 = es GIBT einen Schaetzer, aber er traegt fuer
+#           diese Karte nichts. Das ist der laute Fall aus Bedingung 2b: Ein
+#           Aufloesungsweg, der bei fehlendem Anker stumm ein null einsetzt,
+#           waere schlimmer als die Kopie, die er ersetzt.
+#
+# normalisiert() macht aus "S3 F1 3/5 — Umsetzung F-R1-1 Import CSV + WeKan"
+# und aus dem Schluessel "S3 F1 3/5 Umsetzung" vergleichbare Ketten. Der
+# Praefix-Weg ist ausdruecklich der RUECKFALL fuer Altbestaende; er greift nur,
+# wenn er EINDEUTIG ist. Zwei passende Schluessel sind ein Abbruch, keine
+# Auswahl — raten waere hier genau der stille Fehler, den 2b verbietet.
+normalisiert() { printf '%s' "$1" | tr 'A-ZÄÖÜ' 'a-zäöü' | tr -cd 'a-z0-9'; }
+
+schaetzer_aufloesen() { # karten-json karten-id
+    local karte="$1" kid="$2"
+    local titel eltern e emeta ejson treffer schluessel kandidaten n
+    titel="$(printf '%s' "$karte" | jq -r '.task.title // ""')"
+    eltern="$(printf '%s' "$karte" | jq -r '.parents[]? // empty')"
+    [ -n "$eltern" ] || return 0
+
+    for e in $eltern; do
+        ejson="$(k show "$e" --json 2>/dev/null || echo '{}')"
+        emeta="$(printf '%s' "$ejson" | jq -c '[.runs[]?.metadata // empty] | last // {}')"
+        printf '%s' "$emeta" | jq -e 'has("estimates")' >/dev/null 2>&1 || continue
+
+        # 1. Der saubere Weg: die Karten-ID als Schluessel.
+        treffer="$(printf '%s' "$emeta" | jq -c --arg i "$kid" '.estimates[$i] // empty')"
+        if [ -n "$treffer" ]; then printf '%s' "$treffer"; return 0; fi
+
+        # 2. Rueckfall: ein Schluessel, dessen normalisierte Form Praefix des
+        #    normalisierten Kartentitels ist — und zwar genau einer.
+        kandidaten=""
+        while IFS= read -r schluessel; do
+            [ -n "$schluessel" ] || continue
+            case "$(normalisiert "$titel")" in
+                "$(normalisiert "$schluessel")"*) kandidaten="$kandidaten$schluessel
+" ;;
+            esac
+        done < <(printf '%s' "$emeta" | jq -r '.estimates | keys[]?')
+        n="$(printf '%s' "$kandidaten" | grep -c . || true)"
+        if [ "${n:-0}" -eq 1 ]; then
+            schluessel="$(printf '%s' "$kandidaten" | head -1)"
+            printf '%s' "$emeta" | jq -c --arg s "$schluessel" '.estimates[$s]'
+            return 0
+        fi
+        if [ "${n:-0}" -gt 1 ]; then
+            printf 'Mehrdeutig: %s Schluessel des Schaetzers %s passen auf "%s":\n%s' \
+                "$n" "$e" "$titel" "$kandidaten"
+            return 1
+        fi
+
+        # Es GIBT einen Schaetzer, und er kennt diese Karte nicht.
+        printf 'Schaetzer %s traegt keine Schaetzung fuer %s ("%s").\nSeine Schluessel:\n%s\n' \
+            "$e" "$kid" "$titel" \
+            "$(printf '%s' "$emeta" | jq -r '.estimates | keys[]? | "  " + .')"
+        return 1
+    done
+    return 0
+}
+
+# ---------------------------------------------------------------------------
+# Selbsttest — hermes-frei, board-frei
+# ---------------------------------------------------------------------------
+# Der laute Pfad aus Bedingung 2b laesst sich am echten Board nicht ausloesen,
+# ohne dafuer Karten anzulegen. Er ist aber der Pfad, auf den es ankommt: Ein
+# Aufloesungsweg, der bei fehlendem Anker stumm ein null einsetzt, waere
+# schlimmer als die Kopie, die er ersetzt. Also wird `k` hier gestubbt.
+if [ "$SELBSTTEST" -eq 1 ]; then
+    printf '\n\033[1mledger-sync Selbsttest (hermes-frei)\033[0m\n'
+    fehler=0
+    ok()   { printf '  \033[32m✓\033[0m %s\n' "$*"; }
+    nein() { printf '  \033[31m✗\033[0m %s\n' "$*"; fehler=1; }
+
+    STUB_META='{}'
+    k() { # nur `show <id> --json` wird gebraucht
+        printf '{"runs":[{"metadata":%s}]}' "$STUB_META"
+    }
+    karte_mit() { # titel eltern -> karten-json
+        jq -n -c --arg t "$1" --arg e "$2" '{task:{title:$t}, parents:[$e]}'
+    }
+
+    # (a) die Karten-ID schlaegt den Titel
+    STUB_META='{"estimates":{"t_zzz":{"reference_class":"per-id","wall_minutes":{"p50":7}},
+                             "S4 F1 3/5 Umsetzung":{"reference_class":"per-titel","wall_minutes":{"p50":99}}}}'
+    aus="$(schaetzer_aufloesen "$(karte_mit "S4 F1 3/5 — Umsetzung X" t_est)" t_zzz)"
+    [ "$(printf '%s' "$aus" | jq -r .reference_class)" = "per-id" ] \
+        && ok "Karten-ID schlaegt den Titel" || { nein "ID-Weg greift nicht: $aus"; }
+
+    # (b) Rueckfall ueber den Titel-Praefix — der Altbestand ist so geschluesselt
+    STUB_META='{"estimates":{"S4 F1 3/5 Umsetzung":{"reference_class":"per-titel","wall_minutes":{"p50":99}}}}'
+    aus="$(schaetzer_aufloesen "$(karte_mit "S4 F1 3/5 — Umsetzung X" t_est)" t_zzz)"
+    [ "$(printf '%s' "$aus" | jq -r .reference_class)" = "per-titel" ] \
+        && ok "Rueckfall ueber eindeutigen Titel-Praefix" || nein "Praefix-Weg greift nicht: $aus"
+
+    # (c) zwei passende Schluessel sind ein ABBRUCH, keine Auswahl
+    STUB_META='{"estimates":{"S4 F1 3/5 Umsetzung":{"wall_minutes":{"p50":1}},
+                             "S4 F1 3/5 — Umsetzung":{"wall_minutes":{"p50":2}}}}'
+    if schaetzer_aufloesen "$(karte_mit "S4 F1 3/5 — Umsetzung X" t_est)" t_zzz >/dev/null 2>&1; then
+        nein "Mehrdeutigkeit wird stillschweigend aufgeloest — genau der Fehler aus 2b"
+    else ok "Mehrdeutigkeit bricht ab, statt zu raten"; fi
+
+    # (d) Schaetzer da, kennt die Karte aber nicht -> LAUT
+    STUB_META='{"estimates":{"S9 F9 9/9 Etwas":{"wall_minutes":{"p50":1}}}}'
+    if schaetzer_aufloesen "$(karte_mit "S4 F1 3/5 — Umsetzung X" t_est)" t_zzz >/dev/null 2>&1; then
+        nein "fehlende Schaetzung wird still hingenommen — Bedingung 2b verletzt"
+    else ok "Schaetzer ohne Eintrag fuer die Karte: lautes Scheitern"; fi
+
+    # (e) gar kein Schaetzer-Elternteil ist KEIN Fehler (S1, Spezifikationskarten)
+    aus="$(schaetzer_aufloesen "$(jq -n -c '{task:{title:"S1 Spezifikation"}, parents:[]}')" t_zzz)"; rc=$?
+    [ "$rc" -eq 0 ] && [ -z "$aus" ] \
+        && ok "ohne Schaetzer-Elternteil: leer und Exit 0" || nein "Leerfall falsch (rc=$rc, aus='$aus')"
+
+    # (f) ein Elternteil OHNE estimates-Objekt wird uebersprungen, nicht bemaengelt
+    STUB_META='{"verdict":"approved"}'
+    aus="$(schaetzer_aufloesen "$(karte_mit "S4 F1 5/5 — Merge" t_review)" t_zzz)"; rc=$?
+    [ "$rc" -eq 0 ] && [ -z "$aus" ] \
+        && ok "Elternteil ohne estimates: uebersprungen, kein Befund" || nein "Nicht-Schaetzer falsch behandelt (rc=$rc)"
+
+    exit "$fehler"
+fi
+
 
 # ---------------------------------------------------------------------------
 # Kosten je Rolle aus den Profil-Keys
@@ -148,6 +278,38 @@ for id in $(printf '%s' "$liste" | jq -r '.[] | select(.status=="done")
                 at:              ($e.at // null),
                 basis:           ($e.basis // $e.note // null)}
           end')"
+    # ------------------------------------------------------------------
+    # Bedingung 2a/2b des Roadmap-Gates R2 (roadmap/r2-freigegeben.html §5):
+    # Traegt die Karte selbst keine bezifferte Schaetzung, wird sie beim
+    # SCHAETZER geholt — dort liegt sie autoritativ. Die manuelle Kopie durch
+    # den Worker entfaellt damit als Fehlerquelle; sie ist dreimal gerissen
+    # (t_e70f40ff, t_c35344ff, t_de53e678), an drei verschiedenen Karten, nach
+    # zwei Nachschaerfungen des Kartentextes unveraendert bei 2/12 = 17 %.
+    #
+    # UEBER DIE KARTEN-ID, nicht ueber den Titel (Bedingung 2a). Gemessen am
+    # 19.08.2026: Der Schaetzer schluesselte "S3 F1 3/5 Umsetzung", die Karte
+    # heisst "S3 F1 3/5 — Umsetzung F-R1-1 Import CSV + WeKan". Ein
+    # Titel-Nachschlagen faende NICHTS und schriebe still estimate: null —
+    # dieselbe Luecke wie vorher, nur unsichtbar. Der Titel-Weg bleibt als
+    # RUECKFALL fuer die Altbestaende, aber nur als eindeutiger Praefix und
+    # niemals stillschweigend.
+    if [ "$(printf '%s' "$schaetzung" | jq -r '.wall_minutes.p50 // "null"')" = "null" ]; then
+        aufgeloest="$(schaetzer_aufloesen "$karte" "$id")" || {
+            echo
+            echo "ABBRUCH — $id hat einen Schaetzer-Elternteil, aber dort ist keine"
+            echo "Schaetzung fuer diese Karte zu finden (Bedingung 2b: laut scheitern,"
+            echo "nie still). Kein estimate: null ins Ledger."
+            echo "$aufgeloest"
+            echo
+            echo "Nachsehen:  hermes kanban --board $BOARD show $id --json | jq .parents"
+            exit 1
+        }
+        if [ -n "$aufgeloest" ]; then
+            schaetzung="$aufgeloest"
+            echo "  $id  Schaetzung beim Schaetzer aufgeloest"
+        fi
+    fi
+
     klasse="$(printf '%s' "$schaetzung" | jq -r '.reference_class // "unklassifiziert"' 2>/dev/null || echo unklassifiziert)"
     [ -n "$klasse" ] && [ "$klasse" != "null" ] || klasse="unklassifiziert"
 
