@@ -111,6 +111,12 @@ schreibe_video_config() { # repo -> Pfad auf stdout
 // erzeugt von scripts/e2e-video.sh — nach dem Lauf wieder entfernt.
 // Erbt die Projekt-Config und überstimmt genau drei Dinge:
 // Video an, headless erzwungen, eigenes Ergebnisverzeichnis.
+//
+// Die Größe steht ausdrücklich dabei: Playwright zeichnet sonst in seiner
+// Vorgabe 800x450 auf und skaliert den 1280x720-Viewport von Desktop Chrome
+// herunter — real gemessen am 18.08.2026. Für ein Regressionsvideo reicht das,
+// für ein lesbares Nutzerhandbuch nicht. 1280x720 ist der Viewport selbst,
+// also 1:1 statt heruntergerechnet.
 import base from "./playwright.config";
 import { defineConfig } from "@playwright/test";
 
@@ -118,7 +124,7 @@ export default defineConfig({
   ...(base as object),
   use: {
     ...((base as { use?: object }).use ?? {}),
-    video: "on",
+    video: { mode: "on", size: { width: 1280, height: 720 } },
     headless: true,
   },
   outputDir: "./.esf-video-results",
@@ -156,8 +162,9 @@ if [ "${1:-}" = "--selbsttest" ]; then
     # (d) die eigene abgeleitete Config wird NICHT als Verstoss gelesen
     cfg="$(schreibe_video_config "$tmp")"
     if headless_waechter "$tmp" "" >/dev/null \
-       && grep -q 'video: "on"' "$cfg" && grep -q 'headless: true' "$cfg"; then
-        ok "abgeleitete Config: video an, headless erzwungen, vom Wächter ignoriert"
+       && grep -q 'mode: "on"' "$cfg" && grep -q 'width: 1280, height: 720' "$cfg" \
+       && grep -q 'headless: true' "$cfg"; then
+        ok "abgeleitete Config: video an in 1280x720, headless erzwungen, vom Wächter ignoriert"
     else nein "abgeleitete Config fehlerhaft"; fehler=1; fi
 
     # (f) zwei Läufe mit demselben Anlass überschreiben einander nicht
