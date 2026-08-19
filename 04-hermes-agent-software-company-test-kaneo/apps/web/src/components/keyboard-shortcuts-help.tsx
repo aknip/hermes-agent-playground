@@ -49,6 +49,12 @@ function useShortcutCategories(): ShortcutCategory[] {
             description: t("navigation:keyboardShortcuts.items.showShortcuts"),
           },
           {
+            keys: [shortcuts.palette.prefix, shortcuts.palette.open],
+            description: t(
+              "navigation:keyboardShortcuts.items.switchBoardViaPalette",
+            ),
+          },
+          {
             keys: ["Escape"],
             description: t("navigation:keyboardShortcuts.items.closeModal"),
           },
@@ -115,6 +121,33 @@ function useShortcutCategories(): ShortcutCategory[] {
             description: t(
               "navigation:keyboardShortcuts.items.quickSelectNumber",
             ),
+          },
+        ],
+      },
+      {
+        title: t("navigation:keyboardShortcuts.categories.details"),
+        // Entscheidung C — Drift-frei: gespeist aus denselben `shortcuts`
+        // Konstanten, die auch die Shelf registriert (keine Duplikat-Definition).
+        shortcuts: [
+          {
+            keys: [shortcuts.taskDetails.status],
+            description: t("navigation:keyboardShortcuts.items.detailStatus"),
+          },
+          {
+            keys: [shortcuts.taskDetails.priority],
+            description: t("navigation:keyboardShortcuts.items.detailPriority"),
+          },
+          {
+            keys: [shortcuts.taskDetails.assignee],
+            description: t("navigation:keyboardShortcuts.items.detailAssignee"),
+          },
+          {
+            keys: [shortcuts.taskDetails.labels],
+            description: t("navigation:keyboardShortcuts.items.detailLabels"),
+          },
+          {
+            keys: [shortcuts.taskDetails.dueDate],
+            description: t("navigation:keyboardShortcuts.items.detailDueDate"),
           },
         ],
       },

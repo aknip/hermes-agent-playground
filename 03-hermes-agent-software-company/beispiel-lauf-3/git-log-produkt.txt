@@ -1,3 +1,26 @@
+b2aea1a Merge feat/esf-r1-f4-e2e-netz-j05-j06 (Riegel bestanden)
+faa8a76 Merge feat/esf-r1-f3-tastatur-command-palette (Riegel bestanden)
+3e61f8e feat(web): tastaturbedienung und command-palette vereinheitlichen (f-r1-3)
+ apps/web/src/components/app-sidebar.tsx            |  33 ++++++-
+ apps/web/src/components/command-palette/index.tsx  |  37 +++++++-
+ .../command-palette/projects-board-group.test.ts   |  38 ++++++++
+ .../command-palette/projects-board-group.ts        |  39 ++++++++
+ .../web/src/components/keyboard-shortcuts-help.tsx |  33 +++++++
+ .../components/task/task-detail-shortcuts.test.tsx | 103 +++++++++++++++++++++
+ .../src/components/task/task-detail-shortcuts.ts   |  51 ++++++++++
+ .../web/src/components/task/task-details-sheet.tsx |  26 +++++-
+ .../components/task/task-properties-sidebar.tsx    |   5 +
+ i18n/en-US.json                                    |  13 ++-
+ tests/e2e/journeys/projekt-anlegen.spec.ts         |  35 +++++++
+ .../e2e/journeys/tastatur-command-palette.spec.ts  |  92 ++++++++++++++++++
+ .../journeys/vorgang-im-board-weiterziehen.spec.ts |  42 +++++++++
+ tests/e2e/support/tastatur.ts                      |  37 ++++++++
+ 14 files changed, 579 insertions(+), 5 deletions(-)
+e480390 feat(e2e): j-05 einladung und j-06 detail-pflege als playwright-specs
+ tests/e2e/journeys/teammitglied-einladen.spec.ts   | 76 +++++++++++++++++
+ .../journeys/vorgang-ins-detail-pflegen.spec.ts    | 98 ++++++++++++++++++++++
+ tests/e2e/support/einladung.ts                     | 48 +++++++++++
+ 3 files changed, 222 insertions(+)
 16c9902 Merge feat/esf-r1-f2-create-task-subtraktion (Riegel bestanden)
 5677e0f feat(web): create-task-dialog auf einen schritt verdichtet
  .../shared/modals/create-task-modal.test.tsx       | 116 ++++++++++++++++++++-

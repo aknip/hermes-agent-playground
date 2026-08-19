@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <title>Schätzung F-R1-3 — ESF</title>
+  <meta name="esf-typ" content="report">
+  <meta name="esf-karte" content="t_7b63189b">
+  <meta name="esf-datum" content="2026-08-19">
+  <meta name="esf-video" content="schaetzung-r1-f3.mp4">
+  <style>
+    body { font-family: system-ui, -apple-system, sans-serif; max-width: 62rem;
+           margin: 2rem auto; padding: 0 1.5rem; line-height: 1.55; color: #1a1a1a; }
+    h1 { font-size: 1.6rem; border-bottom: 2px solid #333; padding-bottom: .4rem; }
+    h2 { font-size: 1.2rem; margin-top: 2.2rem; }
+    h3 { font-size: 1.05rem; margin-top: 1.4rem; }
+    table { border-collapse: collapse; width: 100%; margin: 1rem 0; font-size: .92rem; }
+    th, td { border: 1px solid #ccc; padding: .4rem .55rem; text-align: left; vertical-align: top; }
+    th { background: #f2f2f2; }
+    code { background: #f4f4f4; padding: .05rem .3rem; border-radius: 3px; font-size: .9em; }
+    .src { color: #555; font-style: italic; }
+    .zahl { font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .hinweis { background: #fff8dc; border-left: 4px solid #e0c000; padding: .6rem .9rem; margin: 1rem 0; }
+    .befund { background: #fdf0f0; border-left: 4px solid #c0392b; padding: .6rem .9rem; }
+    .gruen { color: #2e7d32; }
+  </style>
+</head>
+<body>
+
+<h1>Schätzung F-R1-3 — Tastatur &amp; Command-Palette vereinheitlichen</h1>
+<p>Schätzbericht des <code>esf-estimator</code> · Karte <code>t_7b63189b</code> · Systemzeit
+<span class="zahl">2026-08-19</span>. Geschätzt werden die drei Folgekarten der Spezifikation
+<a href="../specs/r1-f3-tastatur-command-palette.html"><code>specs/r1-f3-tastatur-command-palette.html</code></a>.</p>
+
+<div class="hinweis"><strong>Ergebnis in drei Minuten:</strong> drei Intervalle, zwei davon
+M-Klassen mit beidseitiger Unsicherheit, eine S-Klasse, die schon in S1 traf. Das Ledger trägt
+seit S1 erstmals echte (Schätzung, Ist)-Paare, daher je Klasse <code>n=1</code>. Eine Velocity
+aus einem Sprint ist ein Hinweis, keine Verteilung. <code>tokens_k</code> und <code>cost_usd</code>
+sind überall <code>null</code>: Hermes v0.20.0 misst keine Tokens je Karte, und der OpenRouter-
+Zähler läuft je Rolle kumulativ (AGENTS.md 6). Ein hineingeschriebener Wert wäre die vergiftete
+Kalibrierung.</div>
+
+<h2>1. Die drei Intervalle</h2>
+<table>
+  <thead><tr><th>Karte</th><th>Referenzklasse</th><th>wall p50</th><th>wall p90</th><th>tokens_k</th><th>cost_usd</th><th>Konfidenz</th></tr></thead>
+  <tbody>
+    <tr><td>S2 F3 3/4 Umsetzung</td><td><code>impl-worktree-M</code></td><td class="zahl">40 min</td><td class="zahl">85 min</td><td class="zahl">null</td><td class="zahl">null</td><td class="zahl">0,25</td></tr>
+    <tr><td>S2 F3 4/4 Review</td><td><code>review-repo-M</code></td><td class="zahl">10 min</td><td class="zahl">25 min</td><td class="zahl">null</td><td class="zahl">null</td><td class="zahl">0,20</td></tr>
+    <tr><td>S2 Merge F3</td><td><code>merge-repo-S</code></td><td class="zahl">15 min</td><td class="zahl">40 min</td><td class="zahl">null</td><td class="zahl">null</td><td class="zahl">0,35</td></tr>
+    <tr><td>diese Karte (Schätzung)</td><td><code>estimate-vault-S</code></td><td class="zahl">25 min</td><td class="zahl">45 min</td><td class="zahl">null</td><td class="zahl">null</td><td class="zahl">0,30</td></tr>
+  </tbody>
+</table>
+
+<h2>2. Das Ledger — erstmals echte Paare, Velocity n=1</h2>
+<p><a href="../ledger/estimates.jsonl"><code>ledger/estimates.jsonl</code></a> trägt nach S1 zum
+ersten Mal (Schätzung, Ist)-Paare mit beziffertem Ist über <code>ledger-sync.sh</code>. Die
+Velocity ist <em>Ist / Schätzung(p50)</em> je Klasse; für alle vier hier relevanten Klassen ist
+<code>n=1</code>:</p>
+<table>
+  <thead><tr><th>task_id</th><th>Klasse</th><th>Schätz p50</th><th>Ist (min)</th><th>runs</th><th>Velocity</th><th>kontamination</th></tr></thead>
+  <tbody>
+    <tr><td class="zahl">t_1b5d47a2</td><td><code>estimate-vault-S</code></td><td class="zahl">25</td><td class="zahl">33*</td><td class="zahl">2</td><td class="zahl">1,32</td><td>Run 1 <i>timed_out</i> bei 30 min, Run 2 3 min — 30 der 33 min sind Wiederholung, keine Arbeit.</td></tr>
+    <tr><td class="zahl">t_d0ebd919</td><td><code>impl-worktree-S</code></td><td class="zahl">75</td><td class="zahl">16</td><td class="zahl">1</td><td class="zahl">0,21</td><td class="gruen">sauber, <code>runs:1</code></td></tr>
+    <tr><td class="zahl">t_c8e3463c</td><td><code>review-repo-S</code></td><td class="zahl">35</td><td class="zahl">3</td><td class="zahl">1</td><td class="zahl">0,09</td><td class="gruen">sauber, <code>runs:1</code></td></tr>
+    <tr><td class="zahl">t_5db4aefa</td><td><code>merge-repo-S</code></td><td class="zahl">15</td><td class="zahl">13</td><td class="zahl">1</td><td class="zahl">0,87</td><td>als Kalibrier-Basis sauber; intern 3 Riegel-Versuche tragen Wiederholung.</td></tr>
+  </tbody>
+</table>
+<p class="src">Schätzungen aus <code>reports/schaetzung-r1-f2.html</code> (Karte <code>t_1b5d47a2</code>);
+Istwerte aus <code>ledger-sync.sh</code>-Lauf vom 2026-08-19; Kontaminationsurteile nach
+<a href="controller-s1.html"><code>reports/controller-s1.html</code></a> („Retries und Abbrüche“).
+* Die eigene Klasse <code>estimate-vault-S</code> hat nur einen kontaminierten Zeugen und wird
+deshalb <em>nicht</em> als saubere Basis benutzt — sie wird nur ausgewiesen.</p>
+<p><code>runs</code> ist bei jeder herangezogenen Zeile geprüft: die IR-Arbeitsklassen
+<code>impl</code>, <code>review</code>, <code>merge</code> der S1-Paare tragen je
+<code>runs:1</code> und sind als Normalfall brauchbar; nur die Schätzkarte trägt 2 Läufe
+(Wiederholung, siehe oben).</p>
+
+<div class="befund"><strong>Was ist eine Velocity aus einem Sprint wert?</strong> Der Controller
+bezeichnet den Stand ausdrücklich als <code>n=1</code> je Klasse — Hinweis, keine Verteilung
+(<code>reports/controller-s1.html</code>, Schätzgüte-Baseline). Ich kalibriere damit die Basis:
+Anker auf dem gemessenen Ist statt auf einem Dummy, breite Intervalle, niedrige Konfidenz. Die
+<em>Richtung</em> der Korrektur (impl/review übersetzt, merge nahe) ist robust; eine genaue Zahl
+daraus wäre eine Vorhersage aus einem einzigen Zeugen — das mache ich nicht.</div>
+
+<h2>3. Der Sprung S→M — am Feature belegt, nicht am Buchstaben</h2>
+<p>Gemessen an der Spezifikation: F-R1-2 (Klasse <code>impl-worktree-S</code>) berührte
+hauptsächlich eine Komponente (<code>create-task-modal.tsx</code>, in der F-R1-2-Spec mit 1109
+Zeilen abgezählt) und setzte zwei Umbauten um. F-R1-3 ist nachweislich breiter — die Spez bündelt
+drei <em>Entscheidungen A/B/C</em> über mehrere Module:</p>
+<ul>
+  <li><strong>Entscheidung A</strong> (Projekt-/Board-Suche in der Palette): neue Gruppe in
+      <code>command-palette/index.tsx</code> (groupedItems, Spec Z.99–187), Datenquelle
+      <code>useGetProjects</code> über <code>useActiveWorkspace</code> (Z.141–149), Navigation auf
+      <code>/project/…/board</code>.</li>
+  <li><strong>Entscheidung B</strong> (Detail-Kürzel s/p/a/l/d verdrahten): Registrierung in
+      <code>task-details-sheet.tsx</code> / <code>task-properties-sidebar.tsx</code> mit
+      <code>useRegisterShortcuts</code>, samt dedizierter p-Konfliktregel (Z.160–176).</li>
+  <li><strong>Entscheidung C</strong> (driftfreie Hilfe + Sidebar-Einstieg):
+      <code>keyboard-shortcuts-help.tsx</code> auf die registrierten Kürzel umstellen, neuer
+      Sidebar-Einstieg (Z.178–187).</li>
+  <li><strong>Tests:</strong> zwei neue Unit-Tests (Projekt-Such-Gruppe, Shelf-Registrierung inkl.
+      p-Konflikt), zwei neue E2E-Journey-Szenarien (J-02 Tastaturweg, J-04 Detail-Kürzel), eigene
+      Helper-Datei <code>tests/e2e/support/tastatur.ts</code> statt Umbau von
+      <code>journey.ts</code> (Akzeptanz 4, 5, 8, 9.2).</li>
+</ul>
+<p>Das ist ein realer Umfangs-Sprung: von <em>einer</em> Komponente und <em>zwei</em> Umbauten (F2)
+auf <em>drei bis vier</em> Module und <em>drei</em> Umsetzungs-Entscheidungen plus doppeltem
+Testfußabdruck. Das trägt — nicht der Buchstabe, sondern die gemessene Flächenbreite — die
+Zuweisung <code>impl-worktree-M</code> und <code>review-repo-M</code> für diese Folgekarten.</p>
+
+<h2>4. impl-worktree-M — Anker 16 min, Skalar ~2,5</h2>
+<p>Referenz ist <code>t_d0ebd919</code> (impl-worktree-S, Ist <strong>16 min</strong>,
+<code>runs:1</code>). Die S1-Schätzung (75) lag nach dem Controller um den Faktor 4,7 daneben
+(<code>controller-s1.html</code>); ich nehme den Anker vom Ist, nicht vom überschätzten Testwert.
+Der Umfangs-Sprung F2→F3 (Abschnitt 3) rechtfertigt einen Skalar der berührten Fläche von grob
+~2,5: <code>16 × 2,5 ≈ 40</code>.</p>
+<p class="zahl">Rechnung: p50 = 40 (16 Ist-S × 2,5 Umfang-M-Skalar). p90 = 85, deckt als Tail die
+nacharbeit im Palette-Raum (Hilfe driftfrei bekommen ist neu; der p-Prefix-Konflikt ist die
+Stelle, an der es sich verheddert) plus einen etwaigen E2E-Neulauf, falls F-R1-4 mit
+<code>journey.ts</code> auf demselben <code>tests/e2e/</code>-Pfad kollidiert (die Spec § 8 nimmt
+den Bereich schon vorweg).</p>
+<p>Konfidenz <strong>0,25</strong>: impl-S hat exakt einen sauberen Zeugen (n=1), und M ist eine
+nicht weiter kondensierte Abstufung; der Skalar 2,5 ist eine Begründung, keine Messung.</p>
+
+<h2>5. review-repo-M — Anker 3 min, Skalar ~3</h2>
+<p>Referenz: <code>t_c8e3463c</code> (review-repo-S, Ist <strong>3 min</strong>,
+<code>runs:1</code>). Der S1-Review war stark überschätzt (35 → 3, Velocity 0,09,
+<code>controller-s1.html</code>). Die Review-Fläche wächst mit der Impl-Fläche: größerer Diff
+(drei Module statt einem), die neuen Unit-Tests und E2E-Journeys nachzustationen und die
+Konflikt-Matrix (Spec-Z.210–226) nachzuziehen. Skalar ~3: <code>3 × 3 = 9</code>, aufgerundet auf
+<strong>10</strong>; p90 = 25 deckt einen wiederholten Diff-/E2E-Nachweis.</p>
+<p>So wie der Controller es vorschreibt: „das Review-Gewicht der Flächengröße proportional setzen,
+statt es nahe am Dummy-Anker zu lassen“ — das Review wird hier als Verhältnisfunktion der
+Impl-Fläche geschätzt, nicht als Smoke-Check-Anker.</p>
+<p>Konfidenz <strong>0,20</strong>: review ist die am stärksten überschätzte Klasse (0,09) unter
+einem einzigen Zeugen; die Abstände sind groß.</p>
+
+<h2>6. merge-repo-S — unverändert, gut kalibriert</h2>
+<p>Referenz: <code>t_5db4aefa</code> (merge-repo-S, Schätzung 15/40, Ist <strong>13</strong>,
+VELOCITY 0,87 — die <em>einzige</em> Klasse, die nahe an ihrer Schätzung lag). Der Merge ist eine
+Vorgangsklasse, keine Größenklasse; F3 ändert daran nichts (der E2E-Lauf am Riegel wächst nur um
+die neuen Journeys, was für merge-S keine Rolle spielt). Es bleibt bei der S1-Schätzung:
+p50 <strong>15</strong>, p90 <strong>40</strong> (p90 deckt den bekannten Betriebsgrund-Blast,
+den der Controller bestätigt hat).</p>
+<p>Konfidenz <strong>0,35</strong>: beste Kalibrierung aller vier Klassen (Velocity 0,87 statt
+Vorfülle); nur n=1 hält sie unter 0,4.</p>
+
+<h2>6b. Diese Karte — estimate-vault-S</h2>
+<p>Die eigene Klasse wird nicht sauber gemessen: der S1-Anker (<code>t_1b5d47a2</code>, 25/45,
+Ist 33, runs 2) ist nach Controller-Urteil kontaminiert — die 33 min enthalten 30 min
+<code>timed_out</code>-Wiederholung. Es gibt für estimate-vault-S also keinen verlässlichen
+Ist-Anker; die nächste Messung (diese Karte) ist die erste saubere. Schreiben bleibt es bei der
+S1-eigenen Klassenebene: <strong>p50 25, p90 45</strong>, Konfidenz <strong>0,30</strong> — die
+Arbeit ist gleichartig (drei Karten schätzen, einen Report schreiben). Das Objekt tritt mit
+voller Klasse <code>estimate-vault-S</code>, aber ohne neue Zahl aus dem Intervall der S1-Schätzung
+abzuleiten — die Zahlen sind konservativ um die bekannte Wiederholung gelegt.</p>
+
+<h2>7. Belege &amp; Quellen</h2>
+<ul>
+  <li>Ledger: <code>ledger/estimates.jsonl</code>, task_id <code>t_1b5d47a2</code>, <code>t_d0ebd919</code>, <code>t_c8e3463c</code>, <code>t_5db4aefa</code> — je <code>wall_minutes</code>, <code>runs</code>, <code>estimate</code>.</li>
+  <li>Kontaminationsurteil: <code>reports/controller-s1.html</code> („Kontaminationen — benannt“, „Retries und Abbrüche“).</li>
+  <li>Feature-Spec: <code>specs/r1-f3-tastatur-command-palette.html</code> Abschnitt 3 (Entscheidungen A/B/C), §9 Akzeptanz; F-R1-2-Vergleichsfläche: <code>specs/r1-f2-create-task-subtraktion.html</code>.</li>
+  <li>S1-Schätzbericht: <code>reports/schaetzung-r1-f2.html</code>.</li>
+</ul>
+<p class="src">Zeitstempel System 2026-08-19 (AGENTS.md 3.2). Velocity-Werte aus LEDGER-Zahlen
+gerechnet, nicht geschätzt.</p>
+
+<h2>8. Video-Zusammenfassung</h2>
+<section id="video-skript">
+<p>Diese Schätzung steht zum ersten Mal auf echten Messungen. Der erste Sprint hat jede
+Arbeitsklasse gemessen, und die neue Schätzung heißt: Umsetzungs- und Review-Kosten sind
+deutlich niedriger als zuvor gedacht. Für die drei Folgekarten der F-R1-3-Spezifikation setze
+ich vierzig Minuten für die Umsetzung an, zehn für das Review und fünfzehn für den Merge — der
+Merge hat im ersten Sprint seine Schätzung fast exakt getroffen und bleibt deshalb stabil. Die
+Konfidenz ist überall unter vier Zehntel, weil jede Klasse bisher genau einen gemessenen Zeugen
+hat; ein Sprint ist ein Hinweis, keine Verteilung. Die Umsetzungs- und Review-Klassen sind hier
+bei größerem Umfang verschoben — von klein auf mittel —, und diese Verschiebung ist an der
+Spezifikation belegt, an drei Modulen und drei Umsetzungsentscheidungen, nicht am Buchstaben.
+Eine Ecke ist ehrlich ausgewiesen: die eigene Schätzkarte selbst hat eine Wiederholung in der
+Wanduhr, deshalb zählt sie noch nicht als sauberer Zeuge für die nächste Runde. Wer plant, nimmt
+die Intervalle der drei Folgekarten — die stehen im Report oben, mit ihren Ledger-Belegen.</p>
+</section>
+<figure class="esf-video">
+  <video controls preload="metadata" width="100%" src="schaetzung-r1-f3.mp4">
+    <track kind="subtitles" srclang="de" label="Untertitel" src="schaetzung-r1-f3.vtt">
+  </video>
+  <figcaption>Video-Zusammenfassung; Untertitel zuschaltbar. Gerendert von scripts/video-render.sh.</figcaption>
+</figure>
+
+</body>
+</html>

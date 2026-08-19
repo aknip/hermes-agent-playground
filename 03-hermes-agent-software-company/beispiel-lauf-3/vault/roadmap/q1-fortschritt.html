@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <title>Roadmap Q1 — Fortschritt (Stand nach R1-Freigabe) — ESF</title>
+  <meta name="esf-typ" content="roadmap">
+  <meta name="esf-karte" content="t_d85e4216">
+  <meta name="esf-datum" content="2026-08-19">
+  <meta name="esf-video" content="q1-fortschritt.mp4">
+  <style>
+    body { font-family: -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+           line-height: 1.55; max-width: 900px; margin: 2rem auto; padding: 0 1.3rem; color: #1c1c1c; }
+    h1 { font-size: 1.7rem; border-bottom: 3px solid #1d4a33; padding-bottom: .4rem; }
+    h2 { font-size: 1.28rem; margin-top: 2.4rem; color: #1d4a33; }
+    h3 { font-size: 1.05rem; margin-top: 1.6rem; }
+    table { border-collapse: collapse; width: 100%; margin: 1rem 0; font-size: .92rem; }
+    th, td { border: 1px solid #ccc; padding: .45rem .6rem; text-align: left; vertical-align: top; }
+    th { background: #eef4ef; }
+    code { background: #f2f2f2; padding: .05rem .3rem; border-radius: 3px; font-size: .9em; }
+    .kern { background: #fffbe6; border-left: 4px solid #c9a227; padding: .8rem 1rem; margin: 1rem 0; }
+    .meta { color: #555; font-size: .92rem; }
+    .src { color: #2f6f4f; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .82rem; }
+    .kw { font-weight: 600; }
+    .nicht { background: #fdecec; border-left: 4px solid #c0392b; padding: .7rem 1rem; margin: .6rem 0; }
+    .entscheid { background: #eaf3ff; border-left: 4px solid #1d4a8f; padding: .8rem 1rem; margin: 1rem 0; }
+    .hinweis { background: #f4f7f5; border-left: 3px solid #2f6f4f; padding: .5rem .8rem; font-size: .9rem; margin: .5rem 0; }
+    .gruen { color: #2e7d32; }
+    footer { margin-top: 3rem; border-top: 1px solid #ccc; padding-top: 1rem; font-size: .85rem; color: #555; }
+  </style>
+</head>
+<body>
+
+<h1>Roadmap Q1 — Fortschritt (Stand nach R1-Freigabe) — Kaneo</h1>
+<p class="meta">Fortschreibungs-Dokument des Chief-of-Staff nach dem
+Release-Gate <code>t_d85e4216</code> (approve, 2026-08-19). Es liest sich
+<em>neben</em> der freigegebenen Roadmap
+<code>roadmap/q1-freigegeben.html</code> (vom CEO am
+2026-08-18, <code>modify</code>) — die bleibt der Schnitt-Soll-Zustand; dieses
+Dokument trägt den Fortschritt, die gelernten Faktoren und die verbindlichen
+Auflagen der R1-Freigabe in die Planung von R2.</p>
+
+<div class="entscheid">
+  <p><strong>Stand: Das erste Release des Quartals ist abgeschlossen und
+  freigegeben.</strong> R1 „Der tägliche Kern“ wurde am <strong>2026-08-19</strong>
+  vom CEO <span class="gruen">approve</span>-t; alle drei Features liegen auf
+  <code>main</code>, der Regressionslauf ist grün. Die Freigabe trägt drei
+  <strong>Auflagen</strong> (a/b/c, Abschnitt 3), alle <em>vor</em> der Planung von
+  R2, und erklärt ausdrücklich die Schätzgüte zur erfüllten Sache — keine vierte
+  Auflage. Der Autonomie-Horizont bleibt <code>release</code>.</p>
+</div>
+
+<div class="kern">
+  <p><strong>In drei Minuten:</strong> R1 ist fertig und freigegeben. Als Nächstes
+  wird R2 „Ankommen &amp; Differenzieren“ geplant — und anders als bei R1 steht
+  dieser Planung jetzt ein <strong>gefülltes Schätzledger</strong> gegenüber: die
+  „ohne Historie“-Referenzklassen der Roadmap sind durch real gemessene Faktoren
+  ersetzt. Der Schnitt von R2 und R3 wird — wie vom CEO beim Release-Gate bekräftigt —
+  am nächsten Roadmap-Gate gegen diese gemessenen Intervalle gemacht, nicht gegen
+  geschätzte. Drei verbindliche Auflagen gehen der R2-Planung voraus: der
+  Journey-Katalog-Widerspruch wird strukturell behoben, der zerrissene Schätzwert
+  einer Merge-Karte bleibt namentlich benannt statt nachgetragen, und ein
+  vorbestehender Tastatur-Befund bekommt eine eigene Karte in R2.</p>
+</div>
+
+<h2>1. Erledigt: Release R1 — „Der tägliche Kern“</h2>
+<p>Fertig und freigegeben am 2026-08-19. Details und Freigabebeschluss im Wortlaut:
+<span class="src">reports/release-r1.html</span> (Abschnitt 6). Kurz:</p>
+<table>
+  <thead><tr><th>Feature</th><th>Ergebnis</th><th>Merge</th></tr></thead>
+  <tbody>
+    <tr><td class="kw">F-R1-2 Create-Task-Dialog entschlacken</td><td>Kernklicks 6 → 3, J-03 real 5 Schritte</td><td>16c9902</td></tr>
+    <tr><td class="kw">F-R1-3 Tastatur &amp; Command-Palette</td><td>Cmd+K Board-Wechsel, Shelf-Kürzel s/p/a/l/d verdrahtet</td><td>faa8a76</td></tr>
+    <tr><td class="kw">F-R1-4 E2E-Netz J-05 + J-06</td><td>Teammitglied einladen + Vorgang im Detail pflegen e2e-fest</td><td>b2aea1a</td></tr>
+  </tbody>
+</table>
+<p class="src">Prüfstand: E2E 13/13 (71,2 s, 0 flaky), Typecheck 6/6, Unit 10/10,
+Riegel je Feature 6/6 grün, keine Migration
+(<code>reports/release-r1.html</code>, <code>reports/e2e-2026-08-19/</code>).</p>
+
+<h2>2. Was aus der Kalibrierung für die Schätzung von R2 folgt</h2>
+<p>Die Roadmap <code>q1-freigegeben.html</code> (2026-08-18) musste noch auf
+„leeres Ledger, Referenzklassen ohne Historie, breites Intervall, Konfidenz &lt;
+0.3“ schätzen. <strong>Diese Prämisse ist überholt.</strong> Nach S1 und S2 trägt
+<code>ledger/estimates.jsonl</code> jetzt echte (Schätzung, Ist)-Paare; das ist der
+Zweck, den der kleine R1-Schnitt beim Roadmap-Gate bezweckt hat — „erstmals gegen
+gemessene Intervalle“ heißt das bei der R1-Freigabe ausdrücklich.</p>
+<table>
+  <thead><tr><th>Referenzklasse R2</th><th>Faktor (Ist/Schätzung-p50)</th><th>Herkunft</th></tr></thead>
+  <tbody>
+    <tr><td class="kw">impl-worktree-M</td><td>≈ 1,38 <span class="gruen">(leicht unterschätzt)</span></td><td>S2 t_7c31acd6 (n=1)</td></tr>
+    <tr><td class="kw">review-repo-M</td><td>≈ 0,9 (Mittel 1,20 / 0,55)</td><td>S2 t_e76c4947, t_1d5462b9 (n=2)</td></tr>
+    <tr><td class="kw">e2e-repo-M</td><td>≈ 0,6</td><td>S2 t_8cc6d17a (n=1)</td></tr>
+    <tr><td class="kw">merge-repo-S</td><td>≈ 0,3</td><td>S2 t_90fdf0f6 (n=1 vollständig)</td></tr>
+    <tr class="src"><td>merge-repo-S (zerrissen)</td><td class="src">— (torn, <code>t_c35344ff</code>)</td><td>Handoff-Verlust, Auflage b</td></tr>
+  </tbody>
+</table>
+<p class="src">Quellen: <code>reports/controller-s2.html</code> (Faktor-Baseline,
+Mittel q ≈ 0,80; Trend von S1 impl 4,7× / review 11,7× überschätzt auf S2 0,27…
+1,38); <code>ledger/estimates.jsonl</code> nach <code>ledger-sync.sh</code>
+(Commit a7dc86d).</p>
+<p><strong>Konsequenz für die R2-Planung:</strong> Der <code>esf-estimator</code> kann
+die <code>feature-backend-M</code>/<code>-frontend-*</code>/<code>-fullstack-*</code>-
+Klassen von R2 nicht mehr als „ohne Historie“ ausweisen — für den größten R2-Posten
+(den Import, F-R1-1) sind die Arbeitsklassen <code>impl-worktree-M</code>,
+<code>review-repo-M</code>, <code>merge-repo-S</code> jetzt gemessen. Die n-Werte sind
+noch klein (überwiegend 1); breite Intervalle und eine niedrige, <em>bezifferte</em>
+Konfidenz bleiben Pflicht, die Kalibrierung wächst mit jedem weiteren Release.</p>
+<div class="nicht">
+<p><strong>Eine Lücke genannt, nicht geglättet:</strong> <code>t_c35344ff</code>
+(Merge F-R1-4) trägt im Ledger einen Istwert ohne bezifferte Schätzung
+(<code>unklassifiziert</code>). Das Ledger wird nur angehängt; der fehlende Wert
+wird <em>nicht</em> nachgetragen. Der Controller-Report von R2 nennt die Karte
+namentlich als Lücke der <code>merge-repo-S</code>-Reihe. (Auflage b, Abschnitt 3.)</p>
+</div>
+
+<h2>3. Verbindliche Auflagen der R1-Freigabe — vor der R2-Planung</h2>
+<p>Wortlaut der Antwort: <code>reports/release-r1.html</code> §6. Operativ heißt
+das für die kommende Planung:</p>
+<ul>
+  <li><strong>Auflage a — Katalog strukturell behoben.</strong>
+  <code>analysis/journeys.html</code> wird auf J-03 = 5 korrigiert; und
+  <em>wer die Schrittzahl einer Journey ändert, zieht den Katalog in derselben
+  Karte nach</em> — das wird Akzeptanzkriterium jeder künftigen Umsetzungskarte,
+  die eine Journey berührt (journeys.html ist der Katalog, gegen den
+  <code>check-onboarding.sh</code> zählt).</li>
+  <li><strong>Auflage b — Handoff-Verlust bleibt benannt.</strong> Die fehlende
+  Schätzung von <code>t_c35344ff</code> wird nicht rekonstruiert; der
+  Controller-Report von R2 nennt sie als Lücke der <code>merge-repo-S</code>-Reihe.
+  Die Ursache ist bekannt und behoben (ein dritter, nur der Reihenfolge dienender
+  Elternteil verdrängte den, der die Zahl trug);
+  <code>scripts/check-sprint.sh</code> muss im nächsten Sprint auf Prüfung 3 grün
+  sein.</li>
+  <li><strong>Auflage c — eigener Befund-Aufräum-Karte.</strong> Der präexistente
+  Palette-Keydown-Handler (<code>command-palette/index.tsx:244</code>, prüft
+  <code>event.target</code> nicht) bekommt eine eigene Karte in R2 — ein Befund, der
+  nur in einer Gate-Vorlage steht, ist in zwei Wochen vergessen.</li>
+</ul>
+<p><strong>Ausdrücklich NICHT aufgelegt:</strong> die Schätzgüte. Sie ist von S1
+(impl 4,7× / review 11,7×) auf S2 (1,38× / 0,9× / 0,6×) gedreht — der Zweck des
+Ledgers ist erfüllt (Auflage wäre eine Forderung an etwas, das funktioniert).</p>
+
+<h2>4. Was als Nächstes ansteht</h2>
+<ol>
+  <li><strong>Auflagen a und b operativ umsetzen</strong> (Katalog-Korrektur als
+  eigene kleine Karte oder in die erste journey-berührende Karte; Prüfung 3 von
+  <code>check-sprint.sh</code> im nächsten Sprint grün). Diese Arbeit gehört dem
+  nächsten Sprint von R2 vor/mit an die Spitze.</li>
+  <li><strong>R2 „Ankommen &amp; Differenzieren“ planen</strong> — 5 Features,
+  führend der Import (F-R1-1), dann MCP-Kanal (F-R2-1), 2FA (F-R2-2), Quick-Start
+  (F-R2-4), Einladen erleichtern (F-R2-5). Gegenüber der freigegebenen Roadmap
+  ändert sich primär die Schätzbasis (Abschnitt 2); der Schnitt selbst bleibt bis
+  zum nächsten Roadmap-Gate gültig.</li>
+  <li><strong>Auflage c</strong> als eigene Karte in der R2-Planung verankern.</li>
+  <li><strong>Roadmap-Gate:</strong> der Schnitt von R2 und R3 wird am nächsten
+  Roadmap-Gate gegen die jetzt gemessenen Intervalle gemacht — erstmals gegen
+  welche, die diesen Namen verdienen. F-R2-2 (2FA) und F-R2-3 (Automatisierung)
+  werden erst als Kartengraph verteilt, wenn auf ≤ 8 Karten je Feature geschnitten
+  (<span class="src">cadence.yaml</span> <code>karten_pro_feature</code>, Auflage
+  8b der Roadmap).</li>
+</ol>
+<p class="src">Kadenz: <code>releases_pro_quartal: 3</code>,
+<code>sprints_pro_release: 4</code>, <code>features_pro_release: 5</code>,
+<code>karten_pro_feature: 8</code>,
+<code>autonomie_horizont: release</code> — aus <span class="src">cadence.yaml</span>.</p>
+
+<section id="video-skript">
+  <p>Das erste Release des Quartals ist fertig und freigegeben. Der tägliche Kern
+  von Kaneo steht auf drei Features, alle grün getestet, und der Chef hat das Paket
+  gestern freigegeben. Wichtig für das, was als Nächstes kommt: Die Schätzgrundlage
+  hat sich gedreht. Wo die Planung im ersten Release noch ohne jedes gemessene
+  Schätzpaar auskommen musste, steht jetzt ein gefülltes Ledger. Eine Umsetzung im
+  mittleren Umfang kostet rund vierzig Prozent über der Schätzung, ein Review rund
+  zehn Prozent darunter, der E2E-Ausbau vierzig und der Merge siebzig Prozent
+  darunter. Genau gegen diese Intervalle werden das zweite und dritte Release am
+  nächsten Roadmap-Gate geschnitten. Vorher sind drei Auflagen erfüllt: Der
+  Journey-Katalog wird strukturell korrigiert, ein verlorener Schätzwert bleibt
+  benannt statt nachgetragen, und ein vorbestehender Tastatur-Befund bekommt eine
+  eigene Karte. Der Vorteil: Die Schätzgüte, die im ersten Release noch eine offene
+  Frage war, ist jetzt der erfüllte Zweck des Ledgers. Als Nächstes wird das zweite
+  Release, Ankommen und Differenzieren, mit dem Import an der Spitze geplant.</p>
+</section>
+
+<figure class="esf-video">
+  <video controls preload="metadata" width="100%" src="q1-fortschritt.mp4">
+    <track kind="subtitles" srclang="de" label="Untertitel" src="q1-fortschritt.vtt">
+  </video>
+  <figcaption>Video-Zusammenfassung; Untertitel zuschaltbar. Gerendert von scripts/video-render.sh.</figcaption>
+</figure>
+
+<footer>
+  <p>Fortschritts-Stand erstellt von <code>esf-chief-of-staff</code>, Karte
+  <code>t_d85e4216</code> (Release-Gate, Antwort <code>approve</code>), Datum
+  <code>2026-08-19</code> (Systemdatum; Datums-/Zeitangaben vom Board, nicht vom
+  Modell, AGENTS.md 3.2). Soll-Zustand: <code>roadmap/q1-freigegeben.html</code>
+  (bleibt daneben stehen). Belege: <code>reports/release-r1.html</code>,
+  <code>reports/controller-s2.html</code>, <code>ledger/estimates.jsonl</code>,
+  <code>cadence.yaml</code>.</p>
+</footer>
+
+</body>
+</html>

@@ -4,12 +4,12 @@
   <meta charset="utf-8">
   <title>Journey-Katalog — ESF</title>
   <meta name="esf-typ" content="katalog">
-  <meta name="esf-karte" content="t_74d35a8f">
-  <meta name="esf-datum" content="2026-08-18">
+  <meta name="esf-karte" content="t_8cc6d17a">
+  <meta name="esf-datum" content="2026-08-19">
 </head>
 <body>
   <h1>Journey-Katalog: Kaneo</h1>
-  <p class="meta">Karte <code>t_74d35a8f</code> · Onboarding 4/6 · Stand 2026-08-18</p>
+  <p class="meta">Karte <code>t_8cc6d17a</code> · F-R1-4 E2E-Netz · Stand 2026-08-19</p>
 
   <h2>Was dieser Katalog ist</h2>
   <p>
@@ -22,7 +22,7 @@
     Subtraktions-Review.
   </p>
   <p>
-    Stand: 7 von 7 Tests in 5 Specs laufen grün (Lauf 2026-08-18). Ein Spec, den
+    Stand: 9 von 9 Tests in 7 Specs laufen grün (Lauf 2026-08-19). Ein Spec, den
     die Suite nicht grün bekommt, wird nicht abgeliefert — die unten als „offen"
     markierten Journeys sind deshalb bewusst noch nicht als Spec umgesetzt, nicht
     vergessen.
@@ -39,8 +39,8 @@
       <tr><td><strong>J-02</strong> Erstes Projekt anlegen</td><td>Im ersten Arbeitsbereich ein Projekt aufsetzen und im Board landen.</td><td><code>projekt-anlegen.spec.ts</code></td><td>5</td><td>P1</td></tr>
       <tr><td><strong>J-03</strong> Vorgang anlegen und zuweisen</td><td>Einen Vorgang anlegen, priorisieren und einem Teammitglied zuweisen. <em>Hinweis:</em> Ein frischer Arbeitsbereich hat nur den Anwender als Mitglied; die Zuweisung fällt daher auf ihn. Die Zuweisung an ein zusätzlich eingeladenes Mitglied braucht die Einladungs-Journey (J-05).</td><td><code>vorgang-anlegen-zuweisen.spec.ts</code></td><td>6</td><td>P1</td></tr>
       <tr><td><strong>J-04</strong> Vorgang im Board weiterziehen</td><td>Den Status eines Vorgangs durch Ziehen ändern und am Ziel sehen.</td><td><code>vorgang-im-board-weiterziehen.spec.ts</code></td><td>3</td><td>P1</td></tr>
-      <tr><td><strong>J-05</strong> Teammitglied einladen</td><td>Ein Teammitglied per Einladungslink aufnehmen.</td><td>offen</td><td>—</td><td>P2</td></tr>
-      <tr><td><strong>J-06</strong> Vorgang bis ins Detail pflegen</td><td>Beschreibung, Termin und ein Kommentar an einem Vorgang ergänzen.</td><td>offen</td><td>—</td><td>P2</td></tr>
+      <tr><td><strong>J-05</strong> Teammitglied einladen</td><td>Ein Teammitglied per Einladungslink aufnehmen.</td><td><code>teammitglied-einladen.spec.ts</code></td><td>7</td><td>P2</td></tr>
+      <tr><td><strong>J-06</strong> Vorgang bis ins Detail pflegen</td><td>Beschreibung, Termin und ein Kommentar an einem Vorgang ergänzen.</td><td><code>vorgang-ins-detail-pflegen.spec.ts</code></td><td>5</td><td>P2</td></tr>
       <tr><td><strong>J-07</strong> Workflow anpassen</td><td>Spalten hinzufügen/umbenennen, damit der Ablauf zum Team passt.</td><td>offen</td><td>—</td><td>P3</td></tr>
       <tr><td><strong>J-08</strong> Backlog vorplanen und sichten</td><td>Geplante Arbeit filtern und nach Priorität ordnen.</td><td>offen</td><td>—</td><td>P2</td></tr>
     </tbody>
@@ -57,11 +57,13 @@
     Optionen hinter Popovers versteckt.
   </p>
   <p>
-    Die offenen Journeys <strong>J-05 bis J-08</strong> sind ausdrücklich als Auftrag
-    für später notiert. J-05 (Einladen, P2) ist die Voraussetzung dafür, dass J-03 die
-    Zuweisung an ein <em>zweites</em> Mitglied wirklich testet. Nichts davon wurde
-    „weggelassen" im Sinne von ignoriert — es ist ein ehrlicher, abgegrenzter
-    Folgeumfang.
+    Mit F-R1-4 sind <strong>J-05</strong> (Teammitglied einladen, 7 Schritte) und
+    <strong>J-06</strong> (Vorgang bis ins Detail pflegen, 5 Schritte) seit dem Lauf
+    2026-08-19 e2e-fest. J-05 schließt die Voraussetzung, dass J-03 die Zuweisung an
+    ein <em>zweites</em> Mitglied wirklich testet, wenn diese Journey eines Tages auf
+    sie aufsetzt. Offen sind noch <strong>J-07</strong> (Workflow anpassen) und
+    <strong>J-08</strong> (Backlog). Nichts davon wurde „weggelassen" im Sinne von
+    ignoriert — es ist ein ehrlicher, abgegrenzter Folgeumfang.
   </p>
 </body>
 </html>

@@ -19,5 +19,19 @@ t_c8e3463c   esf-reviewer                  3      1  S1 F2 4/5 — Review F-R1-2
 t_5db4aefa   esf-qa-release               13      1  S1 F2 5/5 — Merge F-R1-2 am Riegel
 t_25ea8331   esf-controller                8      1  Kalibrierung S1
 t_46063013   esf-chief-of-staff            4      1  Sprint-Abschluss S1
+t_da7bbee1   esf-product-manager           6      1  S2 F3 1/4 — Spezifikation F-R1-3 Tastatur & Command-Palette
+t_7b63189b   esf-estimator                 3      1  S2 F3 2/4 — Schätzung F-R1-3
+t_7c31acd6   esf-dev-a                    55      1  S2 F3 3/4 — Umsetzung F-R1-3 Tastatur & Command-Palette
+t_e76c4947   esf-reviewer                 12      1  S2 F3 4/4 — Review F-R1-3
+t_ee17923d   esf-qa-release               10      1  S2 F4 1/4 — Spezifikation F-R1-4 E2E-Netz J-05 + J-06
+t_787b4825   esf-estimator                 2      1  S2 F4 2/4 — Schätzung F-R1-4
+t_8cc6d17a   esf-dev-b                    25      1  S2 F4 3/4 — Umsetzung F-R1-4 E2E-Netz J-05 + J-06
+t_1d5462b9   esf-reviewer                 11      1  S2 F4 4/4 — Review F-R1-4
+t_90fdf0f6   esf-qa-release                4      1  S2 Merge F3 — F-R1-3 am Riegel
+t_c35344ff   esf-qa-release                8      1  S2 Merge F4 — F-R1-4 am Riegel
+t_94142e50   esf-controller               25      1  Kalibrierung S2
+t_a5303420   esf-chief-of-staff           55      2  Sprint-Abschluss S2
+t_a91fb621   esf-qa-release               18      1  Release-Abschluss R1
+t_d85e4216   esf-chief-of-staff           14      2  GATE Release — R1
 
-Summe Kartenzeit: 304 Minuten
+Summe Kartenzeit: 558 Minuten

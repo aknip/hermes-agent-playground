@@ -1,3 +1,31 @@
+c7019ea Release-Freigabe R1 (approve t_d85e4216): Freigabebeschluss im release-r1.html (Wortlaut CEO), roadmap/q1-fortschritt.html (R1 fertig, Kalibrierung->R2, Auflagen a/b/c)
+ reports/release-r1.html     |  82 +++++++++++++-----
+ roadmap/q1-fortschritt.html | 201 ++++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 263 insertions(+), 20 deletions(-)
+3cc5165 Release-Abschluss R1: reports/release-r1.html (f-R1-2/3/4, Puefstand, Selbst-Hoster)
+ reports/release-r1.html | 245 ++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 245 insertions(+)
+b41f143 report: sprint-abschnitt S2 (karte t_a5303420, pruefung 6 gruen, riegel rot auf t_c35344ff — torn paar am merge F4)
+ reports/sprint-s2-report.html | 380 ++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 380 insertions(+)
+0c7a797 controller: Report S2 Kalibrierung (karte t_94142e50, Prüfung 3 rot auf t_c35344ff — Handoff-Verlust am Merge F4)
+ ledger/kosten-je-rolle.jsonl              |  13 ++
+ reports/controller-s2.html                | 280 ++++++++++++++++++++++++
+ reports/riegel-r1-f3.txt                  |  47 ++++
+ reports/riegel-r1-f4.txt                  |  36 ++++
+ reports/schaetzung-r1-f3.html             | 190 +++++++++++++++++
+ reports/schaetzung-r1-f4.html             | 180 ++++++++++++++++
+ specs/r1-f3-tastatur-command-palette.html | 343 ++++++++++++++++++++++++++++++
+ 7 files changed, 1089 insertions(+)
+a7dc86d Ledger: 12 (Schätzung, Ist)-Paar(e) vom 2026-08-19
+ ledger/estimates.jsonl | 12 ++++++++++++
+ 1 file changed, 12 insertions(+)
+6e99286 docs(journeys): j-05 und j-06 mit spec-datei im katalog
+ analysis/journeys.html | 24 +++++++++++++-----------
+ 1 file changed, 13 insertions(+), 11 deletions(-)
+48ea341 spec: F-R1-4 E2E-Netz J-05+J-06 (karte t_ee17923d, zwei neue Journeys spezifiziert)
+ specs/r1-f4-e2e-netz-j05-j06.html | 353 ++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 353 insertions(+)
 45f2406 report: sprint-abscluss S1 (karte t_46063013, alle pruefungen ausser klassifikation t_e70f40ff gruen)
  reports/sprint-s1-report.html | 323 ++++++++++++++++++++++++++++++++++++++++++
  1 file changed, 323 insertions(+)

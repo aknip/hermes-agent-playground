@@ -23,10 +23,12 @@ import {
 } from "@/components/ui/command";
 import { Kbd, KbdGroup } from "@/components/ui/kbd";
 import { shortcuts } from "@/constants/shortcuts";
+import useGetProjects from "@/hooks/queries/project/use-get-projects";
 import useActiveWorkspace from "@/hooks/queries/workspace/use-active-workspace";
 import { useRegisterShortcuts } from "@/hooks/use-keyboard-shortcuts";
 import { useUserPreferencesStore } from "@/store/user-preferences";
 import CreateProjectModal from "../shared/modals/create-project-modal";
+import { buildProjectsBoardGroup } from "./projects-board-group";
 
 type PaletteActionItem = {
   value: string;
@@ -34,6 +36,9 @@ type PaletteActionItem = {
   shortcut?: string;
   onRun: () => void;
 };
+
+/** Sidebar-Einstieg öffnet die Palette über dieses Custom-Event (präzis wie ⌘K). */
+export const COMMAND_PALETTE_TOGGLE_EVENT = "kaneo:toggle-command-palette";
 
 type PaletteGroup = {
   value: string;
@@ -47,6 +52,9 @@ function CommandPalette() {
   const navigate = useNavigate();
   const location = useLocation();
   const { data: workspace } = useActiveWorkspace();
+  const { data: projects = [] } = useGetProjects({
+    workspaceId: workspace?.id ?? "",
+  });
   const [open, setOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false);
@@ -96,6 +104,15 @@ function CommandPalette() {
     setOpen(false);
   }, []);
 
+  // Lücke C — Sichtbarer Einstieg: die Sidebar öffnet die Palette über ein
+  // Custom-Event statt über eine Modifier-Taste (plattformunabhängig).
+  useEffect(() => {
+    const openPalette = () => setOpen((prev) => !prev);
+    window.addEventListener(COMMAND_PALETTE_TOGGLE_EVENT, openPalette);
+    return () =>
+      window.removeEventListener(COMMAND_PALETTE_TOGGLE_EVENT, openPalette);
+  }, []);
+
   const groupedItems = useMemo<PaletteGroup[]>(
     () => [
       {
@@ -143,6 +160,24 @@ function CommandPalette() {
           },
         ],
       },
+      // Entscheidung A — Projekte & Boards: durchsuchbare Board-Suche im
+      // aktiven Arbeitsbereich. Board wechseln ohne Maus: ⌘K → Name → Enter.
+      ...(workspace?.id
+        ? [
+            buildProjectsBoardGroup({
+              label: t("navigation:commandPalette.projectsAndBoards"),
+              projects: projects.map((project) => ({
+                id: project.id,
+                name: project.name,
+              })),
+              onRunProject: (projectId) =>
+                navigate({
+                  to: "/dashboard/workspace/$workspaceId/project/$projectId/board",
+                  params: { workspaceId: workspace.id, projectId },
+                }),
+            }),
+          ]
+        : []),
       {
         value: "commands",
         label: t("navigation:commandPalette.commands"),
@@ -183,7 +218,7 @@ function CommandPalette() {
         ],
       },
     ],
-    [navigate, setTheme, t, workspace?.id],
+    [navigate, setTheme, t, workspace?.id, workspace, projects],
   );
 
   const shortcutHandlers = useMemo(() => {

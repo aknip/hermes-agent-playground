@@ -15,6 +15,9 @@ import {
  * Vorgang in „To Do") werden über die gemeinsamen Helfer aufgebaut; die
  * sichtbaren Schritte dieser Journey sind das Ziehen und das veränderte Board.
  *
+ * Schrittfolge wird um den Tastaturweg erweitert (F-R1-3): der Statuswechsel
+ * per Detail-Kürzel (s) in der Shelf, ohne Drag & Drop.
+ *
  * Schritte: 3 · Eigentümer: esf-qa-release
  */
 test.describe("J-04 Vorgang im Board weiterziehen", () => {
@@ -53,6 +56,45 @@ test.describe("J-04 Vorgang im Board weiterziehen", () => {
 
     // Schritt 3 — Die Karte steht jetzt in „In Progress"; in „To Do" ist sie weg.
     // Jede Spalte ist ein Container mit der Klasse min-w-80.
+    const spalte = (name: string) =>
+      page.locator('[class*="min-w-80"]').filter({
+        has: page.getByText(name, { exact: true }),
+      });
+    await expect(
+      spalte("In Progress").getByText(titel, { exact: true }),
+    ).toBeVisible();
+    await expect(
+      spalte("To Do").getByText(titel, { exact: true }),
+    ).not.toBeVisible();
+  });
+
+  test("Ein Anwender wechselt den Status per Detail-Kürzel in der Shelf", async ({
+    page,
+  }) => {
+    const ich = neueIdentitaet("j04k");
+    const titel = `Karte Tastatur ${Date.now()}`;
+
+    // Vorbedingungen: Konto, Arbeitsbereich, Projekt, Vorgang in „To Do".
+    await kontoAnlegen(page, ich);
+    await arbeitsbereichAnlegen(page, `ESF Probe ${Date.now()}`);
+    await projektAnlegen(page, `Projekt ${Date.now()}`);
+    await vorgangAnlegen(page, titel);
+
+    const karte = page.getByText(titel, { exact: true });
+    await expect(karte).toBeVisible();
+
+    // Schritt 1 — Die Karte öffnen (die Detail-Shelf erscheint).
+    await karte.click();
+    const statusTrigger = page.locator('[data-shelf-action="status"]');
+    await expect(statusTrigger).toBeVisible();
+
+    // Schritt 2 — Das Status-Popover über das Detail-Kürzel „s" öffnen.
+    await page.keyboard.press("s");
+
+    // Schritt 3 — Zielstatus „In Progress" über die Schnellwahl (2) wählen.
+    await page.keyboard.press("2");
+
+    // Schritt 4 — Die Karte steht jetzt in „In Progress"; in „To Do" ist sie weg.
     const spalte = (name: string) =>
       page.locator('[class*="min-w-80"]').filter({
         has: page.getByText(name, { exact: true }),

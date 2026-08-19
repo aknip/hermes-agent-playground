@@ -1252,6 +1252,7 @@
 		"commandPalette": {
 			"suggestions": "Suggestions",
 			"commands": "Commands",
+			"projectsAndBoards": "Projects & Boards",
 			"projects": "Projects",
 			"search": "Search",
 			"members": "Members",
@@ -1273,6 +1274,7 @@
 		"notifications": "Notifications",
 		"sidebar": {
 			"overview": "Overview",
+			"commandPalette": "Keyboard shortcuts",
 			"projects": "Projects",
 			"members": "Members",
 			"invitations": "Invitations",
@@ -1339,13 +1341,15 @@
 				"create": "Create",
 				"views": "Views",
 				"navigation": "Navigation",
-				"quickSelect": "Quick Select (in popovers)"
+				"quickSelect": "Quick Select (in popovers)",
+				"details": "Task details"
 			},
 			"items": {
 				"openCommandPalette": "Open command palette",
 				"globalSearch": "Global search",
 				"toggleSidebar": "Toggle sidebar",
 				"showShortcuts": "Show keyboard shortcuts",
+				"switchBoardViaPalette": "Switch board (project palette search)",
 				"closeModal": "Close modal/popover",
 				"createTask": "Create task",
 				"createProject": "Create project",
@@ -1356,7 +1360,12 @@
 				"nextTask": "Next task",
 				"prevTask": "Previous task",
 				"openTask": "Open selected task",
-				"quickSelectNumber": "Select option by number"
+				"quickSelectNumber": "Select option by number",
+				"detailStatus": "Change status",
+				"detailPriority": "Change priority",
+				"detailAssignee": "Change assignee",
+				"detailLabels": "Change labels",
+				"detailDueDate": "Change due date"
 			}
 		}
 	},

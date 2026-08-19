@@ -4,6 +4,7 @@ import {
   kontoAnlegen,
   neueIdentitaet,
 } from "../support/journey";
+import { paletteBefehl, paletteOeffnen } from "../support/tastatur";
 
 /**
  * Journey J-02 — Erstes Projekt anlegen
@@ -11,6 +12,9 @@ import {
  * Im angelegten Arbeitsbereich setzt der Anwender sein erstes Projekt auf und
  * landet direkt im Board. Die Vorbedingung Konto + Arbeitsbereich ist der
  * gemeinsame Einstieg; die Projekt-Schritte sind diese Journey.
+ *
+ * Schrittfolge wird um den Tastaturweg erweitert (F-R1-3): derselbe Weg,
+ * ganz ohne Maus, über die Command-Palette.
  *
  * Schritte: 5 · Eigentümer: esf-qa-release
  */
@@ -45,6 +49,37 @@ test.describe("J-02 Erstes Projekt anlegen", () => {
       .click();
 
     // Schritt 5 — Man landet im Board mit den Standard-Spalten.
+    await expect(page).toHaveURL(/\/project\/[^/]+\/board/, {
+      timeout: 30_000,
+    });
+    await expect(page.getByText("To Do")).toBeVisible();
+    await expect(page.getByText("In Progress")).toBeVisible();
+    await expect(page.getByText("Done")).toBeVisible();
+  });
+
+  test("Ein Anwender legt sein erstes Projekt rein über die Tastatur an", async ({
+    page,
+  }) => {
+    const ich = neueIdentitaet("j02k");
+
+    // Vorbedingung: Konto + Arbeitsbereich (wie im Mausweg).
+    await kontoAnlegen(page, ich);
+    await arbeitsbereichAnlegen(page, `ESF Probe ${Date.now()}`);
+
+    // Schritt 1 — Die Palette öffnet sich per ⌘K/Ctrl+K (keine Maus).
+    await paletteOeffnen(page);
+
+    // Schritt 2 — „Projekt anlegen“ wird per Tastatur-Sequenz (p c) gewählt;
+    // das Anlegeformular öffnet sich, das Namensfeld ist fokussiert.
+    await paletteBefehl(page, "pc");
+    await expect(page.getByPlaceholder("Project name")).toBeVisible();
+
+    // Schritt 3 — Nur der Name eintippen und mit Enter absenden.
+    const projektName = `Q3 Tastatur ${Date.now()}`;
+    await page.keyboard.type(projektName);
+    await page.keyboard.press("Enter");
+
+    // Schritt 4 — Man landet im Board mit den Standard-Spalten.
     await expect(page).toHaveURL(/\/project\/[^/]+\/board/, {
       timeout: 30_000,
     });

@@ -201,6 +201,7 @@ export default function TaskPropertiesSidebar({
                     variant="ghost"
                     size="sm"
                     className="justify-start h-7 px-1.5 gap-1.5"
+                    data-shelf-action="status"
                   >
                     {getColumnIcon(
                       task.status ?? "",
@@ -219,6 +220,7 @@ export default function TaskPropertiesSidebar({
                     variant="ghost"
                     size="sm"
                     className="justify-start h-7 px-1.5 gap-1.5"
+                    data-shelf-action="priority"
                   >
                     {getPriorityIcon(task.priority ?? "")}
                     <span className="text-xs font-semibold truncate">
@@ -233,6 +235,7 @@ export default function TaskPropertiesSidebar({
                     variant="ghost"
                     size="sm"
                     className="justify-start h-7 px-1.5 gap-1.5"
+                    data-shelf-action="assignee"
                   >
                     {task.userId ? (
                       <Avatar className="h-[16px] w-[16px]">
@@ -286,6 +289,7 @@ export default function TaskPropertiesSidebar({
                     variant="ghost"
                     size="sm"
                     className="justify-start h-7 px-1.5 gap-1.5"
+                    data-shelf-action="dueDate"
                   >
                     {task.dueDate ? (
                       <>
@@ -755,6 +759,7 @@ export default function TaskPropertiesSidebar({
                     variant="ghost"
                     size="sm"
                     className="h-5 w-5 p-0 rounded-full"
+                    data-shelf-action="labels"
                   >
                     <Plus className="h-3 w-3" />
                   </Button>

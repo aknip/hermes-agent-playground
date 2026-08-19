@@ -1,6 +1,6 @@
 import { useNavigate } from "@tanstack/react-router";
 import { Maximize2, X } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
@@ -12,6 +12,12 @@ import {
 } from "@/components/ui/tooltip";
 import useGetProject from "@/hooks/queries/project/use-get-project";
 import useGetTask from "@/hooks/queries/task/use-get-task";
+import { useRegisterShortcuts } from "@/hooks/use-keyboard-shortcuts";
+import {
+  buildTaskDetailShortcutConfig,
+  TASK_DETAIL_ACTION_ATTR,
+  type TaskDetailAction,
+} from "./task-detail-shortcuts";
 import TaskDetailsContent from "./task-details-content";
 import TaskPropertiesSidebar from "./task-properties-sidebar";
 
@@ -61,6 +67,24 @@ export default function TaskDetailsSheet({
       },
     });
   }, [navigate, workspaceId, projectId, currentTaskId]);
+
+  // Entscheidung B — Detail-Kürzel (s/p/a/l/d): öffnen das jeweilige Popover,
+  // solange die Shelf offen ist (currentTaskId gesetzt). Der Buchstabe klickt
+  // den Trigger-Button der Shelf; Auswahl danach über 1–9/Pfeil+Enter.
+  const openDetailAction = useCallback((action: TaskDetailAction) => {
+    const trigger = document.querySelector<HTMLElement>(
+      `[${TASK_DETAIL_ACTION_ATTR}="${action}"]`,
+    );
+    trigger?.click();
+  }, []);
+
+  const detailShortcutsConfig = useMemo(
+    () =>
+      currentTaskId ? buildTaskDetailShortcutConfig(openDetailAction) : {},
+    [currentTaskId, openDetailAction],
+  );
+
+  useRegisterShortcuts(detailShortcutsConfig);
 
   return (
     <Sheet open={!!taskId} onOpenChange={(open) => !open && onClose()}>

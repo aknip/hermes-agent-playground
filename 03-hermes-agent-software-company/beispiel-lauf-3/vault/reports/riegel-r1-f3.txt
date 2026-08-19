@@ -1,0 +1,47 @@
+ESF Merge-Riegel — 2026-08-19 02:23:25
+Repo:   /Users/aknipschild/github/hermes-agent-playground/04-hermes-agent-software-company-test-kaneo
+Branch: feat/esf-r1-f3-tastatur-command-palette
+
+── 1/6  Branch und Ausgangslage ──────────────────────────────────────────
+  Basis:            16c99026f792f82e3ff9bf3dd07561273d1bae3c
+  Geänderte Dateien: 14
+    apps/web/src/components/app-sidebar.tsx
+    apps/web/src/components/command-palette/index.tsx
+    apps/web/src/components/command-palette/projects-board-group.test.ts
+    apps/web/src/components/command-palette/projects-board-group.ts
+    apps/web/src/components/keyboard-shortcuts-help.tsx
+    apps/web/src/components/task/task-detail-shortcuts.test.tsx
+    apps/web/src/components/task/task-detail-shortcuts.ts
+    apps/web/src/components/task/task-details-sheet.tsx
+    apps/web/src/components/task/task-properties-sidebar.tsx
+    i18n/en-US.json
+    tests/e2e/journeys/projekt-anlegen.spec.ts
+    tests/e2e/journeys/tastatur-command-palette.spec.ts
+    tests/e2e/journeys/vorgang-im-board-weiterziehen.spec.ts
+    tests/e2e/support/tastatur.ts
+
+── 2/6  Konfliktfreiheit ──────────────────────────────────────────
+  konfliktfrei — der Merge bleibt jetzt stehen und wird geprüft
+
+── 3/6  Linter auf den geänderten Dateien ──────────────────────────────────────────
+  sauber (14 Dateien)
+
+── 4/6  Typecheck ──────────────────────────────────────────
+  Befehl: pnpm exec turbo typecheck --concurrency=1 --force
+  grün
+
+── 5/6  Unit-Tests ──────────────────────────────────────────
+  Befehl: pnpm exec turbo test --concurrency=1 --force
+  grün
+
+── 6/6  Volle E2E-Suite ──────────────────────────────────────────
+  Vorbedingung: docker compose -f compose.yml up -d postgres
+    11 passed (59.1s)
+  grün
+
+── Ergebnis ──────────────────────────────────────────
+✓ Gemerged: faa8a76
+  (Die Video-Akte liegt bereits — aufgezeichnet wurde nach dem grünen Lauf.)
+
+Der Worktree des Branches bleibt bestehen — der Reviewer braucht ihn
+noch. Aufgeräumt wird beim Sprint-Abschluss.

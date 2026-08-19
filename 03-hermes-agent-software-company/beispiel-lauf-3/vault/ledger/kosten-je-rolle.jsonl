@@ -11,3 +11,16 @@
 {"at":"2026-08-19","profile":"esf-controller","usage_total":0.221969377,"usage_delta":0.22196938}
 {"at":"2026-08-19","profile":"esf-ceo","usage_total":0,"usage_delta":0}
 {"at":"2026-08-19","profile":"esf-video-designer","usage_total":1.235043776,"usage_delta":1.23504378}
+{"at":"2026-08-19","profile":"esf-chief-of-staff","usage_total":0.491105421,"usage_delta":0.06973205}
+{"at":"2026-08-19","profile":"esf-market-scout","usage_total":0.004390536,"usage_delta":0.0}
+{"at":"2026-08-19","profile":"esf-market-analyst","usage_total":0.027445887,"usage_delta":0.0}
+{"at":"2026-08-19","profile":"esf-product-manager","usage_total":0.462411813,"usage_delta":0.06769896}
+{"at":"2026-08-19","profile":"esf-architect","usage_total":0.210809539,"usage_delta":0.0}
+{"at":"2026-08-19","profile":"esf-estimator","usage_total":0.20675462,"usage_delta":0.07912538}
+{"at":"2026-08-19","profile":"esf-dev-a","usage_total":1.901873114,"usage_delta":0.44362924}
+{"at":"2026-08-19","profile":"esf-dev-b","usage_total":6.209583761,"usage_delta":0.36191264}
+{"at":"2026-08-19","profile":"esf-reviewer","usage_total":0.891468534,"usage_delta":0.09753082}
+{"at":"2026-08-19","profile":"esf-qa-release","usage_total":2.251504662,"usage_delta":0.14875992}
+{"at":"2026-08-19","profile":"esf-controller","usage_total":0.283814959,"usage_delta":0.06184558}
+{"at":"2026-08-19","profile":"esf-ceo","usage_total":0,"usage_delta":0}
+{"at":"2026-08-19","profile":"esf-video-designer","usage_total":1.235043776,"usage_delta":0.0}
