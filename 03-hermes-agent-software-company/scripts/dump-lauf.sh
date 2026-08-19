@@ -30,6 +30,66 @@ VAULT="$ESF/workspace/company"
 ZIEL="${1:-$ESF/beispiel-lauf-1}"
 
 command -v jq >/dev/null || { echo "FEHLER: 'jq' fehlt"; exit 1; }
+
+# ---------------------------------------------------------------------------
+# Die Laufzeit-Tabelle
+# ---------------------------------------------------------------------------
+# Wanduhrzeit je Karte aus den Board-Zeitstempeln — die einzige Messung, die
+# Hermes verlässlich liefert.
+#
+# BEFUND vom 20.08.2026: Diese Tabelle hat in BEIDEN gesicherten Akten ihrer
+# eigenen Summenzeile widersprochen, und zwar um genau denselben Betrag:
+#
+#   awk '/^t_/{s+=$3} END{print s}' beispiel-lauf-2/laufzeiten.txt  -> 1114
+#   grep Summe                     beispiel-lauf-2/laufzeiten.txt   -> 1131
+#   awk '/^t_/{s+=$3} END{print s}' beispiel-lauf-3/laufzeiten.txt  ->  541
+#   grep Summe                     beispiel-lauf-3/laufzeiten.txt   ->  558
+#
+# Ursache: Die Spalte wurde je Karte mit `floor` auf Minuten abgeschnitten, die
+# Summe aber aus den SEKUNDEN gebildet und erst danach gerundet. Bei 33 bzw. 34
+# Karten sammelt das im Mittel eine halbe Minute je Karte — 17 und 17.
+#
+# Die Summe war also die genauere Zahl, aber sie war nicht nachrechenbar, und
+# nach dem eigenen Vertrag dieses Projekts ist eine Zahl, die niemand
+# nachrechnen kann, kein Beleg. Jetzt steht beides da: die Summe der GEDRUCKTEN
+# Spalte (nachrechenbar) und die genaue Sekundenzahl daneben, mit dem
+# Rundungsverlust ausgewiesen. Wer die Vorher/Nachher-Spalte einer Optimierung
+# aus dieser Tabelle zieht, zieht sie damit aus einer Zahl, die stimmt.
+laufzeiten_tabelle() { # board.json  -> Tabelle auf stdout
+    local quelle="$1" tabelle spalte sekunden
+    tabelle="$(jq -r '.karten[] |
+        [ .task.id,
+          (.task.assignee // "-"),
+          ( [ .runs[]? | select(.started_at and .ended_at) | (.ended_at - .started_at) ]
+            | add // 0 | . / 60 | floor ),
+          ([.runs[]?] | length),
+          .task.title
+        ] | @tsv' "$quelle" \
+        | awk -F'\t' '{printf "%-12s %-22s %8s %6s  %s\n", $1, $2, $3, $4, $5}')"
+    printf '%-12s %-22s %8s %6s  %s\n' KARTE PROFIL MINUTEN LAEUFE TITEL
+    printf '%s\n' "$tabelle"
+    spalte="$(printf '%s\n' "$tabelle" | awk 'NF>=5 {s+=$3} END{print s+0}')"
+    sekunden="$(jq -r '[.karten[] | [.runs[]? | select(.started_at and .ended_at)
+                        | (.ended_at - .started_at)] | add // 0] | add // 0' "$quelle")"
+    printf '\nSumme Kartenzeit: %s Minuten   (Summe der Spalte oben, nachrechenbar)\n' "$spalte"
+    printf 'Genau %s Sekunden = %s Minuten; die Differenz von %s Minuten ist der\n' \
+        "$sekunden" \
+        "$(awk -v s="$sekunden" 'BEGIN{printf "%.1f", s/60}')" \
+        "$(awk -v s="$sekunden" -v sp="$spalte" 'BEGIN{printf "%.1f", s/60 - sp}')"
+    printf 'Rundungsverlust je Karte (floor), nicht ein Messfehler.\n'
+}
+
+# --nur-laufzeiten <board.json>
+# Nur die Tabelle, auf stdout, ohne Board, ohne Vault, ohne zu schreiben. Sie
+# existiert, damit die Arithmetik dieser Tabelle pruefbar ist, ohne einen echten
+# Lauf zu fahren — scripts/test-optimierung.sh 5 tut genau das.
+if [ "${1:-}" = "--nur-laufzeiten" ]; then
+    [ -n "${2:-}" ] && [ -f "${2:-}" ] \
+        || { echo "FEHLER: --nur-laufzeiten braucht eine board.json"; exit 2; }
+    laufzeiten_tabelle "$2"
+    exit 0
+fi
+
 [ -d "$VAULT" ] || { echo "FEHLER: Kein Vault unter $VAULT"; exit 1; }
 
 k() { hermes kanban --board "$BOARD" "$@"; }
@@ -97,23 +157,8 @@ fi
 # ---------------------------------------------------------------------------
 say "4/5  Laufzeiten"
 # ---------------------------------------------------------------------------
-# Wanduhrzeit je Karte aus den Board-Zeitstempeln — die einzige Messung, die
-# Hermes verlässlich liefert.
-{
-    printf '%-12s %-22s %8s %6s  %s\n' KARTE PROFIL MINUTEN LAEUFE TITEL
-    jq -r '.karten[] |
-        [ .task.id,
-          (.task.assignee // "-"),
-          ( [ .runs[]? | select(.started_at and .ended_at) | (.ended_at - .started_at) ]
-            | add // 0 | . / 60 | floor ),
-          ([.runs[]?] | length),
-          .task.title
-        ] | @tsv' "$ZIEL/board.json" \
-    | awk -F'\t' '{printf "%-12s %-22s %8s %6s  %s\n", $1, $2, $3, $4, $5}'
-} > "$ZIEL/laufzeiten.txt"
-gesamt="$(jq -r '[.karten[] | [.runs[]? | select(.started_at and .ended_at) | (.ended_at - .started_at)] | add // 0] | add / 60 | floor' "$ZIEL/board.json")"
-printf '\nSumme Kartenzeit: %s Minuten\n' "$gesamt" >> "$ZIEL/laufzeiten.txt"
-echo "  Kartenzeit gesamt: $gesamt min"
+laufzeiten_tabelle "$ZIEL/board.json" > "$ZIEL/laufzeiten.txt"
+echo "  $(grep '^Summe Kartenzeit:' "$ZIEL/laufzeiten.txt")"
 
 # ---------------------------------------------------------------------------
 say "5/5  Kurzbericht"
