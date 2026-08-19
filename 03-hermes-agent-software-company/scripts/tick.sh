@@ -173,7 +173,7 @@ if [ -d "$ZIEL" ] && [ -n "$(ls -A "$ZIEL" 2>/dev/null)" ]; then
             --assignee esf-market-scout \
             --workspace "dir:$VAULT" \
             --idempotency-key "markt-sichtung-$HEUTE" \
-            --max-retries 2 --max-runtime 60m \
+            --max-retries 2 --max-runtime 90m \
             --body "Werte JEDE Datei unter sources/$HEUTE/ aus — alle, nicht stichprobenartig.
 
 Dateien mit der Endung .fehler sind Quellen, die heute nicht geantwortet
