@@ -3,8 +3,20 @@
 # ESF — Phase 2: Die Sprint-Graphen von Release 1
 # ==============================================
 #
-#   ./create-sprint.sh 1     S1 — Wartung F-R1-5 + Feature F-R1-2
-#   ./create-sprint.sh 2     S2 — F-R1-3 ∥ F-R1-4 (Tastatur · E2E-Netz)
+#   ./create-sprint.sh 1     S1 — Wartung F-R1-5 + Feature F-R1-2      (R1)
+#   ./create-sprint.sh 2     S2 — F-R1-3 ∥ F-R1-4 (Tastatur · E2E-Netz) (R1)
+#   ./create-sprint.sh 3     S3 — Wartung Auflage R1-c + Feature F-R1-1 (R2)
+#
+# WARUM S3 OHNE EIN NEUES ROADMAP-GATE STARTET — einmal hier, damit es niemand
+# neu ausdiskutieren muss. Am Release-Gate R1 (t_d85e4216) hat der Supervisor
+# zugesagt: "Der Schnitt von R2 und R3 wird am naechsten Roadmap-Gate gegen
+# gemessene Intervalle gemacht." Dieser Schnitt betrifft, was NEU in R2 kommt
+# und wie F-R2-2/F-R2-3 zerlegt werden (Splitting-Auflage, <= 8 Karten). Er
+# betrifft NICHT F-R1-1: Das Feature steht in der bereits freigegebenen
+# Roadmap als Position 1 von R2, mit der ausdruecklichen Begruendung, es solle
+# "auf ein kalibriertes Intervall warten, nicht es verbrauchen". Das Intervall
+# gibt es jetzt (Kalibrierung S1 und S2). F-R1-1 zu starten nimmt dem
+# Roadmap-Gate also nichts vorweg; F-R2-2 anzufangen wuerde es.
 #
 # Der Zuschnitt folgt der Roadmap, die AM GATE FREIGEGEBEN wurde
 # (roadmap/q1-freigegeben.html), nicht der eines frueheren Laufs. Wer diese
@@ -48,8 +60,8 @@ HEUTE="$(date '+%Y-%m-%d')"
 
 SPRINT="${1:-}"
 case "$SPRINT" in
-    1|2) ;;
-    *) echo "Aufruf: ./create-sprint.sh 1 | 2"; exit 2 ;;
+    1|2|3) ;;
+    *) echo "Aufruf: ./create-sprint.sh 1 | 2 | 3"; exit 2 ;;
 esac
 S="S$SPRINT"
 IDS="$HERE/task-ids-$(echo "$S" | tr 'A-Z' 'a-z').env"
@@ -221,14 +233,17 @@ EOF
 
 # Das neue AK8 aus dem Spec-Nachtrag vom 17.08.2026.
 #
-# ⚠ IN DIESEM RELEASE NICHT AUFGERUFEN — bewusst stehengelassen.
-#   Das AK8 setzt eine gemeinsame Montagestelle voraus (apps/api/src/app.ts
-#   nach der Haertung R1-F5). Die Roadmap, die am 18.08.2026 freigegeben wurde,
-#   enthaelt diese Haertung nicht: F-R1-2, F-R1-3 und F-R1-4 arbeiten an der
-#   Weboberflaeche und an tests/, keines montiert Routen. Ein Kriterium, das
-#   auf eine Datei zeigt, die kein Branch anfasst, waere Zeremonie.
-#   Es bleibt hier, weil die Regel dahinter allgemein ist und beim naechsten
-#   geteilten Montagepunkt wieder gilt: `$(ak8)` in den Kartentext, fertig.
+# ⚠ IN R1 (S1, S2) NICHT AUFGERUFEN, IN S3 SCHON.
+#   Das AK8 setzt eine gemeinsame Montagestelle voraus (apps/api/src/app.ts).
+#   F-R1-2, F-R1-3 und F-R1-4 arbeiten an der Weboberflaeche und an tests/,
+#   keines montiert Routen — ein Kriterium, das auf eine Datei zeigt, die kein
+#   Branch anfasst, waere Zeremonie gewesen. F-R1-1 (Import) kann Routen
+#   montieren, je nachdem wie die Spezifikation schneidet, und deshalb steht
+#   `$(ak8 solo)` im Umsetzungs-Kartentext von S3.
+#   Der Parameter ist noetig, weil der erste der zwei Gruende — die
+#   Kollisionsfreiheit zweier Branches — in S3 nicht zutrifft: dort baut nur
+#   einer. Ein Kartentext, der dem Worker eine Lage beschreibt, die es nicht
+#   gibt, kostet Vertrauen in alles andere, was daneben steht.
 #
 # Vorgeschichte, weil sie die Regel erklaert: Das erste AK8 lautete "app.ts
 # bleibt < 450 Zeilen". Die Umsetzung landete bei 565, obwohl sie die
@@ -238,7 +253,7 @@ EOF
 # weil N wieder eine nicht abgeleitete Zahl gewesen waere. Sein Kriterium misst
 # stattdessen die UEBERSCHRIEBENE FLAECHE, und das ist die Groesse, die
 # Merge-Konflikte wirklich verursacht.
-ak8() {
+ak8() { # $1 = parallel|solo — nur der erste der zwei Gruende haengt daran
 cat <<'EOF'
 app.ts — DAS NEUE AK8: rein additiv, keine Zahl
 Nach der Haertung R1-F5 ist apps/api/src/app.ts die Montagestelle aller Routen.
@@ -254,8 +269,20 @@ unter einer Minute.
 
 Zwei Gruende, und der zweite ist der wichtigere:
 · Merge-Konflikte entstehen dort, wo zwei Branches dieselbe bestehende Region
-  umschreiben. Zwei rein additive Branches koennen nicht kollidieren — und in
-  diesem Sprint baut ein zweites Feature gleichzeitig.
+  umschreiben. Zwei rein additive Branches koennen nicht kollidieren.
+EOF
+case "${1:-parallel}" in
+    solo) cat <<'EOF'
+  In diesem Sprint baut nur ein Branch — der Schutz kostet dich hier nichts und
+  gilt trotzdem, weil der naechste Sprint auf derselben Montagestelle aufsetzt.
+EOF
+        ;;
+    *)    cat <<'EOF'
+  Und in diesem Sprint baut ein zweites Feature gleichzeitig.
+EOF
+        ;;
+esac
+cat <<'EOF'
 · Die Montagereihenfolge um den api.use("*", …)-Auth-Block ist
   VERHALTENSWIRKSAM (Invariante aus ADR-001). Wer sie umsortiert, aendert das
   Verhalten, ohne eine Zeile Logik anzufassen.
@@ -342,6 +369,33 @@ EOF
     fi
     printf '\n\033[32m✓\033[0m Auflage erfüllt: Kalibrierung S1 ist fertig (%s)\n' \
         "$(printf '%s' "$kal" | jq -r '.id')"
+fi
+
+# ---------------------------------------------------------------------------
+# Die Vorbedingung von S3: R1 muss durch sein
+# ---------------------------------------------------------------------------
+# S3 ist der erste Sprint von R2. Ihn zu starten, waehrend R1 noch offen ist,
+# hiesse an zwei Releases gleichzeitig zu bauen — und der Riegel misst gegen
+# main, das dann beiden gehoerte. Der Nachweis dafuer ist nicht "S2 ist fertig",
+# sondern das beantwortete Release-Gate: Erst dort hat ein Mensch entschieden,
+# dass das Paket steht.
+if [ "$SPRINT" = "3" ]; then
+    gate="$(k list --json 2>/dev/null | jq -r '[.[] | select(.title|startswith("GATE Release — R1"))] | last // null')"
+    gstatus="$(printf '%s' "$gate" | jq -r '.status // "fehlt"')"
+    if [ "$gstatus" != "done" ]; then
+        printf '\nVERWEIGERT — das Release-Gate R1 steht auf \x27%s\x27, nicht auf \x27done\x27.\n' "$gstatus"
+        cat <<'EOF'
+S3 ist der erste Sprint von Release 2. Solange R1 nicht freigegeben ist, gehoert
+main noch dem alten Paket, und ein Feature-Branch, der von dort abzweigt, traegt
+dessen offene Punkte mit. Erst abschliessen:
+
+  ./create-release.sh          Release-Abschluss + Release-Gate
+  ./gate.sh                    zeigt, worauf gewartet wird
+EOF
+        exit 1
+    fi
+    printf '\n\033[32m✓\033[0m Vorbedingung erfüllt: Release-Gate R1 ist beantwortet (%s)\n' \
+        "$(printf '%s' "$gate" | jq -r '.id')"
 fi
 
 # ===========================================================================
@@ -789,7 +843,7 @@ LETZTE="$MERGE"
 FEATURES="F-R1-2 (dazu die Wartungskarte F-R1-5)"
 
 # ===========================================================================
-else   # SPRINT 2
+elif [ "$SPRINT" = "2" ]; then
 # ===========================================================================
 SLUG_FA="r1-f3-tastatur-command-palette"
 SLUG_FB="r1-f4-e2e-netz-j05-j06"
@@ -1383,6 +1437,541 @@ echo "  FB_MERGE= $FB_MERGE"
 
 LETZTE="$FB_MERGE"
 FEATURES="F-R1-3 und F-R1-4"
+
+# ===========================================================================
+else   # SPRINT 3 — der erste Sprint von Release 2
+# ===========================================================================
+SLUG="r2-f1-import-csv-wekan"
+BRANCH="${PRAEFIX}esf-$SLUG"
+
+# Die Form von S3 ist die von S1 und nicht die von S2: eine Wartungskarte vor
+# genau einem Feature. Zwei Gruende, und beide sind Auflagen, keine Vorlieben.
+#
+#  · Die Wartungskarte loest Auflage c) des Release-Gates R1 ein: "Der
+#    praeexistente Palette-Keydown-Handler bekommt eine eigene Karte in R2."
+#    Der Befund selbst liegt fertig analysiert im Vault
+#    (reports/befund-palette-keydown.html, Karte t_2616e83d) — die Karte urteilt
+#    also nicht mehr, sie baut. Ein Befund, der nur in einem Gate-Kommentar
+#    steht, ist in zwei Wochen vergessen; das ist der Grund, warum die Auflage
+#    ueberhaupt so formuliert wurde.
+#  · Nur EIN Feature, obwohl S2 zwei parallel getragen hat. F-R1-1 ist laut
+#    Roadmap "das groesste und riskanteste Stueck" des Quartals, und seine
+#    Referenzklasse impl-worktree-M hat im Ledger keine einzige Zeile. Zwei
+#    Unbekannte gleichzeitig zu fahren — neue Klasse UND Parallelitaet —
+#    verteilt den Fehler auf zwei Ursachen, wenn es schiefgeht.
+#
+# Die Wartungskarte ist Elternteil der Spezifikation und nicht ihr Nachbar:
+# Sie committet direkt auf main, und der Riegel misst am Ende gegen main. Ein
+# Wartungs-Commit, der mitten in der Feature-Arbeit landet, macht die
+# Reviewer-Frage "ist main unberuehrt?" zweideutig.
+
+say "S3 W 1/1  Wartung — Palette-Keydown-Guard  (Auflage c des R1-Gates)"
+WARTUNG=$(k create "$S W 1/1 — Wartung: Palette-Keydown-Guard" \
+    --assignee esf-dev-a \
+    --workspace "dir:$REPO" \
+    --idempotency-key "s3-wartung-palette-keydown" \
+    --max-retries 2 --max-runtime 90m \
+    --body "Wartungskarte aus Auflage c) des Release-Gates R1. Kein Feature, kein
+Feature-Slot: ein praeexistenter Korrektheits-Befund, der nicht aus R1 stammt und
+deshalb dort nicht nachgebessert wurde.
+
+DER BEFUND LIEGT FERTIG ANALYSIERT VOR — du urteilst nicht, du baust
+$VAULT/reports/befund-palette-keydown.html (Karte t_2616e83d) hat den Befund aus
+dem F-R1-3-Review nachgeprueft und als echten Defekt bestaetigt. Lies das
+Dokument, bevor du anfaengst; es nennt Fundstellen mit Zeilennummern.
+
+Der Kern, damit du weisst, worum es geht:
+apps/web/src/components/command-palette/index.tsx registriert bei geoeffneter
+Palette einen ZWEITEN, eigenen keydown-Zuhoerer auf document (um Z. 238–278).
+Er prueft event.target nicht. Wer also in das Suchfeld der offenen Palette
+'pc' tippt, oeffnet das Create-Project-Modal und schliesst die Palette — eine
+Suchtexteingabe loest eine Aktion aus. Der globale Guard in
+apps/web/src/hooks/use-keyboard-shortcuts.ts (um Z. 164–182) macht es richtig
+und prueft INPUT/TEXTAREA/contentEditable; der paletteneigene Handler umgeht
+ihn, weil er ein unabhaengiger Listener ist.
+
+Betroffen laut Befund: pc, tc, wc, pl sowie '?' und '/'.
+
+PRUEF DIE ZEILENNUMMERN SELBST NACH, bevor du etwas aenderst. Sie stammen vom
+19.08.2026; seither ist F-R1-3 gemerged und die Datei kann sich verschoben
+haben. Eine Zeilennummer aus einem fremden Bericht ist eine Behauptung, bis du
+sie gesehen hast. Verschoben heisst nicht falsch — such den Handler an seiner
+Mechanik (Zeichenketten-Puffer 'sequence', 700-ms-Ruecksetzer), nicht an der
+Zahl.
+
+DEIN ORT
+Hauptbaum ($REPO), Branch main. Kein Worktree, kein Merge, kein Riegel: Zu
+diesem Zeitpunkt arbeitet niemand sonst am Repo, und ein Ein-Zeilen-Guard ueber
+einen Feature-Branch zu fuehren waere Zeremonie ohne Schutzwirkung. Du
+committest direkt auf main.
+
+$(env_hinweis)
+
+WAS ZU TUN IST — in dieser Reihenfolge
+1. Reproduzieren, BEVOR du reparierst. Der Befund nennt den Weg: Palette
+   oeffnen, 'pc' in das Suchfeld tippen. Ein Fix ohne vorher gesehenen Fehler
+   ist ein Fix auf Verdacht. Reproduzierst du ihn NICHT, ist genau das dein
+   Ergebnis — ins metadata, mit dem, was du stattdessen beobachtet hast, und
+   ohne Aenderung am Code.
+2. Erst der Test, dann der Guard (test-driven, in dieser Reihenfolge). Der
+   Test muss ROT sein, bevor du den Guard einbaust — sonst weisst du nicht, ob
+   er den Fehler ueberhaupt trifft. Der Befund schlaegt vor: Palette oeffnen,
+   'pc' und mindestens 'tc' in den CommandInput tippen, Assertion: kein Modal,
+   Palette bleibt offen, das Getippte steht im Suchfeld. Ob Unit oder E2E
+   entscheidest du und begruendest es im metadata; beruehrst du eine Journey,
+   gilt Punkt 5.
+3. Der Guard selbst: im keydown-Handler der Palette VOR der Sequenz-Bildung
+   abbrechen, wenn event.target ein bearbeitbares Textelement ist. Nimm
+   dieselbe Pruefung wie use-keyboard-shortcuts.ts — nicht eine zweite,
+   aehnliche. Zwei Pruefungen, die dasselbe fast gleich tun, sind die naechste
+   Fassung dieses Fehlers. Faellt dir dabei auf, dass sich die Pruefung sauber
+   herausziehen laesst: tu es, wenn es klein bleibt, und begruende es.
+4. Nachweis, alle drei, mit Zahlen:
+     pnpm exec turbo typecheck test --force   -> gruen
+     $E2E_VORBED
+     $E2E_BEFEHL                              -> die volle Suite gruen
+   Das --force ist Pflicht und kein Detail: turbo spielt bei gleichem Hash das
+   alte Ergebnis ab ('>>> FULL TURBO', 170 ms), und am 19.08.2026 hat genau das
+   einen Reviewer ein fremdes Protokoll als eigene Messung melden lassen.
+5. Beruehrt dein Test eine Journey aus analysis/journeys.html, ziehst du den
+   Katalog in DERSELBEN Karte nach — Schrittzahl und Beschreibung. Das ist
+   Auflage a) desselben Gates und gilt ab jetzt fuer jede Karte. Beruehrst du
+   keine, schreib das hin; die Aussage 'nicht betroffen' ist auch eine.
+6. Commit auf main, Conventional Commits in Kleinschreibung (z.B.
+   'fix(web): keydown-guard fuer das suchfeld der command-palette'). Der
+   Pre-Commit-Hook lintet deine gestageten Dateien; umgehe ihn nicht, kein
+   --no-verify.
+
+DIE HARTE REGEL
+Diese Karte behebt genau diesen einen Befund. Der Handler tut daneben noch
+anderes; das bleibt, wie es ist. Faellt dir ein weiterer echter Fehler auf:
+nicht beheben, sondern ins metadata unter 'gefunden_nicht_gemacht'. Daraus wird
+eine eigene Karte.
+
+$(metadata_pflicht 'maintenance-repo-S')
+Dazu ins metadata: ob und wie du den Fehler reproduziert hast, der rote Test vor
+dem Guard (Ausgabe!), die geaenderten Dateien, die Testzahlen vor und nach,
+E2E-Ergebnis, ob du journeys.html nachgezogen hast (ja/nein und warum), der
+Commit-Hash.
+
+$(gate_verbot)" \
+    --json | jq -r .id)
+echo "  WARTUNG = $WARTUNG"
+
+say "S3 F1 1/5  Spezifikation — F-R1-1 Import CSV + WeKan"
+# Der Architekt und nicht der Product Manager: F-R1-1 ist eine
+# Strukturentscheidung. Ob der Import ein eigenes CLI-Paket neben
+# packages/planka-import wird oder eine API-Route in apps/api, ist die Frage,
+# die dieses Feature ausmacht — und sie faellt hier, nicht beim Entwickler.
+SPEC=$(k create "$S F1 1/5 — Spezifikation F-R1-1 Import CSV + WeKan" \
+    --assignee esf-architect \
+    --workspace "dir:$VAULT" \
+    --parent "$WARTUNG" \
+    --idempotency-key "s3-f1-spec" \
+    --max-retries 2 --max-runtime 60m \
+    --body "Spezifiziere F-R1-1 der freigegebenen Roadmap: den Import aus CSV und
+WeKan.
+
+DER AUFTRAG AUS DER ROADMAP (roadmap/q1-freigegeben.html, F-R1-1)
+Nutzeraufgabe: 'Team/Tool auf Kaneo umziehen' — von wochenlangem Abtippen auf
+einen Importlauf. Marktbeleg: Import ist Standard bei jedem Korpus-Wettbewerber
+(Vikunja 'WeKan + CSV', OpenProject 'Jira migrations', Linear-Importer),
+market.html H2, Score 20. Referenzklasse feature-backend-M. Die Roadmap nennt
+es das groesste und riskanteste Stueck des Quartals und setzt es genau deshalb
+auf Position 1 von R2: Es sollte auf ein kalibriertes Intervall WARTEN, nicht
+es verbrauchen.
+
+DIE ENTSCHEIDENDE VORARBEIT: es gibt schon einen Importer
+packages/planka-import ist ein fertiges CLI-Paket mit eigenen Tests
+(args, colors, keys, mapping, migrate, planka — je eine .test.ts daneben). Lies
+es, bevor du irgendetwas entwirfst. Zwei Dinge daran sind fuer deine
+Entscheidung wichtiger als alles andere, und beide pruefst du selbst nach:
+ · WIE es schreibt. src/kaneo.ts fuehrt eine KaneoClient-Klasse mit
+   baseUrl und apiKey — der Importer geht ueber die API und nicht in die
+   Datenbank. Ist das so, hat ein neuer Importer nach demselben Muster keine
+   Schema-Aenderung und keine Migration. Ist es NICHT so, ist das der
+   wichtigste Satz deiner Spezifikation.
+ · WIE es abbildet. src/mapping.ts und src/migrate.ts enthalten die
+   Uebersetzung Fremdmodell -> Kaneo (Spalten, Prioritaeten, Termine, Labels,
+   Kommentare). Genau diese Uebersetzung brauchst du zweimal neu: fuer CSV und
+   fuer WeKan.
+
+DEINE ENTSCHEIDUNG, UND SIE IST DER KERN DIESER KARTE
+Wird das ein zweites CLI-Paket neben planka-import? Eine Erweiterung des
+bestehenden? Oder eine Route in apps/api? Entscheide, begruende, und nenne je
+Alternative, was sie kostet. Ein Architekturbefund ohne die verworfenen
+Alternativen ist eine Meinung.
+
+Faellt die Entscheidung strukturell aus (neues Paket, neue Route, neues
+Datenmodell), schreibst du dazu ein ADR nach dem Muster der bestehenden
+(ADR-001 wird in den Kartentexten dieses Boards zitiert; sieh nach, wo sie
+liegen und wie sie aussehen). Faellt sie klein aus, schreibst du KEIN ADR und
+sagst warum. Beides ist richtig; nur unbegruendet ist falsch.
+
+DER ZUSCHNITT IST TEIL DEINER ARBEIT — und hier ist er der schwierige Teil
+Der Deckel liegt bei $KARTEN_DECKEL Karten je Feature; dieses Feature hat
+fuenf und davon genau EINE Bau-Karte. 'CSV + WeKan' passt mit hoher
+Wahrscheinlichkeit nicht in eine Bau-Karte. Dann schneidest du:
+ein erster Schnitt, der traegt (etwa: CSV vollstaendig, WeKan als benanntes
+Folgestueck), statt zweier halber. Was du bewusst liegen laesst, gehoert
+NAMENTLICH in die Spezifikation als Folgekarte — nicht in eine stille
+Auslassung, und nicht in eine Bau-Karte, die es nicht schafft.
+
+SCHREIBE specs/$SLUG.html. Sie muss beantworten:
+ · Der Ist-Zustand: Was kann planka-import heute, was davon ist
+   wiederverwendbar, was nicht? Mit Fundstellen (datei.ts:zeile).
+ · Der Schnitt: Was baut diese eine Bau-Karte, was ausdruecklich nicht.
+ · Das Datenmodell des Imports: Welche Felder kommen aus einer CSV, welche aus
+   einem WeKan-Export, worauf werden sie in Kaneo abgebildet? Eine Tabelle.
+   Was NICHT abgebildet werden kann, steht mit hin — das ist die ehrlichste
+   Zeile jeder Import-Spezifikation.
+ · Fehlerverhalten: Was passiert bei einer halb durchgelaufenen Einspielung?
+   Bricht sie ab, macht sie weiter, kann man sie wiederholen? Ein Import ohne
+   beantwortete Wiederholbarkeit ist der Fehler, der beim Anwender ankommt.
+ · Was NICHT passieren darf: keine Aenderung an bestehenden Daten, keine
+   Aenderung an der oeffentlichen API-Oberflaeche, die volle Suite bleibt gruen.
+ · Akzeptanzkriterien, pruefbar formuliert, jedes einzeln abhakbar.
+   Mindestens: Typecheck gruen, Unit-Tests gruen (mit neuen Tests fuer die
+   Abbildung), volle E2E-Suite unveraendert gruen.
+
+E2E: DIE EHRLICHE ANTWORT IST VERMUTLICH 'KEINE'
+Die Roadmap sagt zu F-R1-1 ausdruecklich 'keine E2E-Deckung'. Ein CLI-Importer
+laeuft nicht durch den Browser, und eine Journey zu erfinden, damit die Zeile
+gefuellt ist, waere Scheinabdeckung. Entscheide bewusst und schreib es hin:
+Wenn keine Journey, dann warum nicht und was stattdessen den Nachweis traegt
+(Unit-Tests auf der Abbildung, ein Importlauf gegen eine lokale Instanz mit
+gezaehltem Ergebnis). Kommt eine Journey dazu, gehoert sie in
+analysis/journeys.html — in derselben Karte, die sie einfuehrt.
+
+$(metadata_pflicht 'spec-vault-M')
+Dazu ins metadata: acceptance (die Kriterien als Liste — Entwickler und
+Reviewer arbeiten beide gegen genau diese Liste), die Architekturentscheidung in
+einem Satz, ob ein ADR entstanden ist, und was du vom Feature bewusst auf eine
+Folgekarte geschoben hast.
+
+$(vault_format 'spec')
+
+$(gate_verbot)" \
+    --json | jq -r .id)
+echo "  SPEC = $SPEC"
+
+say "S3 F1 2/5  Schätzung"
+EST=$(k create "$S F1 2/5 — Schätzung F-R1-1" \
+    --assignee esf-estimator \
+    --workspace "dir:$VAULT" \
+    --parent "$SPEC" \
+    --idempotency-key "s3-f1-estimate" \
+    --max-retries 2 --max-runtime 30m \
+    --body "Schaetze die drei Folgekarten von F-R1-1. Die Spezifikation deiner
+Elternkarte (specs/$SLUG.html) steht in deinem Handoff-Kontext.
+
+DAS LEDGER IST DEINE EINZIGE QUELLE — und es traegt jetzt echte Paare
+ledger/estimates.jsonl hat nach S1 und S2 nicht mehr nur Istwerte, sondern
+(Schaetzung, Ist)-Paare. Das ist der Unterschied zu den beiden Schaetzungen
+davor, und er ist der ganze Zweck von Evidence-Based Scheduling: Du kannst
+erstmals eine VELOCITY rechnen (Ist/Schaetzung) statt nur einen Nachbarn zu
+suchen. Lies die Datei, bevor du rechnest.
+
+Was du dort findest und was es wert ist:
+  · Die Velocity-Drehung zwischen S1 und S2 ist der wichtigste Befund im
+    Ledger. In S1 lag die Schaetzung um ein Vielfaches zu hoch, in S2 nahe an
+    eins. Rechne beide selbst nach, statt diesen Satz zu glauben, und sag hin,
+    welche der beiden Runden du fuer die tragfaehigere Grundlage haeltst — mit
+    Begruendung. Wer die S1-Werte mitmittelt, schaetzt systematisch zu hoch.
+  · Zwei Karten im Ledger haben KEINE Schaetzung: eine Spezifikationskarte aus
+    S1 und eine Merge-Karte aus S2. Beides sind bekannte, benannte Luecken
+    (zerrissener Handoff, historisch nicht heilbar, Auflage b des R1-Gates).
+    Nimm sie nicht als 'Istwert ohne Schaetzung' in eine Velocity-Rechnung.
+  · Pruefe bei JEDER Zeile, die du heranziehst, das Feld 'runs'. Eine Zeile mit
+    runs=2 traegt einen verlorenen Lauf mit und ist als Normalfall zu hoch.
+
+SCHAETZE DIESE DREI KARTEN, jede einzeln, jede mit ihrer Klasse:
+
+  Karte                    Referenzklasse       Lage im Ledger
+  ---------------------------------------------------------------------------
+  $S F1 3/5 Umsetzung      impl-worktree-M      LEER — keine einzige Zeile
+  $S F1 4/5 Review         review-repo-M        besetzt
+  $S F1 5/5 Merge          merge-repo-S         besetzt
+
+impl-worktree-M IST DIE EIGENTLICHE AUFGABE DIESER KARTE.
+Die Klasse hat keine Historie. Du hast impl-worktree-S mit mehreren Zeilen und
+musst den Sprung S -> M begruenden, statt ihn zu raten. Zwei Wege stehen dir
+offen, und du nimmst den, den du belegen kannst:
+ · Der Skalierungsfaktor aus einer anderen Klasse, die BEIDE Groessen hat.
+   Sieh nach, ob es eine gibt (die E2E- und die Review-Reihe sind Kandidaten),
+   rechne den Faktor aus und uebertrage ihn — mit dem ausdruecklichen Hinweis,
+   dass ein aus einer Klasse uebertragener Faktor eine Annahme ist.
+ · Die Flaeche aus der Spezifikation: Zahl der neuen Dateien, Zahl der
+   Abbildungsregeln, Zahl der neuen Tests. Rechne von der S-Zeile hoch und
+   nenne die Rechnung.
+Die Konfidenz ist entsprechend niedrig, und das ist die richtige Antwort, nicht
+eine schlechte. Kapitel 8: 'Klassen ohne Historie starten mit breiten
+Intervallen und niedriger Konfidenz, und sagen das dem CEO.' Ein 'kann ich
+nicht' waere hier falsch — eine ausgewiesene Unsicherheit ist eine Zahl.
+
+DAS BUDGET-GATE HAENGT AN DEINEM P90, und du sollst es nicht schonen
+Ueberschreitet die Ist-Zeit spaeter das 1,5-fache deines P90, feuert ein
+Budget-Gate. Ein absichtlich weites Intervall macht dieses Tor stumm, ein
+absichtlich enges macht es zum Fehlalarm. Schaetze, was du glaubst, und
+begruende die Breite mit der Datenlage — nicht mit der Wirkung, die sie haette.
+
+tokens_k und cost_usd: 'null'. Hermes v0.20.0 misst keine Tokens, und der
+OpenRouter-Zaehler laeuft je Rolle kumulativ — je Karte gibt es keine Zahl. Ein
+hineingeschriebener Wert waere die vergiftete Kalibrierung aus AGENTS.md 6.
+
+SCHREIBE ZWEIERLEI
+1. reports/schaetzung-r2-f1.html (esf-typ 'report'): die drei Intervalle, die
+   Referenzklassen, die Ledger-Zeilen, auf die du dich stuetzt (task_id
+   nennen!), die gerechnete Velocity aus S1 und S2 mit ihren Zahlen, die
+   Herleitung des S -> M-Sprungs, und die Konfidenz je Schaetzung mit einem
+   Satz, warum sie so hoch oder niedrig ist.
+2. Ins Abschluss-metadata dieser Karte ein Objekt 'estimates' mit den drei
+   Schaetzungen, je Karte eines, nach dem festen Schema deiner SOUL — sowie
+   zusaetzlich unter 'estimate' die Schaetzung DIESER Karte selbst
+   (reference_class 'estimate-vault-S').
+
+   Das metadata ist der Weg, auf dem die Zahlen bei den Folgekarten ankommen:
+   sie lesen es in ihrem Handoff-Kontext. Schreib es maschinenlesbar, mit
+   genau den Kartentiteln oben als Schluessel.
+
+$(metadata_pflicht 'estimate-vault-S')
+
+$(vault_format 'report')
+
+$(gate_verbot)" \
+    --json | jq -r .id)
+echo "  EST  = $EST"
+
+say "S3 F1 3/5  Umsetzung  (eigener Worktree, eigener Branch)"
+IMPL=$(k create "$S F1 3/5 — Umsetzung F-R1-1 Import CSV + WeKan" \
+    --assignee esf-dev-a \
+    --workspace "worktree:$REPO" --branch "$BRANCH" \
+    --parent "$EST" \
+    --idempotency-key "s3-f1-impl" \
+    --max-retries 2 --max-runtime 150m \
+    --skill test-driven-development \
+    --body "Setze F-R1-1 um: den Import nach specs/$SLUG.html.
+
+DEIN BAUM
+Du arbeitest in deinem eigenen Worktree auf Branch '$BRANCH'. Kein anderer
+Worker fasst diesen Branch an. Du mergst NICHT — das tut der Riegel auf einer
+eigenen Karte, und kein Modell merged (Kapitel 6).
+
+$(env_hinweis)
+
+Die Spezifikation und die Akzeptanzkriterien stehen in deinem Handoff-Kontext;
+die Datei liegt im Vault unter $VAULT/specs/$SLUG.html. Der Schnitt darin ist
+verbindlich: Was dort als Folgekarte benannt ist, baust du NICHT, auch wenn es
+schnell ginge. Ein Feature, das ueber seinen Schnitt hinauswaechst, macht jede
+Schaetzung dieses Sprints wertlos.
+
+DEIN BESTES WERKZEUG IST DAS BESTEHENDE PAKET
+packages/planka-import loest dieselbe Aufgabe fuer eine andere Quelle, mit
+Tests je Modul (args, colors, keys, mapping, migrate, planka). Lies es zuerst.
+Uebernimm sein Muster — Trennung von Quellformat, Abbildung und Schreibweg —
+statt ein eigenes zu erfinden. Wo du abweichst, gehoert ein Satz ins metadata,
+warum.
+
+DIE EINZIGE HARTE REGEL DIESER KARTE
+Ein Import schreibt fremde Daten in eine bestehende Instanz. Er aendert nichts
+Bestehendes und er loescht nichts. Findest du in der Spezifikation eine Stelle,
+an der ein Import bestehende Daten ueberschreiben wuerde: nicht bauen, sondern
+ins metadata als Befund. Das ist keine Entwurfsfreiheit, das ist die Grenze
+zwischen 'zusaetzlich' und 'nicht zuruecknehmbar'.
+
+REIHENFOLGE
+1. Erst messen, dann bauen. Notiere den Ausgangsstand mit Zahlen:
+     cd \$(git rev-parse --show-toplevel)
+     pnpm exec turbo typecheck test --force
+   Wieviele Tests, wie lange? Diese Zahl ist dein Vergleichsmassstab, und du
+   brauchst sie am Ende noch.
+2. Test zuerst, in kleinen Schritten (dafuer hast du den Skill
+   test-driven-development). Die Abbildung Fremdformat -> Kaneo ist reine
+   Funktion und damit der Teil, der sich am billigsten testen laesst — genau
+   dort liegt auch der Fehler, der beim Anwender ankommt. Ein Import mit
+   getesteter Abbildung und ungetestetem Schreibweg ist besser als umgekehrt.
+3. Fehlerverhalten bauen, wie die Spezifikation es festlegt (Abbruch,
+   Wiederaufnahme, Wiederholbarkeit). Steht es dort nicht: ins metadata als
+   Befund, und den einfachsten sicheren Weg waehlen — lieber abbrechen und
+   nichts halb einspielen.
+4. Nachweis, mit Zahlen:
+     pnpm exec turbo typecheck test --force   -> gruen, mit deinen neuen Tests
+     $E2E_VORBED
+     $E2E_BEFEHL                              -> die volle Suite unveraendert
+   Die E2E-Suite ist nicht dein Nachweis, sondern dein Nicht-Kaputtmachen-
+   Nachweis: Sie muss gruen bleiben, auch wenn dein Feature nicht durch den
+   Browser laeuft.
+5. Beruehrst du eine Journey aus analysis/journeys.html, ziehst du den Katalog
+   in DERSELBEN Karte nach (Auflage a des R1-Gates). Beruehrst du keine,
+   schreib das hin.
+6. Commit auf deinen Branch, Conventional Commits in Kleinschreibung (z.B.
+   'feat(import): csv-import mit abbildung und tests'). Der Pre-Commit-Hook
+   lintet nur DEINE gestageten Dateien — er wird halten, wenn deine Zeilen
+   sauber sind. Umgehe ihn nicht.
+
+$(ak8 solo)
+
+WENN DU NICHT DURCHKOMMST
+Liefere weniger, aber gruen. Ein CSV-Import, der laeuft und getestet ist, ist
+ein Ergebnis; CSV und WeKan halb fertig sind keins. Was du weggelassen hast,
+gehoert ins metadata unter 'deliberately_not_done' mit deinem eigenen Grund.
+Pruef, was du abschreibst.
+
+$(metadata_pflicht 'impl-worktree-M')
+Dazu ins metadata: die Liste der geaenderten und neuen Dateien, das
+Testergebnis vor und nach (Zahlen!), das E2E-Ergebnis, wieviele neue Tests du
+geschrieben hast, ob journeys.html betroffen war, der Commit-Hash, und je
+Akzeptanzkriterium ein Haekchen mit dem Beleg.
+
+$(gate_verbot)" \
+    --json | jq -r .id)
+echo "  IMPL = $IMPL"
+
+say "S3 F1 4/5  Review  (Hauptbaum, sieht in den fremden Worktree)"
+REV=$(k create "$S F1 4/5 — Review F-R1-1" \
+    --assignee esf-reviewer \
+    --workspace "dir:$REPO" \
+    --parent "$IMPL" --parent "$EST" \
+    --idempotency-key "s3-f1-review" \
+    --max-retries 2 --max-runtime 90m \
+    --body "Pruefe die Umsetzung von F-R1-1 auf Branch '$BRANCH'.
+
+DEIN ORT
+Du arbeitest im HAUPTBAUM ($REPO), nicht in einem Worktree. Von hier siehst du
+in die fremden Baeume unter .worktrees/ hinein. Der Branch ist bereits von einem
+Worktree beansprucht — ein 'git checkout $BRANCH' im Hauptbaum scheitert hart
+('fatal: ... is already used by worktree'). Nimm 'git log/diff/show $BRANCH' und
+lies im fremden Baum, ohne ihn anzufassen. Genau dieser Fehler hat im ersten
+Lauf eine Karte in den Circuit Breaker gefahren (RUN-PROTOKOLL.md).
+
+WAS DU PRUEFST — in dieser Reihenfolge, weil die erste Frage die teuerste ist
+1. WAS PASSIERT BEI EINEM HALB DURCHGELAUFENEN IMPORT? Geh den Weg durch:
+   Einspielung startet, bricht in der Mitte ab. Was liegt jetzt in der
+   Instanz, und was passiert beim zweiten Versuch — Duplikate, Fehler,
+   sauberer Wiederanlauf? Pruef, ob der in der Spezifikation vorgesehene Weg im
+   Code wirklich existiert und funktioniert, nicht ob er beschrieben ist. Das
+   ist die einzige Frage, deren falsche Antwort beim Anwender ankommt.
+2. WERDEN BESTEHENDE DATEN ANGEFASST? Ein Import ist additiv oder er ist ein
+   Problem. Zeig an der Fundstelle, welche Schreibvorgaenge stattfinden.
+3. Enthaelt die Aenderung eine Datenmigration oder eine Schema-Aenderung? Wenn
+   ja: Laeuft sie auf einer BESTEHENDEN Datenbank, und ist sie ruecknehmbar?
+   Eine irreversible Migration ist nach Kapitel 7 gate-pflichtig — dann ist dein
+   Befund nicht 'Fehler', sondern 'braucht ein Irreversibel-Gate', und das
+   gehoert ins metadata. Wenn nein: schreib auch das hin, mit dem, woran du es
+   festgemacht hast. Beides ist ein Ergebnis.
+4. Ist jedes Akzeptanzkriterium der Spezifikation erfuellt? Geh die Liste aus
+   dem Handoff-Kontext einzeln durch und schreib je Kriterium hin, WORAN du es
+   geprueft hast. 'Sieht erfuellt aus' ist keine Pruefung.
+5. Deckt die Abbildung ab, was die Spezifikations-Tabelle sagt — und was
+   passiert mit den Feldern, die sie als 'nicht abbildbar' fuehrt? Stilles
+   Verschlucken ist der haeufigste Fehler eines Importers.
+6. Fuehre die Tests SELBST aus, im Baum des Entwicklers. Nicht sein Protokoll
+   lesen — laufen lassen:
+     cd $REPO/.worktrees/<sein-verzeichnis>
+     pnpm exec turbo typecheck test --force
+     $E2E_VORBED
+     $E2E_BEFEHL
+   Das --force ist nicht verhandelbar: Ohne es antwortet turbo mit dem
+   zwischengespeicherten Protokoll des Entwicklers, und du meldest seine
+   Messung als deine. Am 19.08.2026 real passiert.
+7. Hat sich das Feature an seinen Schnitt gehalten? Die Spezifikation benennt,
+   was auf eine Folgekarte geschoben wurde. Mehr gebaut als geschnitten ist ein
+   Befund, kein Bonus.
+8. Ist main unberuehrt? 'git log main..' und der Arbeitsbaum-Status.
+
+WENN ETWAS FEHLT
+Dein Urteil ist 'approved' oder 'changes_requested', im metadata unter
+'verdict', mit den Befunden als Liste. Bei 'changes_requested' beschreibt jeder
+Befund, WAS zu tun ist, nicht dass etwas nicht stimmt. Du reparierst nichts
+selbst — dann waere niemand mehr da, der prueft.
+
+Ein bekannter Stoerfaktor, damit du ihn nicht als Befund missdeutest:
+mcp-internal-api-url.test.ts ist lastempfindlich. Faellt genau dieser Test und
+sonst nichts, lauf ihn allein nach; gruen allein und rot unter Last ist ein
+Betriebsbefund, kein Fehler des Entwicklers. Notier ihn als solchen.
+
+$(metadata_pflicht 'review-repo-M')
+Dazu ins metadata: verdict, die Befunde, das selbst gemessene Testergebnis
+(Zahlen), und ausdruecklich die Antwort auf Punkt 3 — Migration ja/nein und
+woran festgemacht.
+
+$(gate_verbot)" \
+    --json | jq -r .id)
+echo "  REV  = $REV"
+
+say "S3 F1 5/5  Merge am Riegel"
+MERGE=$(k create "$S F1 5/5 — Merge F-R1-1 am Riegel" \
+    --assignee esf-qa-release \
+    --workspace "dir:$REPO" \
+    --parent "$REV" --parent "$EST" \
+    --idempotency-key "s3-f1-merge" \
+    --max-retries 2 --max-runtime 90m \
+    --body "Bringe F-R1-1 nach main — ueber den Riegel, nicht mit der Hand.
+
+DER EINZIGE ERLAUBTE WEG
+    $HERE/scripts/merge-riegel.sh $BRANCH --protokoll $VAULT/reports/riegel-r2-f1.txt
+
+Du rufst kein 'git merge'. Der Riegel merged oder verweigert; das ist der
+Unterschied zwischen einer Regel und einem Riegel (Kapitel 6). Sechs Pruefungen:
+Erreichbarkeit, Konfliktfreiheit, Linter auf den geaenderten Dateien, Typecheck,
+Unit-Tests, volle E2E-Suite.
+
+DEINE SCHAETZUNG STEHT IM HANDOFF DER ESTIMATOR-KARTE, nicht in dem der
+Review-Karte. Diese Karte hat zwei Eltern, und nur einer traegt die Zahl. In S2
+ist genau das an einer Merge-Karte mit drei Eltern schiefgegangen; die Luecke
+steht bis heute im Ledger. Auflage b) des Release-Gates R1 verlangt, dass
+check-sprint.sh in DIESEM Sprint auf Pruefung 3 gruen ist. Diese Karte ist die,
+an der es zuletzt gerissen ist.
+
+VORBEDINGUNGEN, die du selbst herstellst — sonst verweigert er ohne Sachgrund
+1. Das Urteil des Reviewers muss 'approved' sein. Steht 'changes_requested' in
+   deinem Handoff-Kontext: NICHT mergen. Schliesse ab mit dem Befund im
+   metadata und lege eine neue Karte fuer die Nacharbeit an.
+2. Meldet der Reviewer 'braucht ein Irreversibel-Gate': NICHT mergen. Schliess
+   ab mit dem Befund und leg eine Gate-Karte an — Titel-Praefix
+   'GATE Irreversibel', sie blockiert sich selbst per kanban_block. Nach
+   Kapitel 7 entscheidet darueber ein Mensch, nicht der Riegel und nicht du.
+3. Der Arbeitsbaum von $REPO muss sauber sein. Im ersten Lauf verweigerte der
+   Riegel, weil dort uncommittete Fremdaenderungen lagen — eine Verweigerung
+   ohne Sachbezug. 'git status --short' zuerst; ist er schmutzig und nicht deine
+   Schuld, notier das und melde es, statt aufzuraeumen.
+4. Postgres muss laufen: $E2E_VORBED
+5. Es duerfen keine fremden Dev-Server auf den E2E-Ports stehen. Die
+   Playwright-Konfiguration hat 'reuseExistingServer' an — ein alter Server aus
+   einem fremden Worktree wuerde die FALSCHE Anwendung testen, und die Suite
+   waere trotzdem gruen. Genau das ist der schwerste Messbefund des ersten
+   Laufs. Pruefe es, bevor du startest.
+
+WENN ER VERWEIGERT
+Der Riegel hat immer einen Grund und er schreibt ihn ins Protokoll. Zwei Sorten,
+und die Unterscheidung ist dein Urteil:
+ · Sachgrund (Konflikt, roter Test, Linter auf neuen Zeilen) -> nicht mergen,
+   abschliessen, neue Karte fuer die Nacharbeit, Befund ins metadata.
+ · Betriebsgrund (schmutziger Baum, lastempfindlicher Test — bekannt:
+   mcp-internal-api-url.test.ts) -> Ursache benennen, EINMAL sauber nachlaufen
+   lassen, und wenn er dann besteht, mergen. Verweigert er erneut, ist es ein
+   Sachgrund.
+
+Was du NICHT tust: den Riegel ueberstimmen. Ein Riegel, den man ueberstimmt, ist
+keiner. Und du benutzt kein --no-verify.
+
+DANACH
+· Das Riegel-Protokoll bleibt als Rohbeleg liegen (reports/riegel-r2-f1.txt,
+  .txt und nicht .html — AGENTS.md 2.1 nimmt Maschinenprotokolle aus der
+  HTML-Pflicht aus).
+· Ist gemerged: den Worktree des Entwicklers NICHT aufraeumen. Er ist Beleg.
+
+$(metadata_pflicht 'merge-repo-S')
+Dazu ins metadata: das Riegel-Ergebnis (bestanden/verweigert), welche der sechs
+Pruefungen wie ausging, der Merge-Commit auf main, die Testzahlen aus dem
+Riegel-Lauf.
+
+$(gate_verbot)" \
+    --json | jq -r .id)
+echo "  MERGE= $MERGE"
+
+LETZTE="$MERGE"
+FEATURES="F-R1-1 (dazu die Wartungskarte aus Auflage c des R1-Gates)"
 fi
 
 # ===========================================================================
@@ -1538,7 +2127,7 @@ echo "  ABSCHLUSS = $ABSCHLUSS"
         echo "S1_REV='$REV'"
         echo "S1_MERGE='$MERGE'"
         echo "S1_BRANCH='$BRANCH'"
-    else
+    elif [ "$SPRINT" = "2" ]; then
         echo "S2_F3_SPEC='$FA_SPEC'"
         echo "S2_F3_EST='$FA_EST'"
         echo "S2_F3_IMPL='$FA_IMPL'"
@@ -1551,6 +2140,14 @@ echo "  ABSCHLUSS = $ABSCHLUSS"
         echo "S2_MERGE_F4='$FB_MERGE'"
         echo "S2_BRANCH_F3='$BRANCH_FA'"
         echo "S2_BRANCH_F4='$BRANCH_FB'"
+    elif [ "$SPRINT" = "3" ]; then
+        echo "S3_WARTUNG='$WARTUNG'"
+        echo "S3_F1_SPEC='$SPEC'"
+        echo "S3_F1_EST='$EST'"
+        echo "S3_F1_IMPL='$IMPL'"
+        echo "S3_F1_REV='$REV'"
+        echo "S3_F1_MERGE='$MERGE'"
+        echo "S3_BRANCH='$BRANCH'"
     fi
     echo "${S}_KAL='$KAL'"
     echo "${S}_ABSCHLUSS='$ABSCHLUSS'"
@@ -1568,12 +2165,32 @@ Weiter:
   ./scripts/watchdog.sh --kill       zwischendurch; lange Karten hängen an CLOSE_WAIT
   ./scripts/check-sprint.sh $S        den Sprint-Nachweis abnehmen
 EOF
-if [ "$SPRINT" = "1" ]; then
-cat <<EOF
+case "$SPRINT" in
+1) cat <<EOF
   ./create-sprint.sh 2               erst NACH 'Kalibrierung S1' — das Skript prüft es
 EOF
-else
-cat <<EOF
+   ;;
+2) cat <<EOF
   ./create-release.sh                Release-Abschluss + Release-Gate
 EOF
-fi
+   ;;
+3) cat <<EOF
+  Danach: der Release-Abschluss R2 — aber NICHT mit ./create-release.sh in
+  seiner heutigen Fassung. Das Skript hat R1 fest verdrahtet (Kartentitel,
+  Report-Namen, Gate-Text) und nimmt kein Argument. Es auf R2 zu parametrisieren
+  ist eine eigene Aufgabe und gehoert VOR den Abschluss, nicht mittendrin.
+
+  Und wenn das R2-Gate steht, gilt die Reihenfolge des Schattenbetriebs — sie
+  ist zwingend und laesst sich nicht nachholen (VERIFIKATION.md, Phase 3):
+
+     Gate blockiert -> ceo-tick (legt die Entscheidungskarte an)
+                    -> pump.sh  (esf-ceo schreibt das Dokument)
+                    -> ceo-tick (validiert: 'schatten-validiert')
+                    -> DANN erst gate.sh (der Supervisor antwortet)
+                    -> ceo-tick (Nachlese: 'schatten-vergleich')
+
+  Antwortet der Supervisor frueher, gibt es fuer dieses Gate nie einen
+  Vergleich, und es ist fuer den Stufe-B-Nachweis verbraucht.
+EOF
+   ;;
+esac
