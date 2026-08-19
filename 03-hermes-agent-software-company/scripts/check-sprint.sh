@@ -136,6 +136,7 @@ for id in $(printf '%s' "$sprintkarten" | jq -r '.[] | select(.status=="done") |
 
     [ -n "$klasse" ] || ohne_klasse="$ohne_klasse $id"
 
+    ohne_schaetzer="${ohne_schaetzer:-}"
     braucht_paar=0
     case "$titel" in
         *Umsetzung*|*Review*|*Merge*) braucht_paar=1 ;;
@@ -151,7 +152,36 @@ for id in $(printf '%s' "$sprintkarten" | jq -r '.[] | select(.status=="done") |
                 "$id" "$klasse" "$p50" "$ist" "$q"
             paare=$((paare + 1))
         else
-            ohne_paar="$ohne_paar $id"
+            # Eine Karte, die GAR KEINEN Schaetzer-Elternteil hat, konnte nie
+            # eine Zahl erben — das sind die nachtraeglich vom Supervisor
+            # angelegten Karten (Nacharbeit, zweiter Anlauf), die nach dem
+            # Lauf des Schaetzers entstanden sind. Sie als zerrissenen Handoff
+            # zu melden waere falsch: Es gab nichts zu reissen.
+            #
+            # Sie werden trotzdem GENANNT und gezaehlt, nicht stillschweigend
+            # uebersprungen. Eine Ausnahme, die man nicht sieht, ist ein Loch:
+            # Wer den Schaetzer-Elternteil weglaesst, duerfte sich sonst aus
+            # der Pruefung heraushalten.
+            #
+            # Dieselbe Regel benutzt ledger-sync.sh seit Bedingung 2b des
+            # Roadmap-Gates R2. Am 19.08.2026 hat sie dort auf genau diesen
+            # Fall angeschlagen — die Ursache war die Verdrahtung des
+            # Supervisors: Er hatte die Schaetzkarte als Elternteil zweier
+            # Karten gesetzt, die sie nie geschaetzt haben konnte, weil es sie
+            # zu ihrer Laufzeit noch nicht gab. Der Schaetzer ist nur
+            # Elternteil der Karten, die er auch schaetzt.
+            hat_schaetzer=0
+            for e in $(printf '%s' "$karte" | jq -r '.parents[]? // empty'); do
+                if k show "$e" --json 2>/dev/null \
+                   | jq -e '[.runs[]?.metadata // empty] | last // {} | has("estimates")' >/dev/null 2>&1; then
+                    hat_schaetzer=1; break
+                fi
+            done
+            if [ "$hat_schaetzer" -eq 1 ]; then
+                ohne_paar="$ohne_paar $id"
+            else
+                ohne_schaetzer="$ohne_schaetzer $id"
+            fi
         fi
     fi
 done
@@ -160,6 +190,12 @@ if [ -n "$ohne_klasse" ]; then
     nein "ohne metadata.estimate.reference_class:$ohne_klasse"
     info "Ohne Klasse landet die Karte als 'unklassifiziert' im Ledger und ist"
     info "für jede künftige Schätzung wertlos."
+fi
+if [ -n "$ohne_schaetzer" ]; then
+    info "ohne Schätzer-Elternteil, kein Paar möglich:$ohne_schaetzer"
+    info "Nachträglich angelegte Karten (Nacharbeit, zweiter Anlauf) entstehen"
+    info "nach dem Lauf des Schätzers. Sie zählen nicht als zerrissener Handoff —"
+    info "aber sie stehen hier, damit die Ausnahme sichtbar bleibt."
 fi
 if [ -n "$ohne_paar" ]; then
     nein "Istwert ohne bezifferte Schätzung:$ohne_paar"

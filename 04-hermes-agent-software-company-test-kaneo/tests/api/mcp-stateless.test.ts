@@ -164,7 +164,22 @@ describe("MCP 2026-07-28 stateless HTTP", () => {
   it("executes an effectful tool on a separate request", async () => {
     const apiFetch = vi.fn(
       async (input: RequestInfo | URL, init?: RequestInit) => {
-        expect(String(input)).toBe("http://api.test/api/task/status/task-1");
+        const url = String(input);
+        if (url.endsWith("/api/task/task-1") && init?.method === "GET") {
+          // H3: the tool resolves the task's project before validating the status.
+          return Response.json({
+            id: "task-1",
+            projectId: "project-1",
+            status: "open",
+          });
+        }
+        if (url.endsWith("/api/column/project-1")) {
+          return Response.json([
+            { id: "c1", slug: "open" },
+            { id: "c2", slug: "qa" },
+          ]);
+        }
+        expect(url).toBe("http://api.test/api/task/status/task-1");
         expect(init?.method).toBe("PUT");
         expect(new Headers(init?.headers).get("authorization")).toBe(
           "Bearer test-token",
@@ -185,7 +200,7 @@ describe("MCP 2026-07-28 stateless HTTP", () => {
     const body = await rpcBody(response);
 
     expect(response.status).toBe(200);
-    expect(apiFetch).toHaveBeenCalledOnce();
+    expect(apiFetch).toHaveBeenCalledTimes(3);
     expect(body.result.content[0].text).toContain('"status": "qa"');
   });
 

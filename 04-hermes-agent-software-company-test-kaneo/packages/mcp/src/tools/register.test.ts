@@ -30,6 +30,249 @@ function createServerMock() {
 }
 
 describe("registerTools", () => {
+  it("registers exactly 36 tools", () => {
+    const { server, tools } = createServerMock();
+    registerTools(server as never, { client: { json: vi.fn() } as never });
+
+    expect(tools.size).toBe(36);
+  });
+
+  it("rejects an update_task whose expect values no longer match the current task", async () => {
+    const { server, tools } = createServerMock();
+    const client = {
+      json: vi.fn().mockResolvedValueOnce({
+        title: "Draft spec",
+        description: "Write docs",
+        status: "open",
+        priority: "medium",
+        projectId: "project-1",
+        position: 4,
+      }),
+    };
+
+    registerTools(server as never, { client: client as never });
+
+    const result = await tools.get("update_task")?.handler({
+      taskId: "task-1",
+      status: "done",
+      expect: { title: "Old title" },
+    });
+
+    expect(result?.isError).toBe(true);
+    const message = JSON.parse(result?.content[0].text ?? "{}").error;
+    expect(message).toContain('Conflict on "title"');
+    expect(message).toContain("fetch and re-apply");
+    expect(client.json).toHaveBeenCalledTimes(1);
+  });
+
+  it("proceeds with an update_task whose expect values match the current task", async () => {
+    const { server, tools } = createServerMock();
+    const client = {
+      json: vi
+        .fn()
+        .mockResolvedValueOnce({
+          title: "Draft spec",
+          description: "Write docs",
+          status: "open",
+          priority: "medium",
+          projectId: "project-1",
+          position: 4,
+        })
+        .mockResolvedValueOnce([
+          { id: "c1", slug: "open" },
+          { id: "c2", slug: "done" },
+        ])
+        .mockResolvedValueOnce({ id: "task-1", status: "done" }),
+    };
+
+    registerTools(server as never, { client: client as never });
+
+    const result = await tools.get("update_task")?.handler({
+      taskId: "task-1",
+      status: "done",
+      expect: { title: "Draft spec" },
+    });
+
+    expect(result?.isError).toBe(false);
+    expect(client.json).toHaveBeenCalledTimes(3);
+  });
+
+  it("rejects an update_project whose expect values no longer match", async () => {
+    const { server, tools } = createServerMock();
+    const client = {
+      json: vi.fn().mockResolvedValueOnce({ name: "Roadmap", slug: "roadmap" }),
+    };
+
+    registerTools(server as never, { client: client as never });
+
+    const result = await tools.get("update_project")?.handler({
+      id: "project-1",
+      name: "Roadmap v2",
+      expect: { slug: "old-slug" },
+    });
+
+    expect(result?.isError).toBe(true);
+    const message = JSON.parse(result?.content[0].text ?? "{}").error;
+    expect(message).toContain('Conflict on "slug"');
+    expect(message).toContain("fetch and re-apply");
+    expect(client.json).toHaveBeenCalledTimes(1);
+  });
+
+  it("rejects a create_task status that is not one of the project columns", async () => {
+    const { server, tools } = createServerMock();
+    const client = {
+      json: vi.fn().mockResolvedValueOnce([{ id: "c1", slug: "open" }]),
+    };
+
+    registerTools(server as never, { client: client as never });
+
+    const result = await tools.get("create_task")?.handler({
+      projectId: "project-1",
+      title: "Task",
+      description: "",
+      priority: "medium",
+      status: "bogus",
+    });
+
+    expect(result?.isError).toBe(true);
+    const message = JSON.parse(result?.content[0].text ?? "{}").error;
+    expect(message).toContain('Invalid status "bogus"');
+    expect(message).toContain("valid columns: [open]");
+    expect(message).toContain("use list_project_columns");
+    expect(client.json).toHaveBeenCalledTimes(1);
+  });
+
+  it("proceeds with a create_task whose status is a project column", async () => {
+    const { server, tools } = createServerMock();
+    const client = {
+      json: vi
+        .fn()
+        .mockResolvedValueOnce([{ id: "c1", slug: "open" }])
+        .mockResolvedValueOnce({ id: "task-1" }),
+    };
+
+    registerTools(server as never, { client: client as never });
+
+    const result = await tools.get("create_task")?.handler({
+      projectId: "project-1",
+      title: "Task",
+      description: "",
+      priority: "medium",
+      status: "open",
+    });
+
+    expect(result?.isError).toBe(false);
+    expect(client.json).toHaveBeenCalledTimes(2);
+  });
+
+  it("accepts the API-virtual statuses planned and archived on create_task", async () => {
+    const { server, tools } = createServerMock();
+    const client = {
+      json: vi
+        .fn()
+        .mockResolvedValueOnce([{ id: "c1", slug: "open" }])
+        .mockResolvedValueOnce({ id: "task-1" })
+        .mockResolvedValueOnce([{ id: "c1", slug: "open" }])
+        .mockResolvedValueOnce({ id: "task-2" }),
+    };
+
+    registerTools(server as never, { client: client as never });
+
+    const planned = await tools.get("create_task")?.handler({
+      projectId: "project-1",
+      title: "Planned task",
+      description: "",
+      priority: "medium",
+      status: "planned",
+    });
+    expect(planned?.isError).toBe(false);
+
+    const archived = await tools.get("create_task")?.handler({
+      projectId: "project-1",
+      title: "Archived task",
+      description: "",
+      priority: "medium",
+      status: "archived",
+    });
+    expect(archived?.isError).toBe(false);
+
+    expect(client.json).toHaveBeenCalledTimes(4);
+  });
+
+  it("rejects a move_task destinationStatus that is not a target-project column", async () => {
+    const { server, tools } = createServerMock();
+    const client = {
+      json: vi.fn().mockResolvedValueOnce([{ id: "c1", slug: "open" }]),
+    };
+
+    registerTools(server as never, { client: client as never });
+
+    const result = await tools.get("move_task")?.handler({
+      taskId: "task-1",
+      destinationProjectId: "project-2",
+      destinationStatus: "bogus",
+    });
+
+    expect(result?.isError).toBe(true);
+    expect(result?.content[0].text).toContain("valid columns: [open]");
+    expect(client.json).toHaveBeenCalledTimes(1);
+  });
+
+  it("rejects an update_task_status that is not a project column", async () => {
+    const { server, tools } = createServerMock();
+    const client = {
+      json: vi
+        .fn()
+        .mockResolvedValueOnce({ id: "task-1", projectId: "project-1" })
+        .mockResolvedValueOnce([{ id: "c1", slug: "open" }]),
+    };
+
+    registerTools(server as never, { client: client as never });
+
+    const result = await tools.get("update_task_status")?.handler({
+      taskId: "task-1",
+      status: "bogus",
+    });
+
+    expect(result?.isError).toBe(true);
+    expect(result?.content[0].text).toContain("valid columns: [open]");
+    expect(client.json).toHaveBeenCalledTimes(2);
+  });
+
+  it("rejects a create_time_entry whose startTime is later than endTime", async () => {
+    const { server, tools } = createServerMock();
+    const client = { json: vi.fn() };
+
+    registerTools(server as never, { client: client as never });
+
+    const result = await tools.get("create_time_entry")?.handler({
+      taskId: "task-1",
+      startTime: "2026-08-10T10:00:00Z",
+      endTime: "2026-08-10T09:00:00Z",
+    });
+
+    expect(result?.isError).toBe(true);
+    expect(result?.content[0].text).toContain("endTime must be >= startTime");
+    expect(client.json).not.toHaveBeenCalled();
+  });
+
+  it("rejects an update_time_entry whose startTime is later than endTime", async () => {
+    const { server, tools } = createServerMock();
+    const client = { json: vi.fn() };
+
+    registerTools(server as never, { client: client as never });
+
+    const result = await tools.get("update_time_entry")?.handler({
+      id: "te1",
+      startTime: "2026-08-10T10:00:00Z",
+      endTime: "2026-08-10T09:00:00Z",
+    });
+
+    expect(result?.isError).toBe(true);
+    expect(result?.content[0].text).toContain("endTime must be >= startTime");
+    expect(client.json).not.toHaveBeenCalled();
+  });
+
   it("registers the MCP tools", () => {
     const { server } = createServerMock();
     const client = { json: vi.fn() };
@@ -92,6 +335,10 @@ describe("registerTools", () => {
           projectId: "project-1",
           position: 4,
         })
+        .mockResolvedValueOnce([
+          { id: "c1", slug: "open" },
+          { id: "c2", slug: "done" },
+        ])
         .mockResolvedValueOnce({ id: "task-1", status: "done" }),
     };
 
@@ -105,7 +352,7 @@ describe("registerTools", () => {
     expect(client.json).toHaveBeenNthCalledWith(1, "/api/task/task-1", {
       method: "GET",
     });
-    const putCall = client.json.mock.calls[1];
+    const putCall = client.json.mock.calls[2];
     expect(putCall?.[0]).toBe("/api/task/task-1");
     const putBody = JSON.parse(
       String((putCall?.[1] as { body?: string })?.body ?? "{}"),

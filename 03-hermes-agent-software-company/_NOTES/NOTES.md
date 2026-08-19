@@ -91,8 +91,12 @@ Bitte regelmässig nach git committen, so dass auch jederzeit zurückgerollt wer
 
 
 
+======================================================================================================
 
+#19.08.2026
 
+Die ESF Enterprise Software Factory hat die ersten Umsetzungsphasen hinter sich. Stabilität / Zuverlässigkeit und auch Effizienz / Umsetzungsgeschwindigkeit sind noch nicht optimal. 
+Ich möchte die ESF über einen Goal-driven Ansatz hier von Claude Code aus systematisch optimieren (siehe https://code.claude.com/docs/en/goal#use-%2Fgoal). Definiere ein "goal" für Claude Code, das dies entsprechend formuliert. Als Beispielprojekt kann das bestehende Repo "/Users/aknipschild/github/hermes-agent-playground/04-hermes-agent-software-company-test-kaneo" oder auch ein neues, schlankeres Beispiel Repo verwendet werden. Ergebnis ist ein Prompt, den ich mit "/goal ..." ausführen kann
 
 
 

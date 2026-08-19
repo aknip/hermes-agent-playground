@@ -36,6 +36,71 @@ function run(fn: () => Promise<unknown>): Promise<CallToolResult> {
     );
 }
 
+/** Renders an expected/got value into the conflict message (strings quoted). */
+function describeValue(value: unknown): string {
+  if (typeof value === "string") return `"${value}"`;
+  if (value === null) return "null";
+  if (value === undefined) return "undefined";
+  return JSON.stringify(value);
+}
+
+/**
+ * H1: optimistic-revision guard. When the caller passes `expect`, every listed
+ * field must still hold its expected value on the freshly-fetched resource;
+ * otherwise the read-modify-write abort is aborted before the PUT.
+ */
+function assertExpectationMatches(
+  existing: Record<string, unknown>,
+  expectFields: Record<string, unknown> | undefined,
+): void {
+  if (!expectFields) {
+    return;
+  }
+  for (const [field, expected] of Object.entries(expectFields)) {
+    const got = existing[field];
+    if (got !== expected) {
+      throw new Error(
+        `Conflict on "${field}": expected ${describeValue(expected)}, got ${describeValue(got)} — fetch and re-apply.`,
+      );
+    }
+  }
+}
+
+/**
+ * H3: reject a status slug that is neither a real column of the project nor
+ * one of the API-virtual statuses ('planned'/'archived', see
+ * getValidTaskStatuses in apps/api validate-task-fields.ts).
+ */
+const VIRTUAL_STATUSES = ["planned", "archived"] as const;
+
+async function assertValidColumnStatus(
+  client: KaneoClient,
+  projectId: string,
+  status: string,
+): Promise<void> {
+  const columns = (await client.json(
+    `/api/column/${encodeURIComponent(projectId)}`,
+  )) as Array<{ slug?: string }> | undefined;
+  const slugs = Array.isArray(columns)
+    ? columns.flatMap((c) => (typeof c?.slug === "string" ? [c.slug] : []))
+    : [];
+  if (
+    !slugs.includes(status) &&
+    !(VIRTUAL_STATUSES as readonly string[]).includes(status)
+  ) {
+    throw new Error(
+      `Invalid status "${status}"; valid columns: [${slugs.join(", ")}] — use list_project_columns.`,
+    );
+  }
+}
+
+/** H4: enforce start <= end so the tool description keeps its promise. */
+function assertEndNotBeforeStart(startTime: string, endTime?: string): void {
+  if (endTime !== undefined && Date.parse(endTime) < Date.parse(startTime)) {
+    throw new Error("endTime must be >= startTime");
+  }
+}
+
 export function registerTools(
   server: McpServer,
   ctx: { client: KaneoClient },
@@ -135,15 +200,17 @@ export function registerTools(
         slug: optionalNonEmptyString,
         description: z.string().optional(),
         isPublic: z.boolean().optional(),
+        expect: z.record(z.string(), z.unknown()).optional(),
       }),
     },
     async (args) => {
-      const { id, ...patch } = args;
+      const { id, expect: expectFields, ...patch } = args;
       return run(async () => {
         const existing = (await client.json(
           `/api/project/${encodeURIComponent(id)}`,
           { method: "GET" },
         )) as Record<string, unknown>;
+        assertExpectationMatches(existing, expectFields);
         const name =
           patch.name ??
           (typeof existing.name === "string" ? existing.name : "");
@@ -266,12 +333,13 @@ export function registerTools(
       if (args.userId !== undefined) {
         body.userId = args.userId;
       }
-      return run(() =>
-        client.json(`/api/task/${encodeURIComponent(args.projectId)}`, {
+      return run(async () => {
+        await assertValidColumnStatus(client, args.projectId, args.status);
+        return client.json(`/api/task/${encodeURIComponent(args.projectId)}`, {
           method: "POST",
           body: JSON.stringify(body),
-        }),
-      );
+        });
+      });
     },
   );
 
@@ -286,6 +354,7 @@ export function registerTools(
     startDate: nullableOptionalIsoDateTimeSchema,
     dueDate: nullableOptionalIsoDateTimeSchema,
     userId: nullableOptionalNonEmptyString,
+    expect: z.record(z.string(), z.unknown()).optional(),
   });
 
   server.registerTool(
@@ -296,12 +365,27 @@ export function registerTools(
       inputSchema: updateTaskSchema,
     },
     async (args) => {
-      const { taskId, ...patch } = args;
+      const { taskId, expect: expectFields, ...patch } = args;
       return run(async () => {
         const existing = (await client.json(
           `/api/task/${encodeURIComponent(taskId)}`,
           { method: "GET" },
         )) as Record<string, unknown>;
+        assertExpectationMatches(existing, expectFields);
+        if (patch.status !== undefined) {
+          const targetProjectId =
+            (patch.projectId as string | undefined) ??
+            (typeof existing.projectId === "string"
+              ? existing.projectId
+              : undefined);
+          if (targetProjectId) {
+            await assertValidColumnStatus(
+              client,
+              targetProjectId,
+              patch.status,
+            );
+          }
+        }
         const body = buildFullTaskUpdateBody(existing, patch);
         return client.json(`/api/task/${encodeURIComponent(taskId)}`, {
           method: "PUT",
@@ -323,17 +407,27 @@ export function registerTools(
       }),
     },
     async (args) =>
-      run(() =>
-        client.json(`/api/task/move/${encodeURIComponent(args.taskId)}`, {
-          method: "PUT",
-          body: JSON.stringify({
-            destinationProjectId: args.destinationProjectId,
-            ...(args.destinationStatus !== undefined
-              ? { destinationStatus: args.destinationStatus }
-              : {}),
-          }),
-        }),
-      ),
+      run(async () => {
+        if (args.destinationStatus !== undefined) {
+          await assertValidColumnStatus(
+            client,
+            args.destinationProjectId,
+            args.destinationStatus,
+          );
+        }
+        return client.json(
+          `/api/task/move/${encodeURIComponent(args.taskId)}`,
+          {
+            method: "PUT",
+            body: JSON.stringify({
+              destinationProjectId: args.destinationProjectId,
+              ...(args.destinationStatus !== undefined
+                ? { destinationStatus: args.destinationStatus }
+                : {}),
+            }),
+          },
+        );
+      }),
   );
 
   server.registerTool(
@@ -346,12 +440,25 @@ export function registerTools(
       }),
     },
     async (args) =>
-      run(() =>
-        client.json(`/api/task/status/${encodeURIComponent(args.taskId)}`, {
-          method: "PUT",
-          body: JSON.stringify({ status: args.status }),
-        }),
-      ),
+      run(async () => {
+        const task = (await client.json(
+          `/api/task/${encodeURIComponent(args.taskId)}`,
+          { method: "GET" },
+        )) as { projectId?: string };
+        if (!task?.projectId) {
+          throw new Error(
+            "Cannot validate status: task has no project (fetch it first).",
+          );
+        }
+        await assertValidColumnStatus(client, task.projectId, args.status);
+        return client.json(
+          `/api/task/status/${encodeURIComponent(args.taskId)}`,
+          {
+            method: "PUT",
+            body: JSON.stringify({ status: args.status }),
+          },
+        );
+      }),
   );
 
   server.registerTool(
@@ -725,8 +832,9 @@ export function registerTools(
       }),
     },
     async (args) =>
-      run(() =>
-        client.json("/api/time-entry", {
+      run(async () => {
+        assertEndNotBeforeStart(args.startTime, args.endTime);
+        return client.json("/api/time-entry", {
           method: "POST",
           body: JSON.stringify({
             taskId: args.taskId,
@@ -734,8 +842,8 @@ export function registerTools(
             ...(args.endTime ? { endTime: args.endTime } : {}),
             ...(args.description ? { description: args.description } : {}),
           }),
-        }),
-      ),
+        });
+      }),
   );
 
   server.registerTool(
@@ -751,16 +859,17 @@ export function registerTools(
       }),
     },
     async (args) =>
-      run(() =>
-        client.json(`/api/time-entry/${encodeURIComponent(args.id)}`, {
+      run(async () => {
+        assertEndNotBeforeStart(args.startTime, args.endTime);
+        return client.json(`/api/time-entry/${encodeURIComponent(args.id)}`, {
           method: "PUT",
           body: JSON.stringify({
             startTime: args.startTime,
             ...(args.endTime ? { endTime: args.endTime } : {}),
             ...(args.description ? { description: args.description } : {}),
           }),
-        }),
-      ),
+        });
+      }),
   );
 
   server.registerTool(

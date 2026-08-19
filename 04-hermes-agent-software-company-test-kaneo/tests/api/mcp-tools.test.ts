@@ -51,6 +51,170 @@ function lastRequest() {
 }
 
 describe("MCP tool catalog", () => {
+  it("registers exactly 36 tools", () => {
+    expect(tools.size).toBe(36);
+  });
+
+  it("rejects an update_task whose expect values no longer match the current task", async () => {
+    apiFetch.mockResolvedValueOnce(
+      Response.json({
+        title: "V1",
+        description: "d",
+        status: "open",
+        priority: "medium",
+        projectId: "p1",
+        position: 1,
+      }),
+    );
+
+    const result = await call("update_task", {
+      taskId: "t1",
+      status: "done",
+      expect: { title: "OLD" },
+    });
+
+    expect(result.isError).toBe(true);
+    const message = JSON.parse(result.content[0].text).error;
+    expect(message).toContain('Conflict on "title"');
+    expect(message).toContain("fetch and re-apply");
+    expect(apiFetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("rejects an update_project whose expect values no longer match", async () => {
+    apiFetch.mockResolvedValueOnce(
+      Response.json({ name: "Roadmap", slug: "roadmap" }),
+    );
+
+    const result = await call("update_project", {
+      id: "p1",
+      name: "Roadmap v2",
+      expect: { slug: "old-slug" },
+    });
+
+    expect(result.isError).toBe(true);
+    const message = JSON.parse(result.content[0].text).error;
+    expect(message).toContain('Conflict on "slug"');
+    expect(message).toContain("fetch and re-apply");
+    expect(apiFetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("rejects a create_task status that is not one of the project columns", async () => {
+    apiFetch.mockResolvedValueOnce(Response.json([{ id: "c1", slug: "open" }]));
+
+    const result = await call("create_task", {
+      projectId: "p1",
+      title: "Task",
+      description: "",
+      priority: "medium",
+      status: "bogus",
+    });
+
+    expect(result.isError).toBe(true);
+    const message = JSON.parse(result.content[0].text).error;
+    expect(message).toContain('Invalid status "bogus"');
+    expect(message).toContain("valid columns: [open]");
+    expect(message).toContain("use list_project_columns");
+    expect(apiFetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("proceeds with a create_task whose status is a project column", async () => {
+    apiFetch
+      .mockResolvedValueOnce(Response.json([{ id: "c1", slug: "open" }]))
+      .mockResolvedValueOnce(Response.json({ id: "task-1" }));
+
+    const result = await call("create_task", {
+      projectId: "p1",
+      title: "Task",
+      description: "",
+      priority: "medium",
+      status: "open",
+    });
+
+    expect(result.isError).toBe(false);
+    expect(apiFetch).toHaveBeenCalledTimes(2);
+  });
+
+  it("accepts the API-virtual statuses planned and archived on create_task", async () => {
+    apiFetch
+      .mockResolvedValueOnce(Response.json([{ id: "c1", slug: "open" }]))
+      .mockResolvedValueOnce(Response.json({ id: "t1" }))
+      .mockResolvedValueOnce(Response.json([{ id: "c1", slug: "open" }]))
+      .mockResolvedValueOnce(Response.json({ id: "t2" }));
+
+    const planned = await call("create_task", {
+      projectId: "p1",
+      title: "Planned task",
+      description: "",
+      priority: "medium",
+      status: "planned",
+    });
+    expect(planned.isError).toBe(false);
+
+    const archived = await call("create_task", {
+      projectId: "p1",
+      title: "Archived task",
+      description: "",
+      priority: "medium",
+      status: "archived",
+    });
+    expect(archived.isError).toBe(false);
+
+    expect(apiFetch).toHaveBeenCalledTimes(4);
+  });
+
+  it("rejects a move_task destinationStatus that is not a target-project column", async () => {
+    apiFetch.mockResolvedValueOnce(Response.json([{ id: "c1", slug: "open" }]));
+
+    const result = await call("move_task", {
+      taskId: "t1",
+      destinationProjectId: "p2",
+      destinationStatus: "bogus",
+    });
+
+    expect(result.isError).toBe(true);
+    expect(result.content[0].text).toContain("valid columns: [open]");
+    expect(apiFetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("rejects an update_task_status that is not a project column", async () => {
+    apiFetch
+      .mockResolvedValueOnce(Response.json({ id: "t1", projectId: "p1" }))
+      .mockResolvedValueOnce(Response.json([{ id: "c1", slug: "open" }]));
+
+    const result = await call("update_task_status", {
+      taskId: "t1",
+      status: "bogus",
+    });
+
+    expect(result.isError).toBe(true);
+    expect(result.content[0].text).toContain("valid columns: [open]");
+    expect(apiFetch).toHaveBeenCalledTimes(2);
+  });
+
+  it("rejects a create_time_entry whose startTime is later than endTime", async () => {
+    const result = await call("create_time_entry", {
+      taskId: "t1",
+      startTime: "2026-08-10T10:00:00Z",
+      endTime: "2026-08-10T09:00:00Z",
+    });
+
+    expect(result.isError).toBe(true);
+    expect(result.content[0].text).toContain("endTime must be >= startTime");
+    expect(apiFetch).not.toHaveBeenCalled();
+  });
+
+  it("rejects an update_time_entry whose startTime is later than endTime", async () => {
+    const result = await call("update_time_entry", {
+      id: "te1",
+      startTime: "2026-08-10T10:00:00Z",
+      endTime: "2026-08-10T09:00:00Z",
+    });
+
+    expect(result.isError).toBe(true);
+    expect(result.content[0].text).toContain("endTime must be >= startTime");
+    expect(apiFetch).not.toHaveBeenCalled();
+  });
+
   it("resolves workspace members", async () => {
     await call("list_workspace_members", { workspaceId: "ws 1" });
 
