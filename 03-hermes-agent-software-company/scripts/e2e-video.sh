@@ -170,17 +170,22 @@ TS
 # das oft nicht. Optional gedehnt (setpts) — nur fuer `--nachziehen`.
 # Exit 0 = die .mp4 steht, Exit 1 = sie steht nicht (Quelle bleibt liegen).
 # ---------------------------------------------------------------------------
+# WARUM ueberall -nostdin: ffmpeg liest ohne dieses Flag von stdin. Steht der
+# Aufruf in einer `while read`-Schleife, die ihre Zeilen aus einem Prozess
+# bezieht, frisst ffmpeg den Rest dieser Liste — die Schleife bricht dann still
+# ab. Real am 19.08.2026: `--nachziehen` bearbeitete 8 von 18 Akten und meldete
+# dabei Exit 0. Nichts war rot; es fehlte nur die Haelfte.
 nach_mp4() { # quelle.webm ziel.mp4 [tempo]
     local quelle="$1" ziel="$2" tempo="${3:-1}"
     command -v ffmpeg >/dev/null || return 1
     if [ "$tempo" = "1" ] || [ -z "$tempo" ]; then
-        ffmpeg -y -loglevel error -i "$quelle" -an \
+        ffmpeg -nostdin -y -loglevel error -i "$quelle" -an \
             -c:v libx264 -preset veryfast -crf 23 -pix_fmt yuv420p -r 25 "$ziel" || return 1
     else
         # setpts dehnt die Zeitstempel; -r 25 rechnet danach auf konstante
         # 25 fps zurueck, sonst haetten Spieler mit der variablen Bildrate zu
         # kaempfen. -an, weil Playwright ohne Ton aufzeichnet.
-        ffmpeg -y -loglevel error -i "$quelle" -an -filter:v "setpts=$tempo*PTS" \
+        ffmpeg -nostdin -y -loglevel error -i "$quelle" -an -filter:v "setpts=$tempo*PTS" \
             -c:v libx264 -preset veryfast -crf 23 -pix_fmt yuv420p -r 25 "$ziel" || return 1
     fi
     [ -s "$ziel" ] || return 1
@@ -248,7 +253,7 @@ if [ "${1:-}" = "--selbsttest" ]; then
     #     Quelle selbst. Ohne diesen Fall waere die einzige Pruefung der
     #     Umsetzung ein echter E2E-Lauf, und der ist kein Selbsttest.
     if command -v ffmpeg >/dev/null && command -v ffprobe >/dev/null; then
-        ffmpeg -y -loglevel error -f lavfi -i testsrc=duration=2:size=320x180:rate=25 \
+        ffmpeg -nostdin -y -loglevel error -f lavfi -i testsrc=duration=2:size=320x180:rate=25 \
             -c:v libvpx -b:v 200k "$tmp/probe.webm" 2>/dev/null
         # In MILLISEKUNDEN vergleichen, nicht in abgeschnittenen Sekunden:
         # 2,00 s mit Faktor 2 ergeben 3,96 s (der letzte Frame traegt seine
@@ -273,6 +278,30 @@ if [ "${1:-}" = "--selbsttest" ]; then
         else nein "nach_mp4 scheiterte"; fehler=1; fi
     else
         printf '    (ffmpeg/ffprobe fehlen — Umsetzung nicht geprüft)\n'
+    fi
+
+    # (h) Die Schleifen-Wache. nach_mp4 wird in `while read`-Schleifen gerufen,
+    #     die ihre Zeilen aus `find` beziehen. Ohne -nostdin frisst ffmpeg diese
+    #     Liste und die Schleife bricht nach dem ersten Durchlauf ab — ohne
+    #     Fehler, mit Exit 0. Genau so sind am 19.08.2026 10 von 18 Akten
+    #     uebersprungen worden. Drei Quellen reichen als Nachweis: ohne das
+    #     Flag ueberlebt genau eine.
+    if command -v ffmpeg >/dev/null; then
+        mkdir -p "$tmp/schleife"
+        for i in 1 2 3; do
+            ffmpeg -nostdin -y -loglevel error -f lavfi \
+                -i "testsrc=duration=1:size=160x90:rate=10" \
+                -c:v libvpx -b:v 100k "$tmp/schleife/v$i.webm" 2>/dev/null
+        done
+        gezaehlt=0
+        while IFS= read -r w; do
+            nach_mp4 "$w" "${w%.webm}.mp4" && gezaehlt=$((gezaehlt + 1))
+        done < <(find "$tmp/schleife" -name '*.webm' | sort)
+        if [ "$gezaehlt" -eq 3 ]; then
+            ok "Schleifen-Wache: alle 3 Quellen umgesetzt (ffmpeg frisst stdin nicht)"
+        else
+            nein "Schleifen-Wache: nur $gezaehlt von 3 — fehlt irgendwo -nostdin?"; fehler=1
+        fi
     fi
 
     rm -rf "$tmp"
@@ -324,7 +353,7 @@ if [ "${1:-}" = "--nachziehen" ]; then
                 case "$(basename "$v")" in alle-journeys.mp4) continue ;; esac
                 printf "file '%s'\n" "$v" >> "$liste"
             done
-            ffmpeg -y -loglevel error -f concat -safe 0 -i "$liste" \
+            ffmpeg -nostdin -y -loglevel error -f concat -safe 0 -i "$liste" \
                 -c:v libx264 -preset veryfast -crf 23 -pix_fmt yuv420p -r 25 \
                 "$akte/alle-journeys.mp4" >/dev/null 2>&1 \
                 && printf '    ✓ alle-journeys.mp4 neu gebaut\n' \
@@ -496,7 +525,7 @@ if [ "$MODUS" = "alle" ] && command -v ffmpeg >/dev/null && [ "$anzahl" -gt 1 ];
         case "$(basename "$v")" in alle-journeys.mp4) continue ;; esac
         printf "file '%s'\n" "$v" >> "$liste"
     done
-    if ffmpeg -y -loglevel error -f concat -safe 0 -i "$liste" \
+    if ffmpeg -nostdin -y -loglevel error -f concat -safe 0 -i "$liste" \
         -c:v libx264 -pix_fmt yuv420p -r 25 "$ZIEL/alle-journeys.mp4"; then
         ok "Gesamtvideo: alle-journeys.mp4"
     else
