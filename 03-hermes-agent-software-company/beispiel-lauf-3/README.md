@@ -1,4 +1,24 @@
-# Beispiel-Lauf — 18.08.2026
+# Beispiel-Lauf 3 — zweiter Rundlauf, 18./19.08.2026
+
+**Phasen 0, 1 und 2 in einem Durchgang**, auf einer frisch zurückgebauten
+Hermes-Instanz, mit dem Menschen in der Supervisor-Rolle.
+
+| | |
+|---|---|
+| Karten | 25 (6 Onboarding · 4 Probelauf, archiviert · 8 Sprint 1 · 12 Sprint 2 · Release) |
+| Kartenzeit | 558 Minuten |
+| Modell | `deepseek/deepseek-v4-flash-0731`, alle Tiers, ein OpenRouter-Key je Rolle |
+| Gates | Roadmap `modify` · Probe `approve` · Release `approve` mit drei Auflagen |
+| Ergebnis | Release R1 freigegeben, drei Features auf `main`, E2E von 2 auf 13 Tests |
+
+Die Schätzgüte drehte über die zwei Sprints — der Zweck des Ledgers, gemessen:
+
+| Klasse | S1 (Ist/Schätzung) | S2 (Ist/Schätzung) |
+|--------|--------------------|--------------------|
+| Umsetzung | 0,21 | 1,38 |
+| Review | 0,09 | 0,88 |
+| E2E-Bau | — | 0,63 |
+
 
 Die Akte eines echten ESF-Laufs, gesichert mit `scripts/dump-lauf.sh`.
 Sie existiert, weil sowohl der Vault (`workspace/`, gitignored) als auch das
