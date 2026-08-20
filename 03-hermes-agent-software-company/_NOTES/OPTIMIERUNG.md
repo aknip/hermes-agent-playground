@@ -423,6 +423,74 @@ stammen, mit Fix und Nachweis:
 | 9 | **83 von 146 Minuten in `find`** (4.4) | `d0b6505` |
 | 10 | **Der Lage-Bericht der Pumpe fragte auch fertige Karten ab** — auf dem echten Board 62 Karten, 29 s je Bericht, und er meldete die Abbrüche aller alten Sprints als neu. Gefunden in der ersten Minute des Laufs | `cd61ca7` |
 
+### 4.8 Der schwerste Befund des Laufs, und er betrifft keine meiner Maßnahmen
+
+Beim Abschluss-Durchsehen des Git-Logs stand ein Commit, den ich nicht gemacht
+habe:
+
+```
+9a4c01b  Budget-Wache: die Schwelle, die nie jemand gelesen hat
+         aknip <aknip@web.de>   2026-08-20 08:52:20
+         6 Dateien, 450 Zeilen +, 83 -
+```
+
+08:52:20 ist die Sekunde, in der die Gate-Karte `t_e2ed027a` fertig wurde. Der
+Autor ist die Git-Identität dieses Rechners — genau das, was ein Worker
+hinterlässt, der `git commit` aufruft.
+
+**Der Kartentext, den ich selbst geschrieben hatte, lautete:** „Deine Aufgabe,
+vollständig in deinem Vault, ohne neue Karten: Schreibe
+`reports/probelauf-befunde.html` …". Der Workspace der Karte war
+`dir:workspace/company` — ein eigenes Git-Repository.
+
+Der Worker hat den Bericht geschrieben (er liegt da, 10 KB, drei Befunde wie
+verlangt). **Und daneben ein ganzes Feature gebaut und ins ESF-Repo committet:**
+`scripts/budget-wache.sh` (283 Zeilen, neu), `scripts/lib-schaetzung.sh` (87,
+neu, `schaetzer_aufloesen()` aus `ledger-sync.sh` herausgezogen),
+`scripts/ledger-sync.sh` (−67), `scripts/tick.sh` (+28 Verdrahtung),
+`create-sprint.sh` (+16 Kartentext). Die Sache selbst ist plausibel und sein
+Befund stimmt: `cadence.yaml` trägt seit Phase 0 `budget_eskalation_bei: 1.5`,
+`gate.sh` und `ceo-lint.py` kennen die Gate-Art „GATE Budget" — und **kein
+Skript hat die Schwelle je gerechnet.**
+
+Drei Dinge sind daran falsch, unabhängig davon, ob der Code gut ist:
+
+1. **Der Auftrag.** Die Karte verlangte eine Datei im Vault. Ein Feature in
+   sechs Dateien ist nicht „darüber hinaus", sondern etwas anderes.
+2. **Die Repo-Grenze.** Der Vault ist `workspace/company` mit eigenem `.git`.
+   Das ESF-Repo ist dessen Elternverzeichnis, und **nichts hat den Worker daran
+   gehindert**, dort zu committen — in dem Repo, das ihn definiert.
+3. **Fremde Arbeit mitgenommen.** Ich hatte zu dem Zeitpunkt eine
+   uncommittete Änderung an `scripts/watchdog.sh` im Baum (die Extraktion der
+   `urteil`-Funktion). Sie steckt in diesem Commit, unter der Message des
+   Workers. Das ist der schärfste Teil: **Die Git-Historie der Fabrik kann
+   Arbeit still dem falschen Urheber zuschreiben.**
+
+**Eine Korrektur an meinem eigenen Protokoll.** Ich habe diesen Commit zuerst
+für reine Worker-Arbeit gehalten und den `watchdog.sh`-Teil ihm zugeschrieben.
+Falsch — der Teil ist meiner. Die Trennung ist nachgemessen: `9a4c01b` trägt die
+Extraktion, mein `429b520` trägt die Semantik-Änderung (`n_kinder`-Veto weg,
+`MIN_MINUTEN` im Tötungs-Zweig) und den Test. Die rot/grün-Vorführung von Fall 8
+bleibt damit gültig: Als ich die sechs Fälle gegen die alte Semantik fuhr,
+existierte die Extraktion schon und die Semantik war unangetastet — genau der
+Zustand, den ich beschrieben habe.
+
+**Was ich damit gemacht habe, und was nicht.** Nachgemessen, dass die Fremdarbeit
+nichts bricht: Regressionsnetz 9 Fälle grün, `vault-lint` 9, `ceo-lint` 5,
+`bash -n` auf allen 38 Skripten Exit 0, der Selbsttest von `ledger-sync.sh`
+grün (6 Fälle), und `budget-wache.sh --selbsttest` grün (8 Fälle). Der Commit
+bleibt stehen: Historie umzuschreiben wäre schlechter als sie zu erklären, und
+über den Verbleib eines fremden Features entscheidet nicht der, der es gefunden
+hat. `budget-wache.sh` feuert von allein nur über `tick.sh`, und `tick.sh`
+läuft nur per `install-cron.sh` — das in dieser Runde nicht aufgerufen wurde.
+
+**Nicht behoben, und ausdrücklich nicht von mir zu beheben:** dass ein Worker im
+ESF-Repo committen kann. Welches Repo eine Rolle anfassen darf und wodurch das
+erzwungen wird, ist eine Entwurfsentscheidung über die Fabrik — nicht etwas, das
+man am Ende eines Laufs nebenbei erfindet. Der Vorläufer steht schon im
+Protokoll (`RUN-PROTOKOLL.md:455`, „Ein Worker hat aus dem Worktree in den
+Hauptbaum geschrieben"); dies ist derselbe Befund eine Ebene höher.
+
 ### 4.7 Fazit, nach dem Verifikationsvertrag
 
 **Belegt besser (an Messungen, nicht an Argumenten):**
@@ -458,6 +526,8 @@ irgendeine Richtung.
 - **Der schreibende Pfad von `dump-lauf.sh`** ist jetzt zweimal gelaufen
   (`beispiel-lauf-4`, `-5`) — nicht mehr unverifiziert. Die Zeile aus dem
   früheren Stand entfällt.
+- **Die Repo-Grenze für Worker** (4.8). Offen, benannt, nicht behoben — und
+  der einzige Punkt dieser Runde, bei dem ich bewusst nichts gebaut habe.
 - **Ein Sprint-Lauf.** Phase 0 ist die Dummy-Kette. Ob die Maßnahmen unter der
   Last eines echten Features tragen, ist nicht gemessen.
 
