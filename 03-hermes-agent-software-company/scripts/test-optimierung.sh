@@ -196,7 +196,8 @@ printf '#!/usr/bin/env bash\nexit 0\n' > "$T/scripts/watchdog.sh"
 chmod +x "$T/scripts/watchdog.sh"
 cat > "$FIX/list.json" <<'EOS'
 [{"id":"t_aaa1","status":"running","title":"S1 F1 3/5 — Umsetzung"},
- {"id":"t_bbb2","status":"running","title":"S1 F1 4/5 — Review"}]
+ {"id":"t_bbb2","status":"running","title":"S1 F1 4/5 — Review"},
+ {"id":"t_ccc3","status":"done","title":"S0 Alte Karte aus einem frueheren Sprint"}]
 EOS
 cat > "$FIX/show-t_aaa1.json" <<'EOS'
 {"task":{"id":"t_aaa1"},
@@ -208,6 +209,16 @@ cat > "$FIX/show-t_aaa1.json" <<'EOS'
 EOS
 cat > "$FIX/show-t_bbb2.json" <<'EOS'
 {"task":{"id":"t_bbb2"},"events":[],"runs":[{"outcome":null}],"comments":[]}
+EOS
+# Eine FERTIGE Karte mit Abbruch in der Historie. Am 20.08.2026 beim
+# Validierungslauf gemessen: Auf einem Board mit 62 Karten (61 davon `done` aus
+# frueheren Sprints) brauchte ein Lage-Bericht 29 Sekunden und meldete die
+# Abbrueche aller alten Sprints. Die Pumpe beobachtet die LAUFENDE Arbeit; was
+# eine fertige Karte in ihrer Historie hat, ist Sache von scripts/monitor.sh.
+cat > "$FIX/show-t_ccc3.json" <<'EOS'
+{"task":{"id":"t_ccc3"},"events":[{"kind":"crashed"}],
+ "runs":[{"outcome":"crashed","error":"pid 999 not alive"},{"outcome":"completed"}],
+ "comments":[]}
 EOS
 
 FIX="$FIX" PATH="$T/bin:$PATH" ESF_WACHHUND_TAKT=99 ESF_LAGE_TAKT=1 \
@@ -228,6 +239,9 @@ printf '%s\n' "$bericht" | grep -q 't_aaa1' \
 printf '%s\n' "$bericht" | grep -q 't_bbb2' \
     && nein "die gesunde Karte wird mitgemeldet — Fehlalarm" \
     || ok "die gesunde Karte wird nicht gemeldet"
+printf '%s\n' "$bericht" | grep -q 't_ccc3' \
+    && nein "eine FERTIGE Karte aus einem frueheren Sprint wird mitgemeldet — auf dem echten Board sind das 61 Karten und 29 s je Bericht" \
+    || ok "fertige Karten werden nicht abgefragt (Historie ist Sache von monitor.sh)"
 rm -rf "$T"
 fi
 

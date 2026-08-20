@@ -88,7 +88,16 @@ abbrueche() { # braucht $json und $tick
     [ "$LAGE_TAKT" -gt 0 ] || return 0
     [ $((tick % LAGE_TAKT)) -eq 0 ] || return 0
     local id zeile neu=""
-    for id in $(printf '%s' "$json" | jq -r '.[].id'); do
+    # Nur die LAUFENDE Arbeit. Am 20.08.2026 beim Validierungslauf gemessen:
+    # Auf einem Board mit 62 Karten — 61 davon `done` aus frueheren Sprints —
+    # brauchte ein Bericht 29 Sekunden (0,47 s je `show`-Aufruf) und meldete die
+    # Abbrueche aller alten Sprints als waeren sie neu. Die Pumpe beobachtet,
+    # was JETZT passiert; was eine fertige Karte in ihrer Historie hat, ist
+    # Sache von scripts/monitor.sh. Damit kostet der Bericht so viel, wie
+    # gerade Arbeit offen ist.
+    for id in $(printf '%s' "$json" | jq -r '.[]
+            | select(.status=="running" or .status=="ready" or .status=="todo"
+                     or .status=="blocked" or .status=="triage") | .id'); do
         zeile="$(hermes kanban --board "$BOARD" show "$id" --json 2>/dev/null \
             | jq -r '[.runs[]? | .outcome
                       | select(. == "timed_out" or . == "crashed"
