@@ -1,0 +1,2 @@
+/Users/aknipschild/github/hermes-agent-playground/04-hermes-agent-software-company-test-kaneo                        3f6d708 [main]
+/Users/aknipschild/github/hermes-agent-playground/04-hermes-agent-software-company-test-kaneo/.worktrees/t_ac33af63  3232c2a [feat/esf-probelauf]

@@ -1,0 +1,124 @@
+ESF Merge-Riegel — 2026-08-20 07:32:46
+Repo:   /Users/aknipschild/github/hermes-agent-playground/04-hermes-agent-software-company-test-kaneo
+Branch: feat/esf-probelauf
+Modus:  Trockenlauf (es wird nichts geschrieben)
+
+── 1/6  Branch und Ausgangslage ──────────────────────────────────────────
+  Basis:            3f6d7081a37ac85c156a7ad589292aaeb667e397
+  Geänderte Dateien: 1
+    docs/ESF-PROBELAUF.md
+
+── 2/6  Konfliktfreiheit ──────────────────────────────────────────
+  konfliktfrei — der Merge bleibt jetzt stehen und wird geprüft
+
+── 3/6  Linter auf den geänderten Dateien ──────────────────────────────────────────
+  keine lintbaren Dateien geändert — übersprungen
+
+── 4/6  Typecheck ──────────────────────────────────────────
+  Befehl: pnpm exec turbo typecheck --concurrency=1 --force
+  grün
+
+── 5/6  Unit-Tests ──────────────────────────────────────────
+  Befehl: pnpm exec turbo test --concurrency=1 --force
+  grün
+
+── 6/6  Volle E2E-Suite ──────────────────────────────────────────
+  Vorbedingung: docker compose -f compose.yml up -d postgres
+  Port 1337: pid 16586 aus dem Hauptbaum (in Ordnung)
+
+───── vollständige Ausgabe ─────
+[WebServer] 
+[WebServer] > @kaneo/web@0.0.0 dev /Users/aknipschild/github/hermes-agent-playground/04-hermes-agent-software-company-test-kaneo/apps/web
+[WebServer] > vite
+[WebServer] 
+[WebServer] (!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+[WebServer]   - `__dirname` (vite.config.ts:37:25). Use `import.meta.dirname` instead
+[WebServer]   - JSON import "../../package.json" without import attributes (vite.config.ts:7:25). Add `with { type: 'json' }`
+[WebServer] Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+[WebServer] 
+[WebServer]   VITE v8.2.1  ready in 1778 ms
+[WebServer] 
+[WebServer]   ➜  Local:   http://localhost:5173/
+[WebServer]   ➜  Network: http://10.30.6.63:5173/     en0
+[WebServer]   ➜  Network: http://100.94.120.37:5173/  utun10
+
+Running 14 tests using 1 worker
+
+  ✓   1 [chromium] › tests/e2e/journeys/anwendung-erreichbar.spec.ts:12:3 › J-00 Anwendung erreichbar › Ein Besucher ohne Sitzung landet auf der Anmeldeseite (1.9s)
+  ✓   2 [chromium] › tests/e2e/journeys/anwendung-erreichbar.spec.ts:25:3 › J-00 Anwendung erreichbar › Die Anmeldeseite bietet den Weg zur Registrierung an (816ms)
+  ✓   3 [chromium] › tests/e2e/journeys/konto-anlegen.spec.ts:17:3 › J-01 Konto anlegen › Ein neuer Anwender legt ein Konto an und richtet seinen Arbeitsbereich ein (4.5s)
+  ✓   4 [chromium] › tests/e2e/journeys/konto-anlegen.spec.ts:33:3 › J-01 Konto anlegen › Ein zu kurzes Passwort wird sichtbar abgewiesen (1.0s)
+  ✓   5 [chromium] › tests/e2e/journeys/projekt-anlegen.spec.ts:22:3 › J-02 Erstes Projekt anlegen › Ein Anwender legt im Arbeitsbereich sein erstes Projekt an (6.0s)
+  ✓   6 [chromium] › tests/e2e/journeys/projekt-anlegen.spec.ts:60:3 › J-02 Erstes Projekt anlegen › Ein Anwender legt sein erstes Projekt rein über die Tastatur an (3.9s)
+  ✘   7 [chromium] › tests/e2e/journeys/tastatur-command-palette.spec.ts:21:3 › F-R1-3 Command-Palette & Eingabeschutz › Wechselt das Board direkt über die Projektsuche der Palette (4.2s)
+[WebServer] 7:33:47 AM [vite] (client) [console.warn] [tiptap warn]: Duplicate extension names found: ['link']. This can lead to issues.
+[WebServer] 7:33:48 AM [vite] (client) [console.warn] [tiptap warn]: Duplicate extension names found: ['link']. This can lead to issues.
+  ✓   8 [chromium] › tests/e2e/journeys/tastatur-command-palette.spec.ts:67:3 › F-R1-3 Command-Palette & Eingabeschutz › Kein Kurzbefehl feuert in einem Textfeld (t/p/v/s bleiben Zeichen) (5.3s)
+  ✓   9 [chromium] › tests/e2e/journeys/tastatur-command-palette.spec.ts:99:3 › F-R1-3 Command-Palette & Eingabeschutz › Tippen ins Suchfeld der Palette löst kein Kürzel aus (pc/tc bleiben Suche) (4.1s)
+  ✓  10 [chromium] › tests/e2e/journeys/teammitglied-einladen.spec.ts:21:3 › J-05 Teammitglied einladen › Ein Anwender lädt ein Teammitglied ein und der Eingeladene nimmt an (7.7s)
+[WebServer] 7:34:04 AM [vite] (client) [console.warn] [tiptap warn]: Duplicate extension names found: ['link']. This can lead to issues.
+  ✓  11 [chromium] › tests/e2e/journeys/vorgang-anlegen-zuweisen.spec.ts:20:3 › J-03 Vorgang anlegen und zuweisen › Ein Anwender legt einen priorisierten Vorgang an und weist ihn zu (4.5s)
+[WebServer] 7:34:09 AM [vite] (client) [console.warn] [tiptap warn]: Duplicate extension names found: ['link']. This can lead to issues.
+  ✓  12 [chromium] › tests/e2e/journeys/vorgang-im-board-weiterziehen.spec.ts:24:3 › J-04 Vorgang im Board weiterziehen › Ein Anwender zieht einen Vorgang von "To Do" zu "In Progress" (5.8s)
+[WebServer] 7:34:14 AM [vite] (client) [console.warn] [tiptap warn]: Duplicate extension names found: ['link']. This can lead to issues.
+[WebServer] 7:34:15 AM [vite] (client) [console.warn] [tiptap warn]: Duplicate extension names found: ['link']. This can lead to issues.
+[WebServer] 7:34:15 AM [vite] (client) [console.warn] [tiptap warn]: Duplicate extension names found: ['link']. This can lead to issues.
+  ✓  13 [chromium] › tests/e2e/journeys/vorgang-im-board-weiterziehen.spec.ts:71:3 › J-04 Vorgang im Board weiterziehen › Ein Anwender wechselt den Status per Detail-Kürzel in der Shelf (5.8s)
+[WebServer] 7:34:20 AM [vite] (client) [console.warn] [tiptap warn]: Duplicate extension names found: ['link']. This can lead to issues.
+[WebServer] 7:34:21 AM [vite] (client) [console.warn] [tiptap warn]: Duplicate extension names found: ['link']. This can lead to issues.
+[WebServer] 7:34:21 AM [vite] (client) [console.warn] [tiptap warn]: Duplicate extension names found: ['link']. This can lead to issues.
+[WebServer] 7:34:22 AM [vite] (client) [console.warn] [tiptap warn]: Duplicate extension names found: ['link']. This can lead to issues.
+[WebServer] 7:34:22 AM [vite] (client) [console.warn] [tiptap warn]: Duplicate extension names found: ['link']. This can lead to issues.
+[WebServer] 7:34:22 AM [vite] (client) [console.warn] [tiptap warn]: Duplicate extension names found: ['link']. This can lead to issues.
+[WebServer] 7:34:22 AM [vite] (client) [console.warn] [tiptap warn]: Duplicate extension names found: ['link']. This can lead to issues.
+  ✓  14 [chromium] › tests/e2e/journeys/vorgang-ins-detail-pflegen.spec.ts:21:3 › J-06 Vorgang bis ins Detail pflegen › Ein Anwender ergänzt Beschreibung, Termin und Kommentar an einem Vorgang (6.2s)
+
+
+  1) [chromium] › tests/e2e/journeys/tastatur-command-palette.spec.ts:21:3 › F-R1-3 Command-Palette & Eingabeschutz › Wechselt das Board direkt über die Projektsuche der Palette 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByPlaceholder('Project name')
+    Expected: visible
+    Error: strict mode violation: getByPlaceholder('Project name') resolved to 2 elements:
+        1) <input value="" required="" data-slot="input" id="base-ui-_r_25_" placeholder="Project name" class="h-8.5 w-full min-w-0 rounded-[inherit] px-[calc(--spacing(3)-1px)] leading-8.5 outline-none placeholder:text-muted-foreground/72 sm:h-7.5 sm:leading-7.5 [transition:background-color_5000000s_ease-in-out_0s]"/> aka locator('#base-ui-_r_25_')
+        2) <input value="" required="" data-slot="input" id="base-ui-_r_2r_" placeholder="Project name" class="h-8.5 w-full min-w-0 rounded-[inherit] px-[calc(--spacing(3)-1px)] leading-8.5 outline-none placeholder:text-muted-foreground/72 sm:h-7.5 sm:leading-7.5 [transition:background-color_5000000s_ease-in-out_0s]"/> aka getByRole('textbox', { name: 'Project name' })
+
+    Call log:
+      - Expect "toBeVisible" with timeout 10000ms
+      - waiting for getByPlaceholder('Project name')
+
+
+      41 |     await suchfeld.type("create project");
+      42 |     await page.keyboard.press("Enter");
+    > 43 |     await expect(page.getByPlaceholder("Project name")).toBeVisible();
+         |                                                         ^
+      44 |     await page.keyboard.type(`Beta ${Date.now()}`);
+      45 |     await page.keyboard.press("Enter");
+      46 |     await expect(page).toHaveURL(/\/project\/[^/]+\/board/, {
+        at /Users/aknipschild/github/hermes-agent-playground/04-hermes-agent-software-company-test-kaneo/tests/e2e/journeys/tastatur-command-palette.spec.ts:43:57
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/artifacts/journeys-tastatur-command--a4b3b-ie-Projektsuche-der-Palette-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/artifacts/journeys-tastatur-command--a4b3b-ie-Projektsuche-der-Palette-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/artifacts/journeys-tastatur-command--a4b3b-ie-Projektsuche-der-Palette-chromium/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/artifacts/journeys-tastatur-command--a4b3b-ie-Projektsuche-der-Palette-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    [chromium] › tests/e2e/journeys/tastatur-command-palette.spec.ts:21:3 › F-R1-3 Command-Palette & Eingabeschutz › Wechselt das Board direkt über die Projektsuche der Palette 
+  13 passed (1.1m)
+───── Ende ─────
+
+✗ VERWEIGERT: Die E2E-Suite ist rot. Kein Feature merged über ein rotes Regressionsnetz.
+
+Der Riegel merged nicht. Ursache beheben, dann erneut aufrufen.
+Nicht umgehen — 'git merge' von Hand ist ein Governance-Verstoss und
+monitor.sh meldet einen Merge ohne Riegel-Protokoll.

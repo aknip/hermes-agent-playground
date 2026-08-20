@@ -1,0 +1,66 @@
+done     esf-architect        t_d44eafe8  Onboarding 1/6 — Codebasis-Analyse
+done     esf-product-manager  t_253f631c  Onboarding 2/6 — Produkt- und Nutzeranalyse
+done     esf-market-analyst   t_6142d9c1  Onboarding 3/6 — Marktbild
+done     esf-qa-release       t_74d35a8f  Onboarding 4/6 — E2E-Suite über die Kern-Journeys
+done     esf-chief-of-staff   t_583218e7  Onboarding 5/6 — Erste Roadmap mit Schätzintervallen
+done     esf-chief-of-staff   t_95b30a23  GATE Roadmap — Q1-Freigabe
+done     esf-video-designer   t_84b70d60  Video-Komposition — analysis/market.html
+done     esf-video-designer   t_895e9428  Video-Komposition — analysis/product.html
+done     esf-video-designer   t_edbfe97b  Video-Komposition — analysis/codebase.html
+done     esf-video-designer   t_e9ef7395  Video-Komposition — roadmap/q1-freigegeben.html
+done     esf-video-designer   t_01e6bead  Video-Komposition — roadmap/q1-entwurf.html
+done     esf-video-designer   t_a9436877  Video-Komposition — analysis/market.html
+done     esf-dev-a            t_85674c46  S1 W 1/1 — Wartung: biome ci gruen
+done     esf-product-manager  t_e70f40ff  S1 F2 1/5 — Spezifikation F-R1-2 Create-Task-Dialog entschlacken
+done     esf-estimator        t_1b5d47a2  S1 F2 2/5 — Schätzung F-R1-2
+done     esf-dev-a            t_d0ebd919  S1 F2 3/5 — Umsetzung F-R1-2
+done     esf-reviewer         t_c8e3463c  S1 F2 4/5 — Review F-R1-2
+done     esf-qa-release       t_5db4aefa  S1 F2 5/5 — Merge F-R1-2 am Riegel
+done     esf-controller       t_25ea8331  Kalibrierung S1
+done     esf-chief-of-staff   t_46063013  Sprint-Abschluss S1
+done     esf-product-manager  t_da7bbee1  S2 F3 1/4 — Spezifikation F-R1-3 Tastatur & Command-Palette
+done     esf-estimator        t_7b63189b  S2 F3 2/4 — Schätzung F-R1-3
+done     esf-dev-a            t_7c31acd6  S2 F3 3/4 — Umsetzung F-R1-3 Tastatur & Command-Palette
+done     esf-reviewer         t_e76c4947  S2 F3 4/4 — Review F-R1-3
+done     esf-qa-release       t_ee17923d  S2 F4 1/4 — Spezifikation F-R1-4 E2E-Netz J-05 + J-06
+done     esf-estimator        t_787b4825  S2 F4 2/4 — Schätzung F-R1-4
+done     esf-dev-b            t_8cc6d17a  S2 F4 3/4 — Umsetzung F-R1-4 E2E-Netz J-05 + J-06
+done     esf-reviewer         t_1d5462b9  S2 F4 4/4 — Review F-R1-4
+done     esf-qa-release       t_90fdf0f6  S2 Merge F3 — F-R1-3 am Riegel
+done     esf-qa-release       t_c35344ff  S2 Merge F4 — F-R1-4 am Riegel
+done     esf-controller       t_94142e50  Kalibrierung S2
+done     esf-chief-of-staff   t_a5303420  Sprint-Abschluss S2
+done     esf-qa-release       t_a91fb621  Release-Abschluss R1
+done     esf-chief-of-staff   t_d85e4216  GATE Release — R1
+done     esf-qa-release       t_28c5032d  Auflage R1-a — Journey-Katalog nachziehen (J-03) und Regel verankern
+done     esf-controller       t_c735aff4  Auflage R1-b — die zwei Ledger-Luecken im R2-Controller-Report benennen
+done     esf-architect        t_2616e83d  Auflage R1-c — praeexistenter Palette-Keydown-Handler
+done     esf-dev-a            t_0b6f6f2b  S3 W 1/1 — Wartung: Palette-Keydown-Guard
+done     esf-architect        t_eb272a28  S3 F1 1/5 — Spezifikation F-R1-1 Import CSV + WeKan
+done     esf-estimator        t_5d4b570f  S3 F1 2/5 — Schätzung F-R1-1
+done     esf-dev-a            t_de53e678  S3 F1 3/5 — Umsetzung F-R1-1 Import CSV + WeKan
+done     esf-reviewer         t_4ebb816f  S3 F1 4/5 — Review F-R1-1
+done     esf-qa-release       t_e027226a  S3 F1 5/5 — Merge F-R1-1 am Riegel
+done     esf-controller       t_16af6589  Kalibrierung S3
+done     esf-chief-of-staff   t_88a4c431  Sprint-Abschluss S3
+done     esf-chief-of-staff   t_66f18d66  Neuschnitt R2 — gegen gemessene Intervalle
+done     esf-chief-of-staff   t_cc17fedf  GATE Roadmap — Neuschnitt R2
+done     esf-architect        t_954918ae  S4 F1b 1/4 — Spezifikation F-R1-1b WeKan-Import
+done     esf-architect        t_c8a338ba  S4 F2 1/4 — Spezifikation F-R2-1 MCP-Agentenkanal haerten
+done     esf-estimator        t_c04e1420  S4 Schätzung — F-R1-1b und F-R2-1
+done     esf-dev-a            t_fa08a5b5  S4 F1b 2/4 — Umsetzung F-R1-1b WeKan-Import
+done     esf-dev-b            t_e66652b4  S4 F2 2/4 — Umsetzung F-R2-1 MCP-Agentenkanal
+done     esf-reviewer         t_4798143b  S4 F1b 3/4 — Review F-R1-1b
+done     esf-reviewer         t_740896e8  S4 F2 3/4 — Review F-R2-1
+done     esf-qa-release       t_9ef532cc  S4 Merge F1b — F-R1-1b am Riegel
+done     esf-qa-release       t_c0bd7173  S4 Merge F2 — F-R2-1 am Riegel
+done     esf-controller       t_a37e2da8  Kalibrierung S4
+done     esf-chief-of-staff   t_1e586edb  Sprint-Abschluss S4
+done     esf-dev-b            t_4b497229  S4 F2 Nacharbeit — H3-Guard akzeptiert VIRTUAL_STATUSES planned/archived
+done     esf-reviewer         t_20eb1d94  S4 F2 4/4 — Review F-R2-1 (zweiter Anlauf, nach Nacharbeit)
+done     esf-qa-release       t_d9599f2a  S4 Merge F2 — F-R2-1 am Riegel (zweiter Anlauf)
+done     esf-product-manager  t_669af104  Probelauf 1/4 — Spezifikation
+done     esf-dev-a            t_ac33af63  Probelauf 2/4 — Bau
+done     esf-reviewer         t_dc72a309  Probelauf 3/4 — Review
+done     esf-chief-of-staff   t_e2ed027a  GATE Roadmap — Probelauf 4/4
+blocked  esf-chief-of-staff   t_db7f50c2  GATE Budget — S4

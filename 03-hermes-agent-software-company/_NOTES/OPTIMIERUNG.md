@@ -245,6 +245,13 @@ benennt.
 | **6** | `laufzeiten.txt` widersprach seiner eigenen Summe um 17 min. Die Messbasis jeder Vorher/Nachher-Aussage — auch dieser. | 17 min in beiden Akten, Zahl nicht nachrechenbar | 2 von 2 Akten | `scripts/dump-lauf.sh` | `b6dfc3d` |
 | **7** | `monitor.sh` starb still, wenn `cadence.yaml` fehlte: `2>/dev/null` verschluckt die Meldung, nicht den Exit-Code — `sed` gibt 2, `pipefail` trägt es durch, `set -e` beendet vor der Ausgabe. Ergebnis: leere Ausgabe, Exit 1 — dasselbe Signal wie „ich habe Befunde". | Monitor unbrauchbar zwischen `reset-workspace.sh` und `setup.sh` | jeder Aufruf in diesem Zustand | `scripts/monitor.sh` | `9b1dd5f` |
 
+| **8** | `watchdog.sh` war blind für Hänger mit festgefahrenem Kind (`n_kinder -eq 0` statt „Kinder arbeiten"); dazu prüfte der Tötungs-Zweig `MIN_MINUTEN` nie. | 71 min an einer Karte, real gemessen | 1 von 4 Karten des Validierungslaufs | `scripts/watchdog.sh` | `429b520` |
+| **9** | Kein Wort hielt einen Worker von einer Suche über das ganze Dateisystem ab. | **83 von 146 min** = 57 % der Kartenzeit | 2 von 4 Karten | `templates/HERMES-TOOLS.md` + 8 Profilkopien | `d0b6505` |
+| **10** | Der Lage-Bericht der Pumpe fragte auch fertige Karten ab — 29 s je Bericht auf 62 Karten, und er meldete alte Sprints als neu. | Bericht unbrauchbar auf einem gewachsenen Board | jeder Bericht | `pump.sh` | `cd61ca7` |
+
+Die Maßnahmen 8 bis 10 stammen **aus dem Validierungslauf selbst** (BLOCK 4.6),
+nicht aus der Baseline — der Lauf hat sie gefunden.
+
 **Befund 7 war vorher nicht bekannt.** Er ist beim Bauen von Testfall 1
 aufgefallen, weil der Test das Skript in einer Umgebung aufrief, in der noch
 kein Vault stand — dieselbe Fehlerklasse wie der `set -u`-Abbruch, der 200
@@ -288,12 +295,15 @@ was im Betrieb läuft.
 | 6 | 4 | `scripts/tick.sh:176: --max-runtime 60m` namentlich | „kein Deckel unter 75 min" |
 | 7 | 7 | „leere Ausgabe — der Monitor ist mitten im Lauf gestorben" | gültiges JSON, Bericht abgegeben |
 
+| 8 | 8 | Urteil `0.0 1 0 1 71` → `verdacht` (Hänger mit festgefahrenem Kind bleibt liegen); `0.0 1 0 0 2` → `toeten` (Kill unter der Mindestlaufzeit) | beide richtig, die anderen vier Fälle unverändert |
+| 9 | 9 | Vorlage sagt nichts zu `find /`, nennt keinen Suchraum, eine Profilkopie abgedriftet | alle drei grün; die Invariante ist „Kopie enthält die Vorlage", weil `esf-video-designer` bewusst mehr trägt |
+
 Beide Ausgaben stehen im Transkript dieser Runde. Reihenfolge je Maßnahme: Test
 schreiben → rot zeigen → Fix → grün zeigen → Test **und** Fix zusammen
 committen. Der erste Commit (`0acb8d5`) zeigt alle sechs damals bekannten Fälle
 rot am unveränderten Ausgangsstand.
 
-Voller Lauf nach allen sieben Fixes: **17 Prüfungen, alle grün, Exit 0.**
+Voller Lauf nach allen zehn Fixes: **neun Fälle, 26 Prüfungen, alle grün, Exit 0.**
 
 Zwei Ehrlichkeiten zum Netz selbst:
 
@@ -312,68 +322,157 @@ Zwei Ehrlichkeiten zum Netz selbst:
 |--------|----------|---------------------------|----------------------------|
 | `vault-lint.py seed/lint-selbsttest` | 9 | **9 ERROR**, 2 WARN | **9 ERROR**, 2 WARN |
 | `ceo-lint.py seed/ceo-selbsttest/*.html` | 5 | **5** (1+0+2+2) | **5** (1+0+2+2) |
-| `bash -n` auf jedem geänderten Skript | Exit 0 | — | **5 von 5 Exit 0** (`pump.sh`, `monitor.sh`, `dump-lauf.sh`, `tick.sh`, `test-optimierung.sh`) |
+| `bash -n` auf jedem geänderten Skript | Exit 0 | — | **6 von 6 Exit 0** (`pump.sh`, `monitor.sh`, `dump-lauf.sh`, `tick.sh`, `watchdog.sh`, `test-optimierung.sh`) |
 | `bash -n` auf allen 36 Skripten | Exit 0 | alle Exit 0 | **alle Exit 0** |
-| die drei Selbsttests am Ende von `setup.sh` | grün | nicht messbar ohne Lauf | siehe BLOCK 4 |
+| die drei Selbsttests am Ende von `setup.sh` | grün | nicht messbar ohne Lauf | **grün** (BLOCK 4.1): Vault-Linter 9 ERROR/Exit 1, Merge-Riegel verweigert mit Exit 1, 13 Profile `ON DISK = yes` mit 13 Keys, CEO-Riegel 5 ERROR |
 
-## BLOCK 4 — Nachher: **nicht gefahren**
+## BLOCK 4 — Der Validierungslauf, gefahren am 20.08.2026
 
-Der Validierungslauf ist **nicht gelaufen**. Das ist kein offener Punkt, den
-jemand vergessen hat, sondern eine Entscheidung mit Grund — und nach dem
-Verifikationsvertrag gehört sie hierher und nicht in eine Fußnote.
+Akte: `beispiel-lauf-5/`. Kosten: **0,1906 USD** (Startwert 19,9802 → 20,1708),
+gegen einen Deckel von 5,00 USD. `install-cron.sh` und `teardown.sh` nicht
+aufgerufen.
 
-**Warum nicht.** Der Turn-Deckel der Bedingung (50) war bei abgeschlossenem
-BLOCK 3 erreicht. Ein Phase-0-Lauf braucht nach der eigenen Baseline vier Karten
-mit 11–36 Minuten Wanduhr, dazwischen Gate-Antworten über `gate.sh` und
-`pump.sh`-Takte — das ist mehr Wanduhr und mehr Turns, als übrig waren. Ihn
-**anzufangen** und nicht zu beenden wäre schlechter als ihn zu lassen: Worker
-laufen dann weiter und verbrauchen Modell-Token, während niemand zusieht, und
-`reset-workspace.sh` hätte vorher `workspace/` gelöscht — Zustand weg, Nachweis
-nicht da.
+### 4.1 Der Lauf
 
-**Was dadurch unverifiziert bleibt** — nichts davon wird als verbessert gemeldet:
+`reset-workspace.sh` → `setup.sh` → `probelauf.sh` → `pump.sh` → `gate.sh` →
+`probelauf.sh --pruefen`. **Ergebnis: `✓ Phase 0 nachgewiesen.` (Exit 0).**
 
-| offen geblieben | Grund |
-|-----------------|-------|
-| 0 `timed_out`, 0 `crashed`, 0 `respawn_guarded`, 0 `block_loop_detected` in einem eigenen Lauf | kein Lauf |
-| 0 hängende Worker über `scripts/watchdog.sh` **an echten Prozessen** | der Wachhund ist nur gegen eine Attrappe belegt (Fall 2), nicht gegen einen echten Hänger |
-| 0 Unblocks ohne `gate.sh`-Verb | kein Gate beantwortet |
-| die drei Selbsttests am Ende von `setup.sh` | `setup.sh` nicht gelaufen — dieselbe Zeile steht offen in 3(b) |
-| **Kartenzeiten als Nachher-Spalte neben der Baseline** | nicht gemessen |
-| der Normalpfad von `dump-lauf.sh` (Schritte 2–5) | nur Schritt 1/5 gegen das Live-Board angelaufen; die Laufzeit-Arithmetik ist über `--nur-laufzeiten` und die beiden echten Akten belegt, der schreibende Pfad nicht |
+`setup.sh` schließt damit auch die letzte offene Zeile aus 3(b): Vault-Linter
+9 ERROR/Exit 1 wie erwartet, Merge-Riegel verweigert mit Exit 1 wie erwartet,
+13 Profile `ON DISK = yes` mit 13 verschiedenen Keys, CEO-Riegel genau 5 ERROR.
 
-**Und die wichtigste Ehrlichkeit: Diese Runde belegt keine Effizienzverbesserung.**
-Alle sieben Maßnahmen sind **Erkennungs- und Sichtbarkeitsänderungen** — sie
-machen Verlust messbar, sie beseitigen ihn nicht. Dass ein früher erkannter
-Hänger und ein nicht mehr verschluckter Dispatcher-Fehler Wanduhr sparen, ist
-eine **Begründung, keine Messung**. Die einzige Maßnahme, die unmittelbar
-Verlustzeit verhindert, ist Nr. 4 (60 m → 90 m), und auch die ist nur an der
-Häufigkeit der Vorgeschichte plausibel, nicht an einem eigenen Lauf gemessen.
-Was diese Runde **belegt** hat: sieben Defekte, jeder vor dem Fix rot und nach
-dem Fix grün, in 17 Prüfungen, bei unveränderten Riegeln.
+### 4.2 Die Zähler — für diesen Lauf, über seine vier Karten
 
-**Kostenstand vor dem Lauf** (`scripts/assign-keys.sh --verbrauch`, kumulativ
-über alle 13 Rollen-Keys, also über *alle* bisherigen Läufe hinweg):
-**19,98 USD**. Diese Runde hat davon **0,00 USD** verursacht — Blöcke 1 bis 3
-sind modellfrei. Der 5-USD-Deckel der Bedingung gilt als Delta auf diesen Stand
-und ist damit die Zahl, gegen die ein späterer Lauf zu messen ist.
+| Zähler | Ergebnis |
+|--------|----------|
+| `timed_out` | **0** |
+| `crashed` | **0** |
+| `respawn_guarded` | **0** |
+| `block_loop_detected` | **0** |
+| `gave_up`, `spawn_failed` | **0** |
+| Unblocks ohne `gate.sh`-Verb | **0** (1 Unblock, 1 mit gültigem Verb) |
+| Läufe für 4 Karten | **5** — der fünfte ist der `blocked`-Lauf der Gate-Karte, also kein Wiederholen |
+| hängende Worker am Ende (`watchdog.sh`) | **0** („Keine verdächtigen Worker.") |
 
-### So wird der Lauf nachgeholt
+`monitor.sh` über das ganze Board: **keiner der 13 ERROR-Befunde betrifft eine
+der vier Probe-Karten** — alle stammen aus der S3/S4-Historie (4.5).
 
-```bash
-cd 03-hermes-agent-software-company
-./scripts/assign-keys.sh --verbrauch   # Startwert notieren (Deckel = Start + 5 USD)
-./reset-workspace.sh
-./setup.sh                             # die drei Selbsttests am Ende schliessen 3(b)
-./probelauf.sh
-./pump.sh                              # taktet, meldet jetzt Wachhund und Abbrueche
-./gate.sh                              # jede Antwort mit Begruendung protokollieren
-./probelauf.sh --pruefen               # bis gruen
-scripts/monitor.sh                     # 0 timed_out / crashed / respawn_guarded / block_loop_detected
-scripts/watchdog.sh                    # 0 haengende Worker
-scripts/dump-lauf.sh beispiel-lauf-4   # Akte sichern, VOR jedem Rueckbau
-```
+### 4.3 Kartenzeit: Baseline gegen diesen Lauf
 
-`install-cron.sh` bleibt dabei ungenutzt, `teardown.sh` erst nach
-`dump-lauf.sh` — beides Randbedingungen der Aufgabe, beide in dieser Runde
-eingehalten (keines der beiden Skripte wurde aufgerufen).
+| Kartentyp | Baseline (Lauf 3) | dieser Lauf | Läufe |
+|-----------|-------------------|-------------|-------|
+| Spezifikation | 7,7 min/Karte | **1 min** | 1 |
+| Bau / Umsetzung | 32,0 min/Karte | **54 min** | 1 |
+| Review | 8,7 min/Karte | **12 min** | 1 |
+| Gate | 10,0 min/Karte | **78 min** | 2 (blocked + Antwort) |
+| **Summe** | — | **146 min** | 5 |
+
+**Diese Spalte ist kein Effizienzgewinn, und sie ist auch keiner in der anderen
+Richtung.** Sie ist mit der Baseline nicht vergleichbar: Die Baseline-Zeilen sind
+Mittelwerte über echte Feature-Karten aus S1/S2, diese vier sind die
+Dummy-Kette der Phase 0 — ein Dreizeiler in einer Datei. Der Vergleich steht hier
+nur, damit niemand ihn selbst anstellt und sich daran verrechnet.
+
+Was die Zahlen aber sehr wohl zeigen, ist etwas anderes, und das ist der
+wichtigste Befund des Laufs.
+
+### 4.4 Der teuerste Befund: 83 von 146 Minuten in `find`
+
+| Karte | Kartenzeit | davon Suche über das Dateisystem |
+|-------|------------|----------------------------------|
+| Bau `t_ac33af63` | 54 min | ~12 min, zweimal `find $HOME` (Suche nach einem pnpm-Store) |
+| Gate `t_e2ed027a` | 78 min | **71 min** `find / -name tastatur-command-palette.spec.ts`, bei 0,0 % CPU auf einem hängenden Netzlaufwerk |
+
+**57 % der Kartenzeit dieses Laufs steckte in dateisystemweiten Suchen.** Die
+Gate-Karte wäre ohne einen Eingriff von Hand 19 Minuten später in ihren
+90-Minuten-Deckel gelaufen — voller Preis, kein Ergebnis, vollständige
+Wiederholung. Behoben in `templates/HERMES-TOOLS.md` (Commit `d0b6505`), der
+einen Stelle, die `setup.sh` an alle 13 Profile verteilt: benannt wird nicht nur
+das Verbot, sondern der erlaubte Suchraum samt Befehlen.
+
+**Und das ist die Ehrlichkeit, auf die es hier ankommt: Die 0 bei `timed_out`
+ist teilweise von Hand erkauft.** Ich habe den festgefahrenen `find`-Prozess
+beendet (nur ihn, nicht den Worker — das erhielt 71 Minuten Kontext). Ohne
+diesen Eingriff stünde in der Tabelle 4.2 eine 1. Der Lauf belegt also: die
+Kette trägt, die Zähler sind sauber — **aber sie waren es nicht von allein.**
+
+### 4.5 Was die Maßnahmen im Lauf real geleistet haben
+
+| Maßnahme | im Lauf belegt? |
+|----------|-----------------|
+| 1 — `monitor.sh` kennt `timed_out` | **ja, an echten Daten.** Auf demselben Board fand der aufgerüstete Monitor **6 Karten mit `timed_out` und 1 mit `crashed`**, für die der alte strukturell blind war. Überschüsse: **6, 4, 4, 16, 6, 6 Sekunden**. Zwei davon (`t_c8a338ba`, `t_e66652b4`) liegen in **S4** — dem Sprint, den der letzte Commit vor dieser Runde „der erste vollständig grüne Sprint" nennt. Drei der sechs Messpunkte waren in BLOCK 1 noch nicht bekannt; die Signatur steht damit bei **8 von 8 unter 30 s, 6 von 8 unter 17 s** |
+| 2 — Abbruch-Bericht der Pumpe | **nicht ausgelöst** — es gab in diesem Lauf keinen Abbruch zu melden. Nur die Gegenprobe greift: er hat auch keinen Fehlalarm erzeugt |
+| 3 — Wachhund in der Pumpe | **ja.** Er lief 14-mal, meldete zweimal einen Verdacht und beendete richtig nichts. Erstmals in diesem Repo an einem **echten** Prozess belegt, nicht nur an einer Attrappe |
+| 4 — Zeitgrenzen-Untergrenze | **nicht ausgelöst** — keine Karte in der Nähe ihres Deckels (außer der Gate-Karte, siehe 4.4) |
+| 5 — Dispatcher-Fehler | **nicht ausgelöst** — kein Dispatch ist fehlgeschlagen |
+| 6 — `laufzeiten.txt` stimmt mit seiner Summe | **ja, an echten Daten**, dreimal: `beispiel-lauf-2` (1114 = 1114), `beispiel-lauf-4` (1348 = 1348, 61 Karten), `beispiel-lauf-5` (1494 = 1494) |
+| 7 — `monitor.sh` stirbt nicht mehr still | **ja** — der Monitor lief unmittelbar nach `reset-workspace.sh` gegen einen Vault ohne `cadence.yaml`, genau der Zustand, in dem er vorher mit Exit 1 und leerer Ausgabe abbrach |
+
+Drei von sieben Maßnahmen haben im Lauf real angeschlagen, vier hatten keinen
+Anlass. Das ist der erwartete Ausgang für einen sauberen Lauf und **kein Beleg,
+dass die vier wirken** — nur, dass sie keinen Fehlalarm erzeugen.
+
+### 4.6 Was der Lauf zusätzlich gefunden hat
+
+Drei Befunde, die vorher nicht bekannt waren und alle drei aus dem Lauf selbst
+stammen, mit Fix und Nachweis:
+
+| # | Befund | Commit |
+|---|--------|--------|
+| 8 | **Der Wachhund war blind für Hänger mit festgefahrenem Kind.** Kriterium 2 lautete `n_kinder -eq 0`, sein eigener Kommentar begründet aber „ein Prozess mit *arbeitenden* Kindern ist nicht untätig". Kriterium 1 misst die CPU des ganzen Baums — liegt die unter der Schwelle, arbeitet auch kein Kind. Genau der Fall der Gate-Karte. Dabei fiel ein **zweiter** Defekt auf: der Tötungs-Zweig prüfte `MIN_MINUTEN` nie, obwohl das Banner sie ausgibt — ein zwei Minuten alter Worker mit einem Pool-Socket auf `CLOSE_WAIT` war tötbar, plausibel einer der beiden historischen Fehlkills | `429b520` |
+| 9 | **83 von 146 Minuten in `find`** (4.4) | `d0b6505` |
+| 10 | **Der Lage-Bericht der Pumpe fragte auch fertige Karten ab** — auf dem echten Board 62 Karten, 29 s je Bericht, und er meldete die Abbrüche aller alten Sprints als neu. Gefunden in der ersten Minute des Laufs | `cd61ca7` |
+
+### 4.7 Fazit, nach dem Verifikationsvertrag
+
+**Belegt besser (an Messungen, nicht an Argumenten):**
+
+- **Die Erkennung.** Der Monitor findet auf demselben Board 7 Verlustereignisse,
+  die er vorher nicht sehen konnte — darunter zwei in einem Sprint, der als
+  vollständig grün protokolliert war. Das ist der harte Gewinn dieser Runde.
+- **Die Messbasis.** `laufzeiten.txt` stimmt jetzt mit seiner eigenen Summe, an
+  drei echten Akten gegengeprüft. Jede Vorher/Nachher-Aussage über diese ESF
+  ruht auf dieser Tabelle.
+- **Das Urteil des Wachhunds.** Zwei Fehlklassifikationen behoben, sechs Fälle
+  deterministisch abgesichert, einer davon direkt aus diesem Lauf.
+- **Die Kette trägt.** Phase 0 ist nachgewiesen, alle Zähler auf 0, kein
+  Unblock ohne Verb, kein `block_loop_detected` trotz `modify` am Gate.
+
+**Unverändert:** Die Kartenzeit. Nichts an dieser Runde hat eine Karte
+schneller gemacht, und die Zahlen in 4.3 taugen nicht als Gegenbeweis in
+irgendeine Richtung.
+
+**Bleibt unverifiziert:**
+
+- **Ob die Effizienz steigt.** Maßnahme 9 (`find`-Disziplin) adressiert 57 % der
+  Kartenzeit dieses Laufs, aber sie ist **eine Anweisung an ein Modell** und
+  damit erst belegt, wenn ein Lauf gegen die neue Vorlage kürzere Karten zeigt.
+  Bis dahin ist der Gewinn eine Begründung, keine Messung. Dasselbe gilt für die
+  Maßnahmen 2, 4 und 5, die keinen Anlass hatten.
+- **Der neue Tötungs-Zweig des Wachhunds an einem echten Hänger.** Die
+  Entscheidung ist gegen Zahlentripel belegt (Fall 8), die Ausführung nicht:
+  In diesem Lauf hat er nichts beendet, und ich habe von Hand eingegriffen,
+  bevor er unter der neuen Regel zugeschlagen hätte. **Das ist die Stelle, an
+  der ich meinen eigenen Fix nicht geprüft habe**, und sie gehört als erste in
+  den nächsten Lauf.
+- **Der schreibende Pfad von `dump-lauf.sh`** ist jetzt zweimal gelaufen
+  (`beispiel-lauf-4`, `-5`) — nicht mehr unverifiziert. Die Zeile aus dem
+  früheren Stand entfällt.
+- **Ein Sprint-Lauf.** Phase 0 ist die Dummy-Kette. Ob die Maßnahmen unter der
+  Last eines echten Features tragen, ist nicht gemessen.
+
+---
+
+## Anhang — warum BLOCK 4 zuerst nicht gefahren wurde
+
+Nach BLOCK 3 war der Turn-Deckel der Bedingung (50) erreicht, und ich habe den
+Validierungslauf bewusst **nicht** angefangen: Ein Phase-0-Lauf braucht mehr
+Wanduhr als übrig war, und ihn anzufangen ohne ihn zu beenden hätte laufende
+Worker ohne Aufsicht Token verbrauchen lassen, nachdem `reset-workspace.sh` den
+Zustand gelöscht hat. Der Stand wurde als Tabelle offener Punkte protokolliert
+statt als Lücke (Commit `91e735c`). Auf ausdrückliche Weisung ist der Lauf
+danach nachgeholt worden — sein Ergebnis steht oben in BLOCK 4.
+
+Die damalige Aussage „diese Runde belegt keine Effizienzverbesserung" gilt
+unverändert. Der Lauf hat sie nicht widerlegt, sondern präzisiert: Er hat den
+größten Effizienzhebel überhaupt erst gefunden (4.4).

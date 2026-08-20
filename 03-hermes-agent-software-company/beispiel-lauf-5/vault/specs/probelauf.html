@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <title>ESF-Probelauf — Spezifikation — ESF</title>
+  <meta name="esf-typ" content="spec">
+  <meta name="esf-karte" content="t_669af104">
+  <meta name="esf-datum" content="2026-08-20">
+</head>
+<body>
+  <h1>Spezifikation: docs/ESF-PROBELAUF.md</h1>
+
+  <p><strong>Karte:</strong> t_669af104 · <strong>Typ:</strong> Mechanik-Test, kein echtes Feature</p>
+
+  <h2>Kontext</h2>
+  <p>
+    Dieser Probelauf prüft die Übergabe der ESF-Kette
+    <em>Spezifikation → Bau → Review → Riegel</em>. Das Produkt-Repo
+    (Kaneo, Worktree auf Branch <code>feat/esf-probelauf</code>) bekommt eine
+    Belegdatei, die nachweist, dass ein Bedarf die volle Kette durchlaufen hat.
+  </p>
+
+  <h2>Ziel</h2>
+  <p>
+    Es entsteht eine winzige, risikofreie, maschinell prüfbare Spur: eine
+    Datei mit exakt drei Zeilen, die als Abschluss-Beleg dient. Keine
+    Produktlogik, kein UI, kein Verhalten ändert sich.
+  </p>
+
+  <h2>Nicht-Ziel</h2>
+  <p>
+    Es wird kein Feature gebaut und keine eigene E2E-Journey angelegt. Die Datei
+    ist reine Dokumentation.
+  </p>
+
+  <h2>Anforderung</h2>
+  <p>
+    Im Produkt-Repo wird <code>docs/ESF-PROBELAUF.md</code> neu angelegt. Die Datei
+    enthält <strong>genau drei Zeilen</strong> in genau dieser Reihenfolge, exakt
+    dieser Inhalt (Zeichen für Zeichen, inklusive Punkt und Umlauten — nicht bloß
+    dem Wortlaut nach):
+  </p>
+  <ol>
+    <li><strong>Zeile 1</strong> (Überschrift), Markdown-H1 — exakt:
+      <code># ESF-Probelauf</code></li>
+    <li><strong>Zeile 2</strong> (Datum) — exakt der Bau-Tag als ISO 8601,
+      <code>JJJJ-MM-TT</code> (z.&nbsp;B. <code>2026-08-20</code>)</li>
+    <li><strong>Zeile 3</strong> (Satz) — exakt:
+      <code>Diese Datei belegt, dass die ESF-Kette Spezifikation → Bau → Review → Riegel durchgelaufen ist.</code></li>
+  </ol>
+
+  <p>
+    Die fertige Datei sieht so aus — <code>&lt;JJJJ-MM-TT&gt;</code> steht für den
+    Bau-Tag; die dritte und letzte Zeile endet mit einem abschließenden
+    Zeilenumbruch als üblichem Dateiende, weitere sichtbare Zeilen gibt es nicht:
+  </p>
+  <pre><code># ESF-Probelauf
+&lt;JJJJ-MM-TT&gt;
+Diese Datei belegt, dass die ESF-Kette Spezifikation → Bau → Review → Riegel durchgelaufen ist.</code></pre>
+
+  <p>
+    Das Bau-Schritt (t_ac33af63) liest sein Datum von der System-/Wanduhr seines
+    eigenen Laufs (<code>date +%F</code>), nicht aus dieser Spezifikation oder dem
+    Kartentext — so bleibt die Angabe eine gemessene, keine geratene.
+    (AGENTS.md 3.2: Zeitstempel schreibt das System, nie das Modell.)
+  </p>
+
+  <h2>Randbedingungen</h2>
+  <ul>
+    <li>Die Datei liegt unter <code>docs/ESF-PROBELAUF.md</code> im Produkt-Repo
+    (Worktree, Branch <code>feat/esf-probelauf</code>) — nicht im Vault, nicht im
+    <code>company/</code>-Ordner.</li>
+    <li>Kein Merge, keine Änderung an <code>main</code>, keine weiteren Dateien.</li>
+  </ul>
+
+  <h2>Akzeptanzkriterien</h2>
+  <p>Jede Aussage ist maschinell prüfbar; ein Leser verifiziert sie in unter einer Minute.</p>
+  <ol>
+    <li><code>docs/ESF-PROBELAUF.md</code> existiert im Produkt-Repo und hat genau
+    drei Zeilen (drei Zeilenumbrüche; keine weitere, keine leere Zeile).</li>
+    <li>Zeile 1 ist exakt <code># ESF-Probelauf</code>.</li>
+    <li>Zeile 2 ist exakt der Bau-Tag als ISO 8601 (<code>JJJJ-MM-TT</code>).</li>
+    <li>Zeile 3 ist exakt der Satz
+      <code>Diese Datei belegt, dass die ESF-Kette Spezifikation → Bau → Review → Riegel durchgelaufen ist.</code></li>
+    <li>Die Datei ist committet; die Commit-Nachricht sagt, was und warum.</li>
+    <li><strong>E2E-Kriterium dieser Karte:</strong> Die vorhandene E2E-Suite des
+      Produkts läuft weiterhin grün — die Datei ändert kein Verhalten, sie ist
+      reine Dokumentation und bekommt deshalb keine eigene Journey. Ein E2E-Lauf
+      über die bestehende Suite belegt, dass nichts kaputtging.</li>
+  </ol>
+
+  <h2>Belege</h2>
+  <ul>
+    <li>Auftragskarte t_669af104 (Kontext), Formatvorgabe <code>AGENTS.md</code> 2.2.</li>
+    <li>Systemzeit des Bau-Laufs (<code>date +%F</code>) für die Datumsangabe.</li>
+  </ul>
+</body>
+</html>

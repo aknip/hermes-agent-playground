@@ -1,0 +1,62 @@
+ESF Merge-Riegel — 2026-08-20 07:32:46
+Repo:   /Users/aknipschild/github/hermes-agent-playground/04-hermes-agent-software-company-test-kaneo
+Branch: feat/esf-probelauf
+Modus:  Trockenlauf (es wird nichts geschrieben)
+
+── 1/6  Branch und Ausgangslage ──────────────────────────────────────────
+  Basis:            3f6d7081a37ac85c156a7ad589292aaeb667e397
+  Geänderte Dateien: 1
+
+── 2/6  Konfliktfreiheit ──────────────────────────────────────────
+  konfliktfrei — der Merge bleibt jetzt stehen und wird geprüft
+
+── 3/6  Linter auf den geänderten Dateien ──────────────────────────────────────────
+  keine lintbaren Dateien geändert — übersprungen
+
+── 4/6  Typecheck ──────────────────────────────────────────
+  Befehl: pnpm exec turbo typecheck --concurrency=1 --force
+  grün
+
+── 5/6  Unit-Tests ──────────────────────────────────────────
+  Befehl: pnpm exec turbo test --concurrency=1 --force
+  grün
+
+── 6/6  Volle E2E-Suite ──────────────────────────────────────────
+  Vorbedingung: docker compose -f compose.yml up -d postgres
+  Port 1337: pid 16586 aus dem Hauptbaum (in Ordnung)
+          - Expect "toBeVisible" with timeout 10000ms
+          - waiting for getByPlaceholder('Project name')
+    
+    
+          41 |     await suchfeld.type("create project");
+          42 |     await page.keyboard.press("Enter");
+        > 43 |     await expect(page.getByPlaceholder("Project name")).toBeVisible();
+             |                                                         ^
+          44 |     await page.keyboard.type(`Beta ${Date.now()}`);
+          45 |     await page.keyboard.press("Enter");
+          46 |     await expect(page).toHaveURL(/\/project\/[^/]+\/board/, {
+            at /Users/aknipschild/github/hermes-agent-playground/04-hermes-agent-software-company-test-kaneo/tests/e2e/journeys/tastatur-command-palette.spec.ts:43:57
+    
+        attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+        test-results/artifacts/journeys-tastatur-command--a4b3b-ie-Projektsuche-der-Palette-chromium/test-failed-1.png
+        ────────────────────────────────────────────────────────────────────────────────────────────────
+    
+        Error Context: test-results/artifacts/journeys-tastatur-command--a4b3b-ie-Projektsuche-der-Palette-chromium/error-context.md
+    
+        attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+        test-results/artifacts/journeys-tastatur-command--a4b3b-ie-Projektsuche-der-Palette-chromium/trace.zip
+        Usage:
+    
+            pnpm exec playwright show-trace test-results/artifacts/journeys-tastatur-command--a4b3b-ie-Projektsuche-der-Palette-chromium/trace.zip
+    
+        ────────────────────────────────────────────────────────────────────────────────────────────────
+    
+      1 failed
+        [chromium] › tests/e2e/journeys/tastatur-command-palette.spec.ts:21:3 › F-R1-3 Command-Palette & Eingabeschutz › Wechselt das Board direkt über die Projektsuche der Palette 
+      13 passed (1.1m)
+
+✗ VERWEIGERT: Die E2E-Suite ist rot. Kein Feature merged über ein rotes Regressionsnetz.
+
+Der Riegel merged nicht. Ursache beheben, dann erneut aufrufen.
+Nicht umgehen — 'git merge' von Hand ist ein Governance-Verstoss und
+monitor.sh meldet einen Merge ohne Riegel-Protokoll.
