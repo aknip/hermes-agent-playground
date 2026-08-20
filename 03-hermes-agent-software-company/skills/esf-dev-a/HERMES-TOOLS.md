@@ -18,7 +18,29 @@ ein Werkzeug nennt, das du nicht hast, gilt diese Übersetzung.
 | `AskUserQuestion`, „ask the user" | `kanban_block(kind="needs_input", reason=…)`. Du hast keinen Chat: Blockieren **ist** die Frage. Die Antwort steht bei deinem nächsten Lauf im Kommentar-Thread |
 | `ExitPlanMode`, Plan-Modus | gibt es nicht. Du planst, schreibst den Plan in eine Datei und arbeitest weiter |
 | `WebFetch`, `WebSearch` | **nicht verfügbar.** Alles Externe liegt als Datei im Workspace (`company/sources/<datum>/`). Kein Netz heißt: was nicht im Korpus steht, ist nicht belegt |
+| `find /`, `find ~`, „search the filesystem" | **nie.** Dein Suchraum ist das Produkt-Repo und der Vault — nichts darüber. `git -C <repo> ls-files`, `grep -rn … <repo>`, `glob` im Workspace |
 | „create a PR" | Branch committen und fertigmelden. Merge macht `scripts/merge-riegel.sh`, nicht du |
+
+## Eine Suche über das Dateisystem ist ein Hänger, keine Suche
+
+Am 20.08.2026 gemessen, im Probelauf der ESF gegen sich selbst: Zwei von vier
+Karten verbrachten **83 von 146 Minuten Kartenzeit** in dateisystemweiten
+Suchen. Die Bau-Karte suchte zweimal mit `find $HOME` nach einem pnpm-Store
+(~12 min). Die Gate-Karte startete `find / -name tastatur-command-palette.spec.ts`
+und stand damit **71 Minuten bei 0 % CPU** auf einem hängenden Netzlaufwerk —
+ohne einen Eingriff von Hand wäre sie in ihren 90-Minuten-Deckel gelaufen:
+voller Preis, kein Ergebnis, vollständige Wiederholung.
+
+Dein Suchraum ist das Produkt-Repo und der Vault. In dieser Reihenfolge:
+
+    git -C <repo> ls-files | grep <muster>     kennt nur versionierte Dateien — meist genau richtig
+    grep -rn <muster> <repo>/<unterordner>     wenn du den Inhalt suchst
+    glob im Workspace                          für den Vault
+
+Findest du etwas dort nicht, dann **existiert es für deine Karte nicht.**
+Schreib das hin — ein „nicht gefunden, gesucht in X und Y" ist ein Ergebnis.
+Das Dateisystem abzugrasen ist keines: Du weißt vorher nicht, wie lange es
+dauert, und dein Deckel läuft mit.
 
 ## Vier Stellen, an denen Hermes anders ist als der Skill annimmt
 

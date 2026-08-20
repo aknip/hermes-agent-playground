@@ -26,6 +26,7 @@
 #   6  Keine Zeitgrenze unter 75 min in den kartenlegenden Skripten
 #   7  monitor.sh stirbt still, wenn cadence.yaml fehlt (Exit 1, keine Ausgabe)
 #   8  watchdog.sh: Haenger mit festgefahrenem Kind, und Kill ohne Mindestlaufzeit
+#   9  Werkzeug-Disziplin: keine Suche ueber das Dateisystem (83 von 146 min)
 #
 set -uo pipefail
 
@@ -39,7 +40,7 @@ fall() { printf '\n\033[1mFall %s — %s\033[0m\n' "$1" "$2"; }
 
 command -v jq >/dev/null || { echo "FEHLER: 'jq' fehlt"; exit 2; }
 
-WILL="${*:-1 2 3 4 5 6 7 8}"
+WILL="${*:-1 2 3 4 5 6 7 8 9}"
 soll() { case " $WILL " in *" $1 "*) return 0 ;; *) return 1 ;; esac; }
 
 # ---------------------------------------------------------------------------
@@ -388,6 +389,45 @@ done <<'EOS'
 0.0 0 0 3 12|Sockets CLOSED, nicht CLOSE_WAIT (find $HOME)|verdacht
 0.0 1 0 0 2|zwei Minuten alt: unter der Mindestlaufzeit|still
 EOS
+fi
+
+# ===========================================================================
+if soll 9; then
+fall 9 "Werkzeug-Disziplin: keine Suche ueber das Dateisystem"
+# Der groesste Effizienzbefund des Validierungslaufs vom 20.08.2026: Zwei der
+# vier Probe-Karten verbrachten 83 von 146 Minuten Kartenzeit in
+# dateisystemweiten Suchen — `find $HOME` (Bau-Karte, ~12 min) und `find /`
+# (Gate-Karte, 71 min bei 0 % CPU auf einem haengenden Mount). Die zweite waere
+# ohne Eingriff von Hand in ihren 90-Minuten-Deckel gelaufen.
+#
+# templates/HERMES-TOOLS.md ist die EINE Stelle, an der Werkzeug-Disziplin fuer
+# alle Rollen steht: vendor-superpowers.sh kopiert sie in jeden Profilordner,
+# setup.sh verteilt sie an alle 13 Profile.
+if grep -qE 'find /|find ~' "$ESF/templates/HERMES-TOOLS.md" 2>/dev/null; then
+    ok "die Vorlage benennt die dateisystemweite Suche"
+else
+    nein "die Vorlage sagt nichts zu 'find /' — nichts haelt einen Worker davon ab"
+fi
+if grep -qi 'Suchraum' "$ESF/templates/HERMES-TOOLS.md" 2>/dev/null; then
+    ok "sie nennt den erlaubten Suchraum, nicht nur das Verbot"
+else
+    nein "ein Verbot ohne Alternative wird umgangen — der erlaubte Suchraum fehlt"
+fi
+# Eine abgedriftete Kopie ist ein stiller Fehler: setup.sh verteilt die Kopie,
+# nicht die Vorlage.
+ab=0; n=0
+for f in "$ESF"/skills/*/HERMES-TOOLS.md; do
+    [ -f "$f" ] || continue
+    n=$((n + 1))
+    # NICHT auf Gleichheit pruefen: skills/esf-video-designer/ traegt bewusst
+    # einen Hyperframes-Zusatz. Die Invariante ist "Obermenge" — jede Kopie muss
+    # die Vorlage ENTHALTEN. Eine Kopie, der ein Absatz der Vorlage fehlt, ist
+    # ein stiller Fehler, weil setup.sh die Kopie verteilt, nicht die Vorlage.
+    kopf="$(head -c "$(wc -c < "$ESF/templates/HERMES-TOOLS.md")" "$f")"
+    [ "$kopf" = "$(cat "$ESF/templates/HERMES-TOOLS.md")" ] \
+        || { nein "Kopie enthaelt die Vorlage nicht: skills/$(basename "$(dirname "$f")")/HERMES-TOOLS.md"; ab=$((ab + 1)); }
+done
+[ "$ab" -eq 0 ] && ok "alle $n Profilkopien enthalten die Vorlage (Rollen-Zusaetze erlaubt)"
 fi
 
 # ===========================================================================
