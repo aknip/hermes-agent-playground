@@ -25,6 +25,7 @@
 #   5  dump-lauf.sh: die Tabelle widerspricht ihrer eigenen Summe um 17 min
 #   6  Keine Zeitgrenze unter 75 min in den kartenlegenden Skripten
 #   7  monitor.sh stirbt still, wenn cadence.yaml fehlt (Exit 1, keine Ausgabe)
+#   8  watchdog.sh: Haenger mit festgefahrenem Kind, und Kill ohne Mindestlaufzeit
 #
 set -uo pipefail
 
@@ -38,7 +39,7 @@ fall() { printf '\n\033[1mFall %s — %s\033[0m\n' "$1" "$2"; }
 
 command -v jq >/dev/null || { echo "FEHLER: 'jq' fehlt"; exit 2; }
 
-WILL="${*:-1 2 3 4 5 6 7}"
+WILL="${*:-1 2 3 4 5 6 7 8}"
 soll() { case " $WILL " in *" $1 "*) return 0 ;; *) return 1 ;; esac; }
 
 # ---------------------------------------------------------------------------
@@ -353,6 +354,40 @@ else
         || nein "die Ausgabe ist kein gueltiges JSON: $(printf '%s' "$aus" | head -2)"
 fi
 rm -rf "$T"
+fi
+
+# ===========================================================================
+if soll 8; then
+fall 8 "watchdog.sh: das Urteil, gegen Zahlentripel statt gegen echte Prozesse"
+# Gemessen am 20.08.2026 an der Gate-Karte t_e2ed027a des Validierungslaufs:
+# 71 Minuten, 0,0 % CPU im ganzen Baum, ein Socket auf CLOSE_WAIT, keine
+# lebende Verbindung — und ein Kind, das SELBST festgefahren war (`find /` auf
+# einem haengenden Mount). Der Wachhund stufte das als "Verdacht" ein und
+# beendete nichts; nur eine Sichtung von Hand fand es.
+#
+# Ursache: Kriterium 2 lautete `n_kinder -eq 0`, sein eigener Kommentar
+# begruendet aber "ein Prozess mit ARBEITENDEN Kindern ist nicht untaetig".
+# Kriterium 1 misst die CPU des ganzen Baums — liegt die unter der Schwelle,
+# arbeitet auch kein Kind.
+#
+# Beim Herausziehen des Urteils fiel ein ZWEITER Defekt auf: Der
+# Toetungs-Zweig hat MIN_MINUTEN nie geprueft, obwohl das Banner sie ausgibt.
+# Ein zwei Minuten alter Worker mit einem Pool-Socket auf CLOSE_WAIT war
+# toetbar — plausibel einer der beiden historischen Fehlkills.
+while IFS='|' read -r werte label soll; do
+    [ -n "${werte:-}" ] || continue
+    # shellcheck disable=SC2086
+    ist="$("$HERE/watchdog.sh" --urteil $werte 2>&1)"
+    if [ "$ist" = "$soll" ]; then ok "$label [$werte] -> $ist"
+    else nein "$label [$werte] -> $ist, erwartet $soll"; fi
+done <<'EOS'
+50.0 1 0 3 30|Baum rechnet, Kinder arbeiten|still
+0.0 1 0 0 30|klassischer Haenger, kein Kind|toeten
+0.0 1 0 1 71|Haenger mit festgefahrenem Kind (t_e2ed027a)|toeten
+0.0 1 1 0 30|lebende Verbindung: lange Modellantwort|verdacht
+0.0 0 0 3 12|Sockets CLOSED, nicht CLOSE_WAIT (find $HOME)|verdacht
+0.0 1 0 0 2|zwei Minuten alt: unter der Mindestlaufzeit|still
+EOS
 fi
 
 # ===========================================================================

@@ -104,7 +104,26 @@ urteil() { # baum_cpu tot lebend n_kinder dauer_min
     local baum_cpu="${1:-0}" tot="${2:-0}" lebend="${3:-0}" n_kinder="${4:-0}" dauer="${5:-0}" leerlauf
     leerlauf="$(awk -v c="$baum_cpu" -v s="$CPU_SCHWELLE" 'BEGIN{print (c < s) ? 1 : 0}')"
     if [ "$leerlauf" -eq 0 ]; then printf 'still\n'; return 0; fi
-    if [ "$tot" -gt 0 ] && [ "$lebend" -eq 0 ] && [ "$n_kinder" -eq 0 ]; then
+    # ZWEI Korrekturen am 20.08.2026, beide an einem echten Haenger gemessen:
+    #
+    # (a) `n_kinder -eq 0` ist WEG. Der Kommentar oben begruendet das Kriterium
+    #     mit "ein Prozess mit ARBEITENDEN Kindern ist nicht untaetig" —
+    #     implementiert war aber "hat Kinder". Kriterium 1 misst die CPU des
+    #     ganzen BAUMES; liegt die unter der Schwelle, arbeitet auch kein Kind.
+    #     Gemessen an der Gate-Karte t_e2ed027a: 71 Minuten, 0,0 % CPU im Baum,
+    #     ein Socket auf CLOSE_WAIT, keine lebende Verbindung — und ein Kind,
+    #     das selbst festgefahren war (`find /` auf einem haengenden Mount).
+    #     Der Wachhund stufte das als "Verdacht" ein und beendete nichts; erst
+    #     eine Sichtung von Hand fand es. Damit `lebend` diese Lockerung
+    #     traegt, wird es jetzt ueber den GANZEN Baum gezaehlt (unten) — sonst
+    #     bliebe ein Kind mit lebender Verbindung ungesehen.
+    #
+    # (b) `dauer >= MIN_MINUTEN` ist NEU im Toetungs-Zweig. Er hat die
+    #     Mindestlaufzeit nie geprueft, obwohl das Banner sie ausgibt: Ein
+    #     Worker, der zwei Minuten alt war und dessen erste HTTP-Antwort einen
+    #     Pool-Socket auf CLOSE_WAIT hinterliess, war toetbar. Das ist
+    #     plausibel einer der beiden historischen Fehlkills.
+    if [ "$tot" -gt 0 ] && [ "$lebend" -eq 0 ] && [ "$dauer" -ge "$MIN_MINUTEN" ]; then
         printf 'toeten\n'; return 0
     fi
     if [ "$dauer" -ge "$MIN_MINUTEN" ]; then printf 'verdacht\n'; return 0; fi
@@ -139,6 +158,10 @@ for id in $(k list --json 2>/dev/null | jq -r '.[] | select(.status=="running") 
     # dieses Skripts wäre genau das passiert.
     tot="$(lsof -p "$pid" -i -a 2>/dev/null | grep -c 'CLOSE_WAIT' || true)"
     lebend="$(lsof -p "$pid" -i -a 2>/dev/null | grep -c 'ESTABLISHED' || true)"
+    # HINWEIS: `lebend` wird weiter unten um die Sockets des ganzen Baumes
+    # ergaenzt, sobald die Kinder bekannt sind. Diese Zeile allein hat nur den
+    # Worker gesehen — tragbar, solange ein Kind den Toetungs-Zweig sperrte.
+    # Seit diese Sperre weg ist, muss der Baum mitgezaehlt werden.
 
     # Der DRITTE Messwert, und er ist der wichtigste — nachgerüstet am
     # 17.08.2026, nachdem dieses Skript zwei produktive Läufe getötet hat.
@@ -165,6 +188,11 @@ for id in $(k list --json 2>/dev/null | jq -r '.[] | select(.status=="running") 
         # shellcheck disable=SC2086
         baum_cpu="$(ps -o %cpu= -p $(printf '%s' "$kinder" | tr ' ' ',')"," 2>/dev/null \
                     | awk -v basis="${cpu:-0}" '{s+=$1} END{printf "%.1f", s + basis}')"
+        # Lebende Verbindungen der Kinder dazu (siehe Hinweis oben).
+        for kind in $kinder; do
+            n="$(lsof -p "$kind" -i -a 2>/dev/null | grep -c 'ESTABLISHED' || true)"
+            lebend=$((lebend + ${n:-0}))
+        done
     fi
 
     verdacht=""; toeten=0
