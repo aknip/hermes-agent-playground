@@ -2736,6 +2736,22 @@ ledger/estimates.jsonl. Danach prüfst du das Ergebnis, statt es zu glauben:
 
 Der Check entscheidet, ob der Sprint messbar ist — nicht du.
 
+SCHRITT 1b — die Budget-Wache, unmittelbar danach
+    $HERE/scripts/budget-wache.sh
+
+Sie rechnet je Karte Ist gegen 1,5 x p90 (cadence.yaml budget_eskalation_bei)
+und legt bei Ueberschreitung EIN Gate je Sprint an. Du entscheidest daran
+nichts — das Skript rechnet, und der Supervisor antwortet. Deine Aufgabe ist,
+sie zu RUFEN und ihr Ergebnis in deinen Report zu uebernehmen: welche Karten
+ueber der Schwelle lagen, oder ausdruecklich, dass keine es tat.
+
+Warum sie hier steht und nicht nur im taeglichen Tick: Bis zum 20.08.2026 hat
+NIEMAND die Schwelle gelesen. Sie stand in cadence.yaml, gate.sh kannte die
+Gate-Art, jede Schaetzkarte sagte dem Schaetzer "das Budget-Gate haengt an
+deinem P90" — und kein Skript rechnete. In S4 riss eine Review-Karte die
+Schwelle um 31 Minuten, und nichts geschah. Ein Tor, das nie zugeht, ist
+keines.
+
 FÜR DICH ZÄHLT PRÜFUNG 3: '(Schätzung, Ist)-Paare'. Sie ist der Riegel dieses
 Sprints. Sie schlägt genau dann fehl, wenn eine Umsetzungs-, Review- oder
 Merge-Karte einen Istwert ohne bezifferte Schätzung trägt — dann ist das Paar

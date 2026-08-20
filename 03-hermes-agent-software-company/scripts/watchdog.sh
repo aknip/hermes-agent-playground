@@ -49,6 +49,7 @@ while [ $# -gt 0 ]; do
     case "$1" in
         --kill) KILL=1 ;;
         --min)  shift; MIN_MINUTEN="${1:-5}" ;;
+        --urteil) shift; URTEIL_MODUS=1; set -- "$@"; break ;;
         *) echo "Unbekannte Option '$1'"; exit 2 ;;
     esac
     shift
@@ -88,6 +89,32 @@ baum_kinder() {
     done
     printf '%s' "$alle" | tr -s ' ' | sed 's/^ //;s/ $//'
 }
+
+
+# ---------------------------------------------------------------------------
+# Das Urteil, als Funktion und damit pruefbar
+# ---------------------------------------------------------------------------
+#   urteil <baum_cpu> <tot> <lebend> <n_kinder> <dauer_min>
+#     -> "toeten" | "verdacht" | "still"
+#
+# Herausgezogen am 20.08.2026, damit die Entscheidung ohne echte Prozesse und
+# echte Sockets pruefbar ist: scripts/test-optimierung.sh 8 und
+# scripts/watchdog.sh --selbsttest fahren sie gegen Zahlentripel.
+urteil() { # baum_cpu tot lebend n_kinder dauer_min
+    local baum_cpu="${1:-0}" tot="${2:-0}" lebend="${3:-0}" n_kinder="${4:-0}" dauer="${5:-0}" leerlauf
+    leerlauf="$(awk -v c="$baum_cpu" -v s="$CPU_SCHWELLE" 'BEGIN{print (c < s) ? 1 : 0}')"
+    if [ "$leerlauf" -eq 0 ]; then printf 'still\n'; return 0; fi
+    if [ "$tot" -gt 0 ] && [ "$lebend" -eq 0 ] && [ "$n_kinder" -eq 0 ]; then
+        printf 'toeten\n'; return 0
+    fi
+    if [ "$dauer" -ge "$MIN_MINUTEN" ]; then printf 'verdacht\n'; return 0; fi
+    printf 'still\n'
+}
+
+if [ "${URTEIL_MODUS:-0}" = "1" ]; then
+    urteil "$@"
+    exit 0
+fi
 
 gefunden=0
 printf 'ESF Wachhund — %s  (CPU < %s%%, Mindestlaufzeit %s min)\n' \
@@ -140,24 +167,15 @@ for id in $(k list --json 2>/dev/null | jq -r '.[] | select(.status=="running") 
                     | awk -v basis="${cpu:-0}" '{s+=$1} END{printf "%.1f", s + basis}')"
     fi
 
-    # awk statt bc: bc ist auf macOS nicht überall da.
-    leerlauf="$(awk -v c="${baum_cpu:-0}" -v s="$CPU_SCHWELLE" 'BEGIN{print (c < s) ? 1 : 0}')"
-
     verdacht=""; toeten=0
-    if [ "${n_kinder:-0}" -gt 0 ] && [ "$leerlauf" -eq 0 ]; then
-        # Kinder, die rechnen: Der Worker fährt ein Kommando. Kein Hänger,
-        # keine Meldung — sonst steht bei jedem Testlauf eine Warnung da.
-        continue
-    elif [ "$leerlauf" -eq 1 ] && [ "${tot:-0}" -gt 0 ] && [ "${lebend:-0}" -eq 0 ] \
-         && [ "${n_kinder:-0}" -eq 0 ]; then
-        # Keine lebende Verbindung, keine CPU im ganzen Baum, kein Kind, aber
-        # ein toter Socket: Der Worker wartet auf eine Antwort, die nie kommt.
-        # Das ist der Hänger.
-        verdacht="${tot} tote(r) Socket, KEINE lebende Verbindung, kein Kindprozess, ${baum_cpu}% CPU im Baum"
-        toeten=1
-    elif [ "$leerlauf" -eq 1 ] && [ "${dauer_min:-0}" -ge "$MIN_MINUTEN" ]; then
-        verdacht="${dauer_min} min bei ${baum_cpu}% CPU im Baum, ${lebend} lebende Verbindung(en), ${n_kinder} Kindprozess(e)"
-    fi
+    case "$(urteil "${baum_cpu:-0}" "${tot:-0}" "${lebend:-0}" "${n_kinder:-0}" "${dauer_min:-0}")" in
+        toeten)
+            verdacht="${tot} tote(r) Socket, KEINE lebende Verbindung im Baum, ${n_kinder} Kindprozess(e), ${baum_cpu}% CPU im Baum, ${dauer_min} min"
+            toeten=1 ;;
+        verdacht)
+            verdacht="${dauer_min} min bei ${baum_cpu}% CPU im Baum, ${lebend} lebende Verbindung(en), ${n_kinder} Kindprozess(e)" ;;
+        *)  continue ;;
+    esac
     [ -n "$verdacht" ] || continue
 
     titel="$(k list --json | jq -r --arg i "$id" '.[] | select(.id==$i) | .title')"

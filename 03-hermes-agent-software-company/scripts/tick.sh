@@ -41,6 +41,34 @@ log "Tick $HEUTE${DRY:+ (Trockenlauf)}"
 # ---------------------------------------------------------------------------
 json="$(k list --json 2>/dev/null || echo '[]')"
 
+# ---------------------------------------------------------------------------
+# 1b. Die Budget-Wache — VOR dem Selbst-Uebersprung
+# ---------------------------------------------------------------------------
+# Sie steht hier und nicht weiter unten, und das ist keine Kosmetik: Der
+# Selbst-Uebersprung (gleich darunter) beendet den Tick, sobald irgendeine
+# Karte laeuft — also genau in der Lage, in der die Budget-Wache gebraucht
+# wird. Eine Karte, die ihre Schwelle reisst, LAEUFT ja gerade. Stuende die
+# Wache hinter dem Uebersprung, feuerte sie nur an Tagen, an denen ohnehin
+# nichts passiert. (Beim ersten Einbau am 20.08.2026 stand sie dort.)
+#
+# Das ist zulaessig, weil sie nichts dispatcht: Sie rechnet Ist gegen
+# 1,5 x p90 und legt hoechstens EINE Gate-Karte je Sprint an, die sich selbst
+# blockiert. Der Uebersprung schuetzt vor dem Aufstapeln von ARBEIT, nicht vor
+# dem Hinsehen.
+#
+# Sie darf den Tick nicht abbrechen — sie ist ein Beobachter, kein Tor.
+if [ -x "$HERE/budget-wache.sh" ]; then
+    if [ "$DRY" -eq 1 ]; then
+        "$HERE/budget-wache.sh" --dry-run 2>&1 | sed 's/^/    /' \
+            || log "Budget-Wache: Betriebsbefund, Tick laeuft weiter"
+    else
+        "$HERE/budget-wache.sh" 2>&1 | sed 's/^/    /' \
+            || log "Budget-Wache: Betriebsbefund, Tick laeuft weiter"
+    fi
+else
+    log "Budget-Wache: scripts/budget-wache.sh fehlt — uebersprungen"
+fi
+
 laufend="$(printf '%s' "$json" | jq '[.[] | select(.status=="running")] | length')"
 if [ "$laufend" -gt 0 ]; then
     log "übersprungen: $laufend Karte(n) laufen noch"
