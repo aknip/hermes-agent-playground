@@ -1,0 +1,368 @@
+<!doctype html>
+<html lang="de" data-resolution="landscape">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1920, height=1080">
+<title>Roadmap Q1 (freigegeben) — ESF</title>
+<!--
+  Individuelle Komposition des esf-video-designer fuer
+  roadmap/q1-freigegeben.html (AGENTS.md 8.1).
+
+  Die Form folgt dem Inhalt: eine Roadmap, kein Marktbild. Neun Szenen,
+  eine je Sprecher-Cue aus auftrag.json, der Takt ist die Sprache:
+
+    s1   Titel + Freigabe-Stempel
+    s2   die 3+5+5-Struktur, 13 Features, drei Release-Saeulen
+    s3   R1 "Der taegliche Kern" — drei Features
+    s4   F-R1-5 Biome-Hygiene: Wartung, KEIN Feature-Slot
+    s5   R2 "Ankommen & Differenzieren" — Import fuehrt (riskant, kalibriert)
+    s6   R3 "Automatisieren & Erreichbarkeit" — fuenf Features
+    s7   Was wir NICHT machen — durchgestrichen
+    s8   Schaetzen ohne Historie — leeres Ledger, Konfidenz < 0.3
+    s9   Naechster Schritt — Arbeitskarten verteilen, Entwurf bleibt daneben
+
+  Jede Zahl auf dem Bild steht im Dokument: 3 Releases, 13 Features (3+5+5),
+  F-Kuerzel, Konfidenz < 0.3, Freigabedatum 2026-08-18. Nichts hier ist neu
+  gerechnet.
+
+  Vertrag (gemessen gegen Hyperframes 0.8.3, siehe video-werkzeug.py):
+    · Root traegt data-composition-id / data-width / data-height / data-duration
+    · Timeline haengt an window.__timelines["<id>"], paused, seek-faehig
+    · <audio> traegt src DIREKT am Element
+    · keine performance.now / requestAnimationFrame (Wanduhr, desynct)
+    · keine Opacity-Tweens auf .clip-Elementen — die verwaltet der Renderer
+    · Clip-Grenzen aus EINER Rundungsreihe (den Cues), nicht zweimal gerundet
+-->
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 1920px; height: 1080px; overflow: hidden;
+               background: #0a0f0c; color: #e9f1eb;
+               font-family: "Avenir Next", Avenir, "Segoe UI", system-ui, sans-serif; }
+
+  #root { position: relative; width: 100%; height: 100%; }
+
+  /* ----- Hintergrundschicht (persistent, keine Clips) ----- */
+  #glow { position: absolute; top: -260px; right: -220px; width: 900px; height: 900px;
+          background: radial-gradient(circle, rgba(75,208,138,.22) 0%, rgba(75,208,138,0) 62%);
+          border-radius: 50%; }
+  #glow2 { position: absolute; bottom: -320px; left: -260px; width: 880px; height: 880px;
+           background: radial-gradient(circle, rgba(111,176,255,.12) 0%, rgba(111,176,255,0) 62%);
+           border-radius: 50%; }
+  #ghost { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+           font-size: 380px; font-weight: 800; letter-spacing: .02em; color: #4bd08a;
+           opacity: .045; white-space: nowrap; user-select: none; }
+
+  #kopf { position: absolute; top: 74px; left: 150px; display: flex; align-items: center; gap: 26px; }
+  #kopf .kicker { font-size: 27px; letter-spacing: .18em; color: #4bd08a; text-transform: uppercase; font-weight: 600; }
+  #kopf .trenner { width: 70px; height: 2px; background: #1f2c24; }
+  #kopf .meta { font-size: 24px; color: #8fa69a; letter-spacing: .02em; }
+
+  #balken { position: absolute; left: 0; right: 0; bottom: 0; height: 6px; background: #141c17; }
+  #fortschritt { height: 100%; width: 0; background: #4bd08a; }
+
+  /* ----- Szene = Clip, Inhalt im inneren .zone (kein Clip) ----- */
+  .sz { position: absolute; inset: 0; }
+  .zone { position: absolute; left: 150px; right: 150px; top: 176px; bottom: 178px;
+          display: flex; flex-direction: column; }
+
+  .hrow { display: flex; align-items: center; gap: 26px; margin-bottom: 46px; }
+  .hrow .rule { width: 14px; height: 54px; border-radius: 4px; background: #4bd08a; }
+  .hrow h2 { font-size: 62px; font-weight: 700; letter-spacing: .01em; }
+  .badge { font-size: 27px; font-weight: 600; color: #0a0f0c; background: #4bd08a;
+           padding: 8px 22px; border-radius: 999px; letter-spacing: .02em; }
+  .badge.amber { background: #f0c165; }
+  .sub { font-size: 30px; color: #a9bdb1; font-weight: 400; }
+
+  /* S1 Titel */
+  #t-flag { margin-top: 40px; }
+  #t-title { font-size: 132px; font-weight: 800; line-height: 1.04; letter-spacing: -.01em; }
+  #t-title .accent { color: #4bd08a; }
+  #t-badge { display: inline-flex; align-items: center; gap: 16px; margin-top: 40px;
+             font-size: 40px; font-weight: 700; color: #0a0f0c; background: #4bd08a;
+             padding: 16px 40px; border-radius: 999px; }
+  #t-badge .haken { font-size: 46px; }
+  #t-sub { margin-top: 28px; font-size: 32px; color: #a9bdb1; }
+
+  /* S2 Struktur */
+  #cols { display: flex; gap: 44px; margin-top: 26px; }
+  .rel { flex: 1; background: #101712; border: 1px solid #223026; border-radius: 18px;
+         padding: 40px 36px 36px; }
+  .rel .rname { font-size: 30px; font-weight: 700; color: #e9f1eb; margin-bottom: 6px; }
+  .rel .rkurz { font-size: 23px; color: #8fa69a; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 22px; }
+  .rel .rcount { font-size: 96px; font-weight: 800; color: #4bd08a; line-height: 1; }
+  .rel .rlabel { font-size: 26px; color: #a9bdb1; margin-top: 4px; }
+  .dots { display: flex; gap: 12px; margin-top: 26px; }
+  .dots i { width: 22px; height: 22px; border-radius: 6px; background: #4bd08a; }
+  .dots i.leer { background: #223026; }
+  #s2-cap { margin-top: 46px; font-size: 32px; color: #a9bdb1; }
+  #s2-cap b { color: #e9f1eb; font-weight: 600; }
+
+  /* Feature-Reihen */
+  .feat { display: flex; align-items: center; gap: 24px; background: #101712;
+          border: 1px solid #223026; border-left: 5px solid #4bd08a;
+          border-radius: 12px; padding: 16px 26px; margin-bottom: 14px; }
+  .feat .code { font-size: 22px; color: #8fa69a; letter-spacing: .06em; font-weight: 600; min-width: 120px; }
+  .feat .txt { font-size: 34px; font-weight: 500; }
+  .feat .notiz { margin-left: auto; font-size: 23px; color: #8fa69a; text-align: right; }
+
+  /* S4 Wartung */
+  #wart .code { font-size: 40px; color: #f0c165; letter-spacing: .06em; font-weight: 700; margin-bottom: 8px; }
+  #wart .gro { font-size: 66px; font-weight: 700; line-height: 1.15; max-width: 15em; }
+  #wart .slot { margin-top: 40px; display: inline-block; font-size: 34px; font-weight: 600;
+                color: #f0c165; background: rgba(240,193,101,.12); border: 1px solid rgba(240,193,101,.45);
+                padding: 16px 30px; border-radius: 12px; }
+  #wart .slot .nein { color: #e9f1eb; }
+
+  /* S5 R2 — Import hervorgehoben */
+  .feat.fokus { border-left-color: #f0c165; background: rgba(240,193,101,.06); }
+  .feat.fokus .txt { color: #f5d18a; }
+  .feat .nr { font-size: 30px; font-weight: 800; color: #4bd08a; width: 40px; }
+  .feat.fokus .nr { color: #f0c165; }
+
+  /* S7 Nicht machen */
+  .nicht { display: flex; align-items: center; gap: 24px; background: rgba(239,122,110,.05);
+           border: 1px solid rgba(239,122,110,.30); border-radius: 12px;
+           padding: 16px 26px; margin-bottom: 14px; }
+  .nicht .x { font-size: 34px; font-weight: 800; color: #ef7a6e; width: 46px; text-align: center; }
+  .nicht .t { font-size: 34px; font-weight: 500; text-decoration: line-through;
+              text-decoration-color: #ef7a6e; text-decoration-thickness: 3px; }
+
+  /* S8 Schaetzledger */
+  #led-chips { display: flex; gap: 26px; margin-top: 30px; }
+  .chip { border: 1px solid #223026; background: #101712; border-radius: 12px;
+          padding: 20px 28px; text-align: center; }
+  .chip .k { font-size: 26px; color: #4bd08a; letter-spacing: .04em; font-weight: 700; }
+  .chip .b { font-size: 21px; color: #8fa69a; margin-top: 6px; }
+  #led-empty { display: flex; align-items: center; gap: 26px; margin-top: 40px;
+               background: rgba(75,208,138,.06); border: 1px solid rgba(75,208,138,.35);
+               border-radius: 12px; padding: 20px 30px; }
+  #led-empty .bar { display: flex; gap: 8px; }
+  #led-empty .bar i { width: 34px; height: 10px; border-radius: 3px; background: #1c2a21; }
+  #led-empty .txt { font-size: 31px; }
+  #led-empty .txt b { color: #4bd08a; }
+  #led-warum { margin-top: 34px; font-size: 31px; color: #f0c165; font-weight: 600; }
+
+  /* S9 Naechster Schritt */
+  .schritt { display: flex; align-items: center; gap: 24px; background: #101712;
+             border: 1px solid #223026; border-left: 5px solid #4bd08a;
+             border-radius: 12px; padding: 20px 28px; margin-bottom: 16px; }
+  .schritt .ok { font-size: 34px; font-weight: 800; color: #4bd08a; width: 40px; text-align: center; }
+  .schritt .t { font-size: 34px; font-weight: 500; }
+  .schritt .t small { display: block; font-size: 23px; color: #8fa69a; font-weight: 400; margin-top: 4px; }
+</style>
+</head>
+<body>
+<div id="root"
+     data-composition-id="esf-q1-roadmap"
+     data-start="0"
+     data-duration="79.9"
+     data-width="1920"
+     data-height="1080">
+
+  <!-- Hintergrundschicht -->
+  <div id="glow"></div>
+  <div id="glow2"></div>
+  <div id="ghost">KANEO</div>
+
+  <div id="kopf">
+    <span class="kicker">ESF · Roadmap Q1</span>
+    <span class="trenner"></span>
+    <span class="meta">Freigabe-Gate · 2026-08-18</span>
+  </div>
+
+  <!-- Szene 1 — Titel -->
+  <div class="clip sz" id="sz1" data-start="0" data-duration="2.888" data-track-index="1">
+    <div class="zone">
+      <div id="t-flag">
+        <div id="t-title">Roadmap <span class="accent">Q1</span></div>
+        <div id="t-badge"><span class="haken">&#10003;</span> freigegeben</div>
+        <div id="t-sub">Kaneo · drei Releases · dreizehn Features</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Szene 2 — 3+5+5 Struktur -->
+  <div class="clip sz" id="sz2" data-start="2.888" data-duration="8.182" data-track-index="2">
+    <div class="zone">
+      <div class="hrow"><div class="rule"></div><h2>3 Releases · 13 Features</h2></div>
+      <div id="cols">
+        <div class="rel">
+          <div class="rname">R1</div>
+          <div class="rkurz">Der tägliche Kern</div>
+          <div class="rcount">3</div>
+          <div class="rlabel">Features</div>
+          <div class="dots"><i></i><i></i><i></i></div>
+        </div>
+        <div class="rel">
+          <div class="rname">R2</div>
+          <div class="rkurz">Ankommen &amp; Differenzieren</div>
+          <div class="rcount">5</div>
+          <div class="rlabel">Features</div>
+          <div class="dots"><i></i><i></i><i></i><i></i><i></i></div>
+        </div>
+        <div class="rel">
+          <div class="rname">R3</div>
+          <div class="rkurz">Automatisieren &amp; Erreichbarkeit</div>
+          <div class="rcount">5</div>
+          <div class="rlabel">Features</div>
+          <div class="dots"><i></i><i></i><i></i><i></i><i></i></div>
+        </div>
+      </div>
+      <div id="s2-cap">drei im ersten · <b>fünf</b> im zweiten · <b>fünf</b> im dritten — kein Feature fällt aus Q1</div>
+    </div>
+  </div>
+
+  <!-- Szene 3 — R1 -->
+  <div class="clip sz" id="sz3" data-start="11.07" data-duration="12.515" data-track-index="3">
+    <div class="zone">
+      <div class="hrow"><div class="rule"></div><h2>R1 · Der tägliche Kern</h2><span class="badge">3 Features</span></div>
+      <div class="feat"><span class="code">F-R1-2</span><span class="txt">Vorgangs-Dialog entschlacken</span><span class="notiz">frontend · S</span></div>
+      <div class="feat"><span class="code">F-R1-3</span><span class="txt">Tastatur &amp; Command-Palette</span><span class="notiz">frontend · M</span></div>
+      <div class="feat"><span class="code">F-R1-4</span><span class="txt">E2E-Regressionsnetz · J-05 + J-06 grün</span><span class="notiz">e2e · M</span></div>
+      <div class="sub" style="margin-top:24px">bewusst klein · nach Risiko aufsteigend</div>
+    </div>
+  </div>
+
+  <!-- Szene 4 — Wartung, kein Feature -->
+  <div class="clip sz" id="sz4" data-start="23.585" data-duration="6.257" data-track-index="4">
+    <div class="zone" id="wart">
+      <div class="code">F-R1-5 · Biome-Hygiene</div>
+      <div class="gro">Wartungskarte, die vor der Feature-Arbeit läuft.</div>
+      <div class="slot"><span class="nein">belegt</span> keinen Feature-Slot</div>
+    </div>
+  </div>
+
+  <!-- Szene 5 — R2, Import fuehrt -->
+  <div class="clip sz" id="sz5" data-start="29.842" data-duration="15.884" data-track-index="5">
+    <div class="zone">
+      <div class="hrow"><div class="rule"></div><h2>R2 · Ankommen &amp; Differenzieren</h2><span class="badge">5 Features</span></div>
+      <div class="feat fokus">
+        <span class="nr">1</span><span class="txt">Import CSV + WeKan</span>
+        <span class="notiz" style="color:#f5d18a">größtes &amp; riskantestes Stück · wartet auf kalibriertes Schätzintervall</span>
+      </div>
+      <div class="feat"><span class="nr">2</span><span class="txt">MCP-Agentenkanal</span></div>
+      <div class="feat"><span class="nr">3</span><span class="txt">Zwei-Faktor-Anmeldung (2FA)</span></div>
+      <div class="feat"><span class="nr">4</span><span class="txt">Quick-Start — erstes Board nicht leer</span></div>
+      <div class="feat"><span class="nr">5</span><span class="txt">Einladen erleichtern</span></div>
+    </div>
+  </div>
+
+  <!-- Szene 6 — R3 -->
+  <div class="clip sz" id="sz6" data-start="45.726" data-duration="6.257" data-track-index="6">
+    <div class="zone">
+      <div class="hrow"><div class="rule"></div><h2>R3 · Automatisieren &amp; Erreichbarkeit</h2><span class="badge">5 Features</span></div>
+      <div class="feat"><span class="code">F-R2-3</span><span class="txt">Automatisierung wiederkehrender Arbeit</span></div>
+      <div class="feat"><span class="code">F-R3-1</span><span class="txt">Mobile · schlank responsiv / PWA</span></div>
+      <div class="feat"><span class="code">F-R3-2</span><span class="txt">Übersetzungen (i18n)</span></div>
+      <div class="feat"><span class="code">F-R3-3</span><span class="txt">Backlog-Vereinfachung</span></div>
+      <div class="feat"><span class="code">F-R3-4</span><span class="txt">GitHub-Integration</span></div>
+    </div>
+  </div>
+
+  <!-- Szene 7 — Was wir NICHT machen -->
+  <div class="clip sz" id="sz7" data-start="51.983" data-duration="8.183" data-track-index="7">
+    <div class="zone">
+      <div class="hrow"><div class="rule" style="background:#ef7a6e"></div><h2>Was wir nicht machen</h2></div>
+      <div class="nicht"><span class="x">&#10005;</span><span class="t">kein Gantt / Timeline</span></div>
+      <div class="nicht"><span class="x">&#10005;</span><span class="t">keine Zeiterfassung</span></div>
+      <div class="nicht"><span class="x">&#10005;</span><span class="t">keine native Mobile-App</span></div>
+      <div class="nicht"><span class="x">&#10005;</span><span class="t">kein volles Enterprise-Single-Sign-on</span></div>
+    </div>
+  </div>
+
+  <!-- Szene 8 — Schaetzen ohne Historie -->
+  <div class="clip sz" id="sz8" data-start="60.166" data-duration="11.551" data-track-index="8">
+    <div class="zone">
+      <div class="hrow"><div class="rule"></div><h2>Schätzen ohne Historie</h2></div>
+      <div class="sub">Referenzklassen · ohne Historie · breites Intervall</div>
+      <div id="led-chips">
+        <div class="chip"><div class="k">frontend-S</div><div class="b">Konfidenz &lt; 0.3</div></div>
+        <div class="chip"><div class="k">backend-M</div><div class="b">Konfidenz &lt; 0.3</div></div>
+        <div class="chip"><div class="k">e2e-M</div><div class="b">Konfidenz &lt; 0.3</div></div>
+        <div class="chip"><div class="k">auth-L</div><div class="b">Konfidenz &lt; 0.3</div></div>
+      </div>
+      <div id="led-empty">
+        <div class="bar"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+        <div class="txt">das <b>Schätzledger ist noch leer</b> — keine gemessenen Paare</div>
+      </div>
+      <div id="led-warum">genau deshalb ist R1 klein gehalten</div>
+    </div>
+  </div>
+
+  <!-- Szene 9 — Naechster Schritt -->
+  <div class="clip sz" id="sz9" data-start="71.717" data-duration="8.183" data-track-index="9">
+    <div class="zone">
+      <div class="hrow"><div class="rule"></div><h2>Nächster Schritt</h2></div>
+      <div class="schritt"><span class="ok">&#10003;</span><span class="t">Arbeitskarten gemäß den Auflagen verteilen<small>nach Kalibrierung S1 · Splitting auf ≤ 8 Karten je Feature</small></span></div>
+      <div class="schritt"><span class="ok">&#10003;</span><span class="t">Der Entwurf bleibt daneben stehen<small>widerlegt, nicht überschrieben — für den Abgleich</small></span></div>
+    </div>
+  </div>
+
+  <div id="balken"><div id="fortschritt"></div></div>
+</div>
+
+<audio id="audio" src="audio.m4a" data-start="0" data-track-index="0" data-volume="1"></audio>
+
+<script>
+  // Eine pausierte GSAP-Timeline: Hyperframes setzt sie je Frame auf die
+  // Zielzeit statt sie laufen zu lassen. Das Bild ist deterministisch.
+  window.__timelines = window.__timelines || {};
+  const tl = gsap.timeline({ paused: true });
+
+  // Fortschrittsbalken ueber die ganze gemessene Dauer.
+  tl.to("#fortschritt", { width: "100%", duration: 79.9, ease: "none" }, 0);
+
+  // Ambientes: langsames, kontinuierliches Driften/Atmen — keine Endlosschleifen.
+  tl.fromTo("#glow", { scale: 1, opacity: .85 }, { scale: 1.06, opacity: 1, duration: 79.9, ease: "none" }, 0);
+  tl.fromTo("#glow2", { scale: 1.05, opacity: .9 }, { scale: 1, opacity: 1, duration: 79.9, ease: "none" }, 0);
+  tl.fromTo("#ghost", { xPercent: -6 }, { xPercent: 6, duration: 79.9, ease: "sine.inOut" }, 0);
+
+  // S1 Titel (0.0 – 2.888)
+  tl.from("#t-title", { y: 46, opacity: 0, duration: 0.6, ease: "power3.out" }, 0.0);
+  tl.from("#t-badge", { scale: 0.5, opacity: 0, duration: 0.5, ease: "back.out(1.7)" }, 0.2);
+  tl.from("#t-sub", { y: 22, opacity: 0, duration: 0.6, ease: "power2.out" }, 0.4);
+
+  // S2 Struktur (2.888 – 11.07)
+  tl.from("#sz2 .hrow", { y: 30, opacity: 0, duration: 0.5, ease: "power2.out" }, 2.95);
+  tl.from("#sz2 .rel", { y: 44, opacity: 0, stagger: 0.14, duration: 0.6, ease: "power2.out" }, 3.05);
+  tl.from("#s2-cap", { y: 24, opacity: 0, duration: 0.5, ease: "power2.out" }, 3.5);
+
+  // S3 R1 (11.07 – 23.585)
+  tl.from("#sz3 .hrow", { y: 30, opacity: 0, duration: 0.5, ease: "power2.out" }, 11.12);
+  tl.from("#sz3 .feat", { x: -40, opacity: 0, stagger: 0.16, duration: 0.55, ease: "power2.out" }, 11.22);
+  tl.from("#sz3 .sub", { y: 18, opacity: 0, duration: 0.5, ease: "power2.out" }, 12.0);
+
+  // S4 Wartung (23.585 – 29.842)
+  tl.from("#sz4 .code", { y: 24, opacity: 0, duration: 0.5, ease: "power2.out" }, 23.62);
+  tl.from("#sz4 .gro", { y: 28, opacity: 0, duration: 0.55, ease: "power3.out" }, 23.72);
+  tl.from("#sz4 .slot", { scale: 0.8, opacity: 0, duration: 0.5, ease: "back.out(1.5)" }, 24.0);
+
+  // S5 R2 (29.842 – 45.726)
+  tl.from("#sz5 .hrow", { y: 30, opacity: 0, duration: 0.5, ease: "power2.out" }, 29.9);
+  tl.from("#sz5 .feat.fokus", { x: -40, opacity: 0, duration: 0.55, ease: "power3.out" }, 30.0);
+  tl.from("#sz5 .feat:not(.fokus)", { x: -34, opacity: 0, stagger: 0.12, duration: 0.5, ease: "power2.out" }, 30.6);
+
+  // S6 R3 (45.726 – 51.983)
+  tl.from("#sz6 .hrow", { y: 30, opacity: 0, duration: 0.5, ease: "power2.out" }, 45.78);
+  tl.from("#sz6 .feat", { x: -34, opacity: 0, stagger: 0.12, duration: 0.5, ease: "power2.out" }, 45.88);
+
+  // S7 Nicht machen (51.983 – 60.166)
+  tl.from("#sz7 .hrow", { y: 30, opacity: 0, duration: 0.5, ease: "power2.out" }, 52.03);
+  tl.from("#sz7 .nicht", { x: 44, opacity: 0, stagger: 0.14, duration: 0.5, ease: "power2.out" }, 52.13);
+
+  // S8 Schaetzledger (60.166 – 71.717)
+  tl.from("#sz8 .hrow", { y: 30, opacity: 0, duration: 0.5, ease: "power2.out" }, 60.22);
+  tl.from("#sz8 .sub", { y: 20, opacity: 0, duration: 0.5, ease: "power2.out" }, 60.32);
+  tl.from("#sz8 .chip", { y: 26, opacity: 0, stagger: 0.1, duration: 0.5, ease: "power2.out" }, 60.45);
+  tl.from("#led-empty", { y: 26, opacity: 0, duration: 0.55, ease: "power3.out" }, 61.0);
+  tl.from("#led-warum", { y: 20, opacity: 0, duration: 0.5, ease: "power2.out" }, 61.4);
+
+  // S9 Naechster Schritt (71.717 – 79.9)
+  tl.from("#sz9 .hrow", { y: 30, opacity: 0, duration: 0.5, ease: "power2.out" }, 71.78);
+  tl.from("#sz9 .schritt", { y: 34, opacity: 0, stagger: 0.18, duration: 0.55, ease: "power3.out" }, 71.9);
+
+  window.__timelines["esf-q1-roadmap"] = tl;
+</script>
+</body>
+</html>

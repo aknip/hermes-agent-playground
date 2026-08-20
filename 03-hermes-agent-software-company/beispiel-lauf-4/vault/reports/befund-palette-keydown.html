@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <title>Befund: paletteneigener Keydown-Handler — ESF</title>
+  <meta name="esf-typ" content="report">
+  <meta name="esf-karte" content="t_2616e83d">
+  <meta name="esf-datum" content="2026-08-19">
+  <meta name="esf-video" content="befund-palette-keydown.mp4">
+  <style>
+    body { font-family: system-ui, -apple-system, sans-serif; max-width: 62rem;
+           margin: 2rem auto; padding: 0 1.5rem; line-height: 1.55; color: #1a1a1a; }
+    h1 { font-size: 1.6rem; border-bottom: 2px solid #333; padding-bottom: .4rem; }
+    h2 { font-size: 1.2rem; margin-top: 2.2rem; }
+    table { border-collapse: collapse; width: 100%; margin: 1rem 0; font-size: .92rem; }
+    th, td { border: 1px solid #ccc; padding: .4rem .55rem; text-align: left; vertical-align: top; }
+    th { background: #f2f2f2; }
+    code { background: #f4f4f4; padding: .05rem .3rem; border-radius: 3px; font-size: .9em; }
+    .src { color: #555; font-style: italic; }
+    .zahl { font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .hinweis { background: #fff8dc; border-left: 4px solid #e0c000; padding: .6rem .9rem; margin: 1rem 0; }
+    .befund { background: #fdf0f0; border-left: 4px solid #c0392b; padding: .6rem .9rem; margin: 1rem 0; }
+    .gruen { background: #eef7ee; border-left: 4px solid #2e7d32; padding: .6rem .9rem; margin: 1rem 0; }
+  </style>
+</head>
+<body>
+
+<h1>Befund: paletteneigener Keydown-Handler ohne Textfeld-Prüfung</h1>
+<p>Auflage R1-c · Karte <code>t_2616e83d</code> · Systemzeit <span class="zahl">2026-08-19</span>.
+Urteil zu dem als <em>minor</em> notierten, praeexistenten Befund aus dem Review von F-R1-3
+(Karte <code>t_e76c4947</code>). Diese Karte urteilt, sie baut nicht: kein Code geändert.</p>
+
+<div class="befund"><strong>Urteil: echter Defekt.</strong> Der paletteneigene
+Sequenz-Handler in <code>apps/web/src/components/command-palette/index.tsx:238–278</code>
+prüft das <code>event.target</code> nicht und feuert deshalb ein Kürzel, sobald man dessen
+Buchstaben in das Suchfeld der geöffneten Palette tippt — Suchtexteingabe löst eine Aktion aus
+und schließt die Palette. Der Defekt ist praeexistent (nicht durch F-R1-3 eingeführt), aber real
+und als Umsetzungskarte zu führen.</div>
+
+<h2>1. Der Befund im Wortlaut</h2>
+<p>Aus dem Review-Run (metadata von <code>t_e76c4947</code>, finding severity <em>minor</em>):</p>
+<blockquote>
+„Praeexistierender, paletteneigener Inline-Keydown-Sequenz-Handler auf <code>document</code>
+prüft das <code>event.target</code> NICHT: bei offener Palette und fokussiertem CommandInput
+kann getipptes 'pc'/'tc'/'wc'/'pl' ein Modal öffnen und die Palette schließen. … kein Test
+tippt diese Sequenz in den Palette-Input. Kein Blocker für diese Karte; Hinweis für eine
+Folgekarte.“
+</blockquote>
+<p>Das Review stuft ihn als <em>minor</em> und praeexistent ein — korrekt zu beiden Punkten:
+Der <code>diff main..feat/esf-r1-f3-tastatur-command-palette</code> ändert die betroffene
+Schleife nicht (der Review-Lauf nennt Commit <code>3e61f8e</code>, keine Testdatei im Bereich
+<code>command-palette/</code> tippt diese Sequenz), und der Befund ist deshalb zu Recht nicht
+Teil der Release-R1-Freigabe. Er ist aber ein echter, reproduzierbarer Fehler, kein
+Fehlalarm.</p>
+
+<h2>2. Fundstelle und Mechanik (belegt)</h2>
+<p>In <code>apps/web/src/components/command-palette/index.tsx</code> gibt es zwei voneinander
+unabhängige Tastatur-Zuhörer:</p>
+<ul>
+  <li><strong>Globaler Guard</strong> (Kategorie-1-Schutz, sauber):
+    <code>apps/web/src/hooks/use-keyboard-shortcuts.ts:164–182</code> prüft
+    <code>event.target</code> auf <code>INPUT</code>/<code>TEXTAREA</code>/
+    <code>contentEditable</code> und kehrt in genau diesem Fall zurück (Z.166–173).</li>
+  <li><strong>Paletteneigener Sequenz-Handler</strong> (der Befund):
+    <code>command-palette/index.tsx:238–278</code>. Er registriert sich bei geöffneter Palette
+    auf <code>document</code> (Z.273) und prüft <strong>kein</strong>
+    <code>event.target</code> — Z.244–271 enthalten keine einzige Ziel-Abfrage.</li>
+</ul>
+<p>Mechanik des fehlerhaften Handlers:</p>
+<ul>
+  <li>Z.245–252: nur Modifier (⌘/Ctrl/Alt/Shift) werden verworfen.</li>
+  <li>Z.258: ein Zeichenketten-Puffer <code>sequence</code> wird um jede einzelne tastbare Taste
+    verlängert (letzte 3 Zeichen) und nach 700&nbsp;ms zurückgesetzt (Z.260–262).</li>
+  <li>Z.224–236: <code>shortcutHandlers</code> ist aus den <em>angezeigten</em> Kürzel-Labels der
+    Palette aufgebaut — <code>items[].shortcut</code> ohne Leerzeichen, kleingeschrieben.</li>
+  <li>Z.264–268: trifft die Sequenz ein Label, wird <code>preventDefault</code> + Handler
+    ausgeführt; <code>runCommand</code> (Z.102–105) schließt zusätzlich die Palette
+    (<code>setOpen(false)</code>).</li>
+</ul>
+<p>Die betroffenen Kürzel, aus <code>apps/web/src/constants/shortcuts.ts</code> und den
+<code>groupedItems</code> (index.tsx Z.124–190), als getippte Zeichenfolge im Suchfeld:</p>
+<table>
+  <thead><tr><th>Zeichenfolge</th><th>Quelle</th><th>Auslöser</th><th>Fundstelle</th></tr></thead>
+  <tbody>
+    <tr><td><code>pl</code></td><td><code>p</code> + <code>l</code> (Projekt-Liste)</td><td>Navigation in den Projekt-/Arbeitsbereich</td><td>index.tsx Z.83–88, 126–133</td></tr>
+    <tr><td><code>pc</code></td><td><code>p</code> + <code>c</code> (Projekt anlegen)</td><td>öffnet Create-Project-Modal</td><td>index.tsx Z.89, 158–159</td></tr>
+    <tr><td><code>tc</code></td><td><code>t</code> + <code>c</code> (Task anlegen)</td><td>öffnet Create-Task-Modal</td><td>index.tsx Z.92, 152–153</td></tr>
+    <tr><td><code>wc</code></td><td><code>w</code> + <code>c</code> (Workspace anlegen)</td><td>öffnet Create-Workspace-Modal</td><td>index.tsx Z.95–97, 188–189</td></tr>
+    <tr><td><code>?</code></td><td><code>help.key</code></td><td>öffnet die Tastatur-Hilfe</td><td>index.tsx Z.209, 69–71</td></tr>
+    <tr><td><code>/</code></td><td><code>search.prefix</code></td><td>öffnet die Suche</td><td>index.tsx Z.137</td></tr>
+  </tbody>
+</table>
+<p>Der <code>CommandInput</code> der Palette (<code>&lt;input&gt;</code>, index.tsx Z.285–287) ist
+ein echtes Textfeld; Tasteneingaben dorthin blubbern an <code>document</code>. Der Handler
+unterscheidet nicht, woher die Tasten kommen — deshalb trifft dieser Fehler exakt die
+Befund-Kategorie 1 der F-R1-3-Spezifikation („Feuert ein Kürzel in einem Textfeld?“), nur an
+einer zweiten, nicht abgesicherten Stelle.</p>
+
+<h2>3. Warum es ein echter Defekt ist</h2>
+<ul>
+  <li><strong>Reproduzierbar:</strong> Palette öffnen (⌘K), in das Suchfeld „PC“ tippen (etwa,
+    um ein Projekt zu finden) → Create-Project-Modal öffnet sich und die Palette schließt.
+    Dasselbe für die Buchstabenfolgen oben.</li>
+  <li><strong>Widerspricht der eigenen Regel:</strong> Die Spec und der globale Guard verlangen,
+    dass kein Kürzel in einem Textfeld feuert. Genau diese Zusicherung hält der paletteneigene
+    Handler nicht — er umgeht den Guard, weil er ein zweiter, unabhängiger Listener ist.</li>
+  <li><strong>Nicht durch anderweitige Zusicherung abgedeckt:</strong> kein Test tippt
+    <code>pc</code>/<code>tc</code>/<code>wc</code>/<code>pl</code> in den Palette-Input
+    (Review-Run und <code>tests/e2e/support/tastatur.ts</code> decken nur t/p/v/s im
+    <em>Titel-Feld</em> ab — ein anderes Eingabefeld, anderer Zuhörer).</li>
+</ul>
+<p>Grenzen des Urteils, ehrlich benannt: Er benötigt die geöffnete Palette <em>und</em> ein
+Tippen der exakten Zeichenfolge — ein seltener, aber sehr überraschender Effekt, der eine Aktion
+unaufgefordert auslöst. Kein Datenverlust, keine Sicherheit; daher trifft die Einstufung
+<em>minor</em> des Reviews zu. Er bleibt aber ein Korrektheits-Befund, kein Stil-Punkt.</p>
+
+<h2>4. Was die Umsetzungskarte verlangen sollte</h2>
+<p>Zielzustand: Das Tippen in das Palette-Suchfeld darf nie ein Kürzel auslösen; die Palette
+bleibt offen und die Eingabe bleibt reine Suche.</p>
+<ul>
+  <li><strong>Kern-Korrektur:</strong> Im <code>onKeyDown</code> (index.tsx Z.244) vor der
+    Sequenz-Bildung abbrechen, wenn <code>event.target</code> ein bearbeitbares Textelement ist
+    (<code>INPUT</code>/<code>TEXTAREA</code>/<code>contentEditable</code>) — dieselbe Prüfung
+    wie <code>use-keyboard-shortcuts.ts:166–173</code>. Ein-Zeilen-Guard, keine
+    Architekturänderung.</li>
+  <li><strong>Test:</strong> E2E oder Unit: Palette öffnen, in den <code>CommandInput</code> die
+    Zeichenfolge <code>pc</code> (und mindestens <code>tc</code>) tippen; Assertion: kein Modal
+    öffnet sich, Palette bleibt sichtbar, Eingabewert steht unverändert im Feld.</li>
+  <li><strong>Regression:</strong> Kürzel <em>außerhalb</em> des Eingabefelds (z.&nbsp;B. die
+    Palette-Sequenz bei geschlossenem Fokus oder die globalen Kürzel) bleiben funktionsfähig.</li>
+</ul>
+
+<h2>5. Follow-up &amp; Verankerung</h2>
+<p>Der Befund stammt aus dem Review von <code>t_e76c4947</code>; diese Karte ist die Auflage R1-c
+aus dem Release-Gate <code>t_d85e4216</code>. Empfehlung an den Orchestrator: eine
+Umsetzungskarte nach Abschnitt 4 anlegen (Assignee ein Web-Implementierer), damit ein Befund,
+der nur im Gemerk stand, nicht wieder in zwei Wochen vergessen wird — genau der Zweck dieser
+Auflage.</p>
+
+<h2>6. Belege &amp; Quellen</h2>
+<ul>
+  <li>Code: <code>apps/web/src/components/command-palette/index.tsx</code> Z.224–278 (Handler,
+    Puffers, Matcher); <code>apps/web/src/hooks/use-keyboard-shortcuts.ts</code> Z.164–182
+    (Global-Guard, den der Palette-Handler umgeht); <code>apps/web/src/constants/shortcuts.ts</code>
+    (Kürzel-Literale).</li>
+  <li>Befund: metadata + Kommentar von Karte <code>t_e76c4947</code> (finding <em>minor</em>,
+    Zeilenangabe 244, Commit <code>3e61f8e</code>).</li>
+  <li>Testabdeckung: <code>tests/e2e/support/tastatur.ts</code> und
+    <code>tastatur-command-palette.spec.ts</code> (nur t/p/v/s im Titel-Feld, nicht diese
+    Sequenzen im Palette-Input).</li>
+</ul>
+<p class="src">Zeitstempel System 2026-08-19 (AGENTS.md 3.2). Kein Code geändert; diese Karte
+beurteilt den Befund (Karten-Body: „urteilt, sie baut nicht“).</p>
+
+<h2>7. Video-Zusammenfassung</h2>
+<section id="video-skript">
+<p>Das Review der Tastatur-Features hat einen Defekt als gering eingestuft und beiseitegelegt,
+weil er schon vor unserem Release da war — ich habe ihn gegen den Code geprüft, und er ist echt.
+Der Kern ist ein fehlender Schutz in der Befehlspalette: Sobald die Palette offen ist, fängt ein
+eigener Tastatur-Dienst jede eingegebene Taste ab, auch wenn man in das Suchfeld der Palette
+selbst tippt. Wer dort zum Beispiel die zwei Buchstaben PC eintippt, um ein Projekt zu finden,
+bekommt statt der Suche das Fenster zum Anlegen eines neuen Projekts, und die Palette schließt
+sich. Weitere Kürzel wie TC und WC lösen das Gleiche aus. Überall sonst schützt die Anwendung
+Eingabefelder an einer zentralen Stelle — nur dieser zweite Dienst in der Palette nicht. Die
+Korrektur ist klein: eine Prüfung, ob man gerade in ein Eingabefeld tippt, plus ein Test, der
+die Buchstabenfolge im Suchfeld abtippt und verlangt, dass kein Fenster aufgeht. Der Befund wird
+so zur Umsetzungskarte; er ist ein echter Defekt, keine Fehlmeldung.</p>
+</section>
+<figure class="esf-video">
+  <video controls preload="metadata" width="100%" src="befund-palette-keydown.mp4">
+    <track kind="subtitles" srclang="de" label="Untertitel" src="befund-palette-keydown.vtt">
+  </video>
+  <figcaption>Video-Zusammenfassung; Untertitel zuschaltbar. Gerendert von scripts/video-render.sh.</figcaption>
+</figure>
+
+</body>
+</html>

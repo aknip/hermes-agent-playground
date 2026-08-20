@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <title>Schätzung S4 — F-R1-1b und F-R2-1 — ESF</title>
+  <meta name="esf-typ" content="report">
+  <meta name="esf-karte" content="t_c04e1420">
+  <meta name="esf-datum" content="2026-08-19">
+  <meta name="esf-video" content="schaetzung-s4.mp4">
+  <style>
+    body { font-family: system-ui, -apple-system, sans-serif; max-width: 62rem;
+           margin: 2rem auto; padding: 0 1.5rem; line-height: 1.55; color: #1a1a1a; }
+    h1 { font-size: 1.6rem; border-bottom: 2px solid #333; padding-bottom: .4rem; }
+    h2 { font-size: 1.2rem; margin-top: 2.2rem; border-bottom: 1px solid #ccc; padding-bottom: .3rem; }
+    table { border-collapse: collapse; width: 100%; margin: 1rem 0; font-size: .92rem; }
+    th, td { border: 1px solid #ccc; padding: .45rem .6rem; text-align: left; vertical-align: top; }
+    th { background: #f2f2f2; }
+    code { background: #f4f4f4; padding: .05rem .3rem; border-radius: 3px; font-size: .9em; }
+    .zusammenfassung { background: #fff8dc; border-left: 4px solid #e0c000; padding: .8rem 1.1rem; }
+    .befund { background: #fdf0f0; border-left: 4px solid #c0392b; padding: .6rem .9rem; }
+    .gruen { color: #2e7d32; }
+    .rot { color: #c0392b; }
+    li { margin: .3rem 0; }
+  </style>
+</head>
+<body>
+
+<h1>Schätzung Sprint S4 — F-R1-1b (WeKan-Import) und F-R2-1 (MCP härten)</h1>
+
+<div class="zusammenfassung">
+<h2>Das Wichtigste in drei Minuten</h2>
+<p><strong>Sechs Karten, drei Klassen, ein pflichtbewusstes Intervall je Karte.</strong>
+Die Bau-Karte von F-R2-1 (MCP härten) schätze ich <strong>deutlich größer</strong> als die von
+F-R1-1b (WeKan-Import): p50 90 gegen p50 55. Der Unterschied ist begründet, nicht aus Klasse
+identisch. Beide Umsetzungen liegen über der Roadmap-Zahl, und ich <strong>widerspreche der
+Roadmap bewusst</strong> (§3.1, 97/230 für die ganze Kette): impl-worktree-M misst q=1,38 — die
+Klasse unterschätzt, und die Bau-Karten sind der große Teil der Kette. Das Budget-Gate hängt am
+p90; die Intervalle unten sind so ehrlich, wie die <code>n=1…3</code>-Samples es zulassen.</p>
+<p><strong>Basis benannt:</strong> Der einzige saubere impl-worktree-M-Anker ist
+<code>t_7c31acd6</code> (Ist 55 gegen p50 40). Der im Auftrag erwähnte Anker
+<code>t_de53e678</code> (Ist 49) ist <strong>nach controller-s3 ausgeschlossen</strong> — ein
+zerrissenes Paar (Istwert ohne Schätzung, im Ledger unklassifiziert), kein Velocity-Punkt.</p>
+</div>
+
+<h2>1. Die sechs Intervalle</h2>
+<p>Alle <code>tokens_k</code> und <code>cost_usd</code> sind <code>null</code>: Hermes v0.20.0
+misst keine Tokens; Kosten laufen kumulativ je Rolle (AGENTS.md 6.1), nie je Karte.</p>
+<table>
+  <thead><tr><th>Karte</th><th>Karten-ID</th><th>Klasse</th><th>p50</th><th>p90</th><th>Konf.</th></tr></thead>
+  <tbody>
+    <tr><td>F-R1-1b Umsetzung</td><td>t_fa08a5b5</td><td>impl-worktree-M</td><td>55</td><td>90</td><td>0,25</td></tr>
+    <tr><td>F-R1-1b Review</td><td>t_4798143b</td><td>review-repo-M</td><td>12</td><td>20</td><td>0,35</td></tr>
+    <tr><td>F-R1-1b Merge</td><td>t_9ef532cc</td><td>merge-repo-S</td><td>10</td><td>15</td><td>0,35</td></tr>
+    <tr><td>F-R2-1 Umsetzung</td><td>t_e66652b4</td><td>impl-worktree-M</td><td>90</td><td>160</td><td>0,20</td></tr>
+    <tr><td>F-R2-1 Review</td><td>t_740896e8</td><td>review-repo-M</td><td>15</td><td>30</td><td>0,35</td></tr>
+    <tr><td>F-R2-1 Merge</td><td>t_c0bd7173</td><td>merge-repo-S</td><td>10</td><td>15</td><td>0,35</td></tr>
+  </tbody>
+</table>
+
+<h2>2. Ledger-Zeilen und Velocity — was die Klassen messen</h2>
+<p>Quelle: <code>ledger/estimates.jsonl</code>, gelesen am 2026-08-19, mit der
+Kontaminations-Ruling von <code>reports/controller-s3.html</code> zuerst (AGENTS.md 1a).</p>
+<table>
+  <thead><tr><th>Klasse</th><th>task_id</th><th>Schätzung p50/p90</th><th>Ist (min)</th><th>q=Ist/p50</th></tr></thead>
+  <tbody>
+    <tr><td>impl-worktree-M</td><td>t_7c31acd6</td><td>40 / 85</td><td>55</td><td>1,38</td></tr>
+    <tr><td>impl-worktree-M</td><td>t_de53e678</td><td class="rot">(zerrissen)</td><td>49</td><td class="rot">ausgeschlossen</td></tr>
+    <tr><td>review-repo-M</td><td>t_e76c4947</td><td>10 / 25</td><td>12</td><td>1,20</td></tr>
+    <tr><td>review-repo-M</td><td>t_1d5462b9</td><td>20 / 45</td><td>11</td><td>0,55</td></tr>
+    <tr><td>review-repo-M</td><td>t_4ebb816f</td><td>15 / 30</td><td>17</td><td>1,13</td></tr>
+    <tr><td>merge-repo-S</td><td>t_5db4aefa</td><td>15 / 40</td><td>13</td><td>0,87</td></tr>
+    <tr><td>merge-repo-S</td><td>t_90fdf0f6</td><td>15 / 40</td><td>4</td><td>0,27</td></tr>
+    <tr><td>merge-repo-S</td><td>t_e027226a</td><td>12 / 30</td><td>9</td><td>0,75</td></tr>
+  </tbody>
+</table>
+<p><strong>Velocity je Klasse (Ist-auf-p50, Mittel der sauberen Paare):</strong></p>
+<ul>
+  <li><strong>impl-worktree-M</strong> — n=1, q=1,38 (unterschätzt). Der eine Punkt
+      (<code>t_e027226a</code>-Generation) sagt: die Klasse kostet ~1,4× ihre p50.</li>
+  <li><strong>review-repo-M</strong> — n=3, q im Mittel 0,96 (≈ p50). Istwerte 12 / 11 / 17;
+      p50 der Istwerte ≈ 12, p90 ≈ 17.</li>
+  <li><strong>merge-repo-S</strong> — n=3, q im Mittel 0,63 (überschätzt, Riegel ist günstig).
+      Istwerte 13 / 4 / 9; p50 der Istwerte ≈ 9, p90 ≈ 13.</li>
+</ul>
+<p class="befund">Die beiden bekannten Lücken (<code>t_c35344ff</code>, <code>t_de53e678</code>)
+tragen keine Schätzung und sind <strong>nicht</strong> als Istwert in die Velocity eingeflossen —
+das wäre ein Istwert ohne Paar.</p>
+
+<h2>3. Warum die beiden Umsetzungen nicht gleich sind</h2>
+<p><strong>F-R1-1b (WeKan) baut ein drittes Paket nach dem Muster zweier bestehender.</strong>
+Die Spezifikation (specs/r2-f1b-import-wekan.html §2 „Zuschnitt“) nennt selbst den Zuschnitt
+„eine Bau-Karte ≈ Import-CSV (49 min Ist, t_de53e678)“ — ein potenziell mechanischer Bau entlang
+eines belegten Flusses (csv migrate.ts, planka mapping). Der geteilte Client reicht unverändert aus
+(§2). Es ist neue Fläche, aber <em>nach Vorlage</em>.</p>
+<p><strong>F-R2-1 (MCP) härtet Bestandscode mit unbekannter Werkzeugzahl — doppelt.</strong>
+Die Spezifikation (specs/r2-f2-mcp-agentenkanal.html) nennt 36 Werkzeuge in <em>zwei</em>
+duplizierten Katalogen (tools.ts 957 Zeilen, register.ts 786 Zeilen). Jede Härtung (H1, H3, H4)
+muss in <em>beiden</em> gespiegelt und dort je getestet werden (§3, AC3: „eigener Test je
+Katalog“). H1 ist heikel: read-modify-write mit Revisions-/Konflikt-Semantik ist
+Datenintegritäts-Code, kein Ablegen nach Vorlage. Es gibt keinen fertigen Bruder, an dem man sich
+entlanghangelt — man modifiziert zwei lebende, getrennte Kopien konsistent, ohne sie zu
+verschmelzen (H5 ist eigene Karte).</p>
+<p><strong>Entscheidung:</strong> p50 55 (F-R1-1b) <em>vs.</em> p50 90 (F-R2-1). Nicht aus der
+Klasse identisch — die Klasse sagt nur „impl-worktree-M“, die Fläche unterscheidet sich. Der
+MCP-Bau ist die größere Hälfte; beides über dem impl-Klassen-Anker von 55, weil q=1,38 zeigt, dass
+die Klasse ihre p50 unterschätzt.</p>
+
+<h3>3.1 Verhältnis zur Roadmap-Zahl — ein offener Widerspruch</h3>
+<p>Die freigegebene Roadmap (roadmap/r2-freigegeben.html §3.1) beziffert <em>jedes</em> der beiden
+Features mit p50 97 / p90 230 für die ganze Kette
+<code>spec + est + 1×impl-M + review-M + merge-S</code>. Meine beiden Umsetzungen allein
+(p50 55 + 90 = 145) überschreiten die Roadmap-Ketten-p50 von 97 bereits — vor Spec, Est, Review
+und Merge.</p>
+<p><strong>Ich widerspreche der Roadmap, und begründe es:</strong> Die Roadmap-Zahl ist eine
+Kartenketten-Schätzung des Chief of Staff, keine Messung — die Rolle rechnet mit
+Karten<em>namen</em>, nicht mit Istwerten. Das Ledger kennt aber einen gemessenen
+impl-worktree-M-Punkt: q=1,38. Eine p50, die für die <code>-M</code>-Bauklasse bei ~1,4× landet,
+verträgt keine Kette, die die Baukarte klein rechnet. Zwei Features, die beide mit
+<code>1×impl-M</code> und p50 97 notiert sind, sind damit <em>a priori</em> identisch
+beschrieben — die Roadmap glättet den Unterschied (F1b neu bauen vs. F2 haten), den die
+Spezifikationen klar machen. Das ist der Widerspruch, den AGENTS.md 3.3 nebeneinanderstellen will.</p>
+
+<h2>4. Konfidenz je Schätzung — mit Grund</h2>
+<table>
+  <thead><tr><th>Karte</th><th>Konf.</th><th>Warum so — und nicht höher</th></tr></thead>
+  <tbody>
+    <tr><td>F-R1-1b Umsetzung</td><td>0,25</td><td>n=1 sauberer Klassen-Punkt (t_7c31acd6); der zweite Kandidat ist zerrissen. Spec-Anker ≈49 stützt, aber ein einziger realer Messpunkt erzwingt ein weites Intervall.</td></tr>
+    <tr><td>F-R2-1 Umsetzung</td><td>0,20</td><td>n=1 plus die größte, ungewöhnlichste Fläche (zwei Kataloge, H1-Semantik). Unter 0,25, weil die Varianz hier am höchsten und die Klasse am dünnsten besetzt ist.</td></tr>
+    <tr><td>F-R1-1b Review</td><td>0,35</td><td>n=3, q-Mittel ≈1,0, kompakte Istwerte (11–17). Der neue Paket-Review ist typisch; wenig Grund, vom Klassenmittel abzuweichen.</td></tr>
+    <tr><td>F-R2-1 Review</td><td>0,35</td><td>n=3, aber mehr Fläche zu prüfen (beide Kataloge, Konfliktfälle). Deshalb p50 15 statt 12 — und deshalb nicht höher als 0,35.</td></tr>
+    <tr><td>F-R1-1b Merge</td><td>0,35</td><td>n=3, stabil (q 0,27…0,87), Riegel ist mechanisch. p50 10, p90 15 nahe am Ist-p50 von 9.</td></tr>
+    <tr><td>F-R2-1 Merge</td><td>0,35</td><td>dasselbe Klassenbild; nichts am Merge unterscheidet sich nach Feature.</td></tr>
+  </tbody>
+</table>
+<p>Alle Konfidenzen liegen unter 0,4 — keine Klasse hat fünf Paare. Das ist Absicht: 1–3 Messpunkte
+verdienen breite Intervalle (AGENTS.md 1a).</p>
+
+<h2>5. Budget-Gate</h2>
+<p>Falls das p90 eine 90%-Wahrheit trifft, feuert das Gate bei Ist &gt; 1,5×p90. Für die größte
+Karte (F-R2-1, p90 160) bedeutet das: Feuerschwelle ~240 min — genau die Standby-Heuristik von
+ledger-sync.sh. Ein absichtlich enges p90 (etwa 110) würde bei einem plausiblen 75-min-Bau
+fehlalarmieren; ein absichtlich weites (etwa 300) würde bei einem echten 4-Stunden-Bau stumm
+bleiben. 160 ist die ehrliche Spanne für „zwei Kataloge härtungsreif machen“.</p>
+
+<h2>6. Quellen &amp; Belege</h2>
+<ul>
+  <li>ledger/estimates.jsonl — Paare t_7c31acd6, t_de53e678, t_e76c4947, t_1d5462b9, t_4ebb816f,
+      t_5db4aefa, t_90fdf0f6, t_e027226a (+ Lücken t_c35344ff, t_de53e678).</li>
+  <li>reports/controller-s3.html — Ruling: t_de53e678 zerrissen (Prüfung 3 rot), Klassen-quotienten
+      (impl-M 1,38 · review-M 0,96 · merge-S 0,63).</li>
+  <li>specs/r2-f1b-import-wekan.html §2 (Zuschnitt ≈49 min), §1.1–1.3 (Muster), §9 (AC).</li>
+  <li>specs/r2-f2-mcp-agentenkanal.html §1 (36 Tools, zwei Kataloge), §2 (H1/H3/H4), §3 (beide
+      Kataloge spiegeln, keine OAuth/API-Änderung), §5 (AC1–AC10).</li>
+  <li>roadmap/r2-freigegeben.html §3.1 (p50 97 / p90 230 je Feature, Kette spec+est+impl+review+merge).</li>
+</ul>
+
+<section id="video-skript">
+<p>Die sechs Karten dieses Sprints schätze ich in drei Klassen: zwei Baukarten, zwei Reviews, zwei
+Merges. Die Baukarten sind nicht gleich groß. Der WeKan-Import baut ein drittes Paket nach dem
+Muster seiner zwei Geschwister und ist mit fünfzig, fünfundfünfzig Minuten Kern der kleineren
+Hälfte. Die MCP-Härtung dagegen verändert zwei getrennte Werkzeugkataloge mit sechsunddreißig
+Werkzeugen jeweils doppelt und macht eine konfliktsichere Lese-Schreib-Prüfung — die ist die große
+Baukarte mit rund neunzig Minuten in der Mitte. Beide liegen damit über der Zahl, die die Roadmap
+für das ganze Feature nennt, und das ist ein bewusster Widerspruch: Die eine gemessene Baukarte
+dieser Klasse hat gezeigt, dass sie anderthalbmal so teuer ist wie geschätzt. Reviews und Merges
+sind gut belegt, mit je drei Messpunkten, und bleiben nah am gemessenen Mittel. Alle Intervalle
+sind breit, weil die Stichproben klein sind — die erste echte Messung wird sie ersetzen.</p>
+</section>
+<figure class="esf-video">
+  <video controls preload="metadata" width="100%" src="schaetzung-s4.mp4">
+    <track kind="subtitles" srclang="de" label="Untertitel" src="schaetzung-s4.vtt">
+  </video>
+  <figcaption>Video-Zusammenfassung; Untertitel zuschaltbar. Gerendert von scripts/video-render.sh.</figcaption>
+</figure>
+
+</body>
+</html>

@@ -1,0 +1,49 @@
+{
+  "dokument": "analysis/codebase.html",
+  "titel": "Kaneo — Codebasis-Analyse",
+  "typ": "analyse",
+  "dauer": 84.05,
+  "audio": "audio.m4a",
+  "cues": [
+    {
+      "text": "Kaneo ist ein TypeScript-Monorepo, sauber geschnitten: eine Hono-API besitzt die gesamte Domäne und Autorisierung, eine React-Web-App konsumiert sie über einen getypten Client, und PostgreSQL ist die einzige Pflicht-Datenhaltung.",
+      "start": 0.0,
+      "dauer": 14.177
+    },
+    {
+      "text": "Die Architektur ist solide und gut belegt — sie sollte die Schätzung nicht erschweren.",
+      "start": 14.177,
+      "dauer": 7.089
+    },
+    {
+      "text": "Das einzige auffällige Signal ist rotes Linting: Unsere Messung zeigt achtzig Warnungen, davon vierundsechzig reine Turbo-Konfigurationsmeldungen zu Umgebungsvariablen und nur zwölf echte, automatisch reparierbare Stil-Findings.",
+      "start": 21.266,
+      "dauer": 12.658
+    },
+    {
+      "text": "Es ist also kein Feature-Blocker, sondern Bestandsschuld vom Ausgangs-Commit — wir empfehlen vor der Feature-Arbeit einen Wartungs-Commit, der diese zwölf Stellen aufräumt und das Linting grün macht.",
+      "start": 33.924,
+      "dauer": 13.671
+    },
+    {
+      "text": "Die Datenhaltung umfasst sechsunddreißig Tabellen mit vierundvierzig Migrationen; wer das Schema anfasst, muss Bestandsinstallationen berücksichtigen.",
+      "start": 47.595,
+      "dauer": 7.594
+    },
+    {
+      "text": "Die größten Risiken liegen in der Realtime-Kette von Aufgabe bis WebSocket und in der zentralen Startdatei der API, in der alle Routen hängen.",
+      "start": 55.189,
+      "dauer": 11.646
+    },
+    {
+      "text": "Web-Tests decken bisher fast nur Logik ab, die Oberfläche selbst kaum — das baut die laufende E2E-Karte gerade aus.",
+      "start": 66.835,
+      "dauer": 9.62
+    },
+    {
+      "text": "Nächster Schritt: die Lint-Bereinigung als eigenen Auftrag vergeben und die Schätzung auf dieser Analyse aufsetzen.",
+      "start": 76.455,
+      "dauer": 7.595
+    }
+  ]
+}

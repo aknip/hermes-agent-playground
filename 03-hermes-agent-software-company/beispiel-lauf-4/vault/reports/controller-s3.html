@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <title>Controller-Report S3 — Kalibrierung — ESF</title>
+  <meta name="esf-typ" content="report">
+  <meta name="esf-karte" content="t_16af6589">
+  <meta name="esf-datum" content="2026-08-19">
+  <meta name="esf-video" content="controller-s3.mp4">
+  <style>
+    body { font-family: system-ui, -apple-system, sans-serif; max-width: 60rem;
+           margin: 2rem auto; padding: 0 1.5rem; line-height: 1.55; color: #1a1a1a; }
+    h1 { font-size: 1.6rem; border-bottom: 2px solid #333; padding-bottom: .4rem; }
+    h2 { font-size: 1.2rem; margin-top: 2.2rem; }
+    table { border-collapse: collapse; width: 100%; margin: 1rem 0; font-size: .92rem; }
+    th, td { border: 1px solid #ccc; padding: .4rem .55rem; text-align: left; vertical-align: top; }
+    th { background: #f2f2f2; }
+    code { background: #f4f4f4; padding: .05rem .3rem; border-radius: 3px; font-size: .9em; }
+    .src { color: #555; font-style: italic; }
+    .zusammenfassung { background: #fff8dc; border-left: 4px solid #e0c000; padding: .8rem 1.1rem; }
+    .befund { background: #fdf0f0; border-left: 4px solid #c0392b; padding: .6rem .9rem; }
+    .gruen { color: #2e7d32; }
+    .rot { color: #c0392b; }
+    li { margin: .3rem 0; }
+    section#video-skript p { font-style: italic; color: #333; }
+  </style>
+</head>
+<body>
+
+<h1>Controller-Report Sprint S3 — Kalibrierung</h1>
+
+<div class="zusammenfassung">
+<h2>Das Wichtigste in drei Minuten</h2>
+<p><strong>Der Riegel dieses Sprints ist <span class="rot">rot</span>.</strong>
+Prüfung 3 von <code>scripts/check-sprint.sh</code> — die (Schätzung, Ist)-Paare —
+findet ein <strong>zerrissenes Paar auf der Umsetzungs-Karte von F-R1-1</strong>
+(<code>t_de53e678</code>): sie wurde abgeschlossen, ohne die Schätzung ihrer
+Estimator-Karte ins Abschluss-metadata zu kopieren. Der Estimator hatte für genau
+diese Karte <code>impl-worktree-M</code> mit p50&nbsp;=&nbsp;65, p90&nbsp;=&nbsp;130
+geschätzt; das metadata der Umsetzungs-Karte trägt stattdessen nur
+<code>acceptance</code> und <code>worker_session_id</code>. Ihr Istwert von
+49&nbsp;min landet im Ledger als <code>unklassifiziert</code> — ein Istwert ohne
+Paar. Das ist der Befund, kein grünes Bild über einer Lücke.</p>
+<p><strong>Was sonst gut lief:</strong> Review und Merge von F-R1-1 tragen
+vollständige Paare <span class="gruen">grün</span>; alle S3-Karten liefen exakt
+einmal, ohne Standby, ohne Gate-Wartezeit. Der Wanduhr-Aufwand des Sprints beträgt
+131&nbsp;min über sechs Karten; die <code>-M</code>-Klassen bleiben besser
+kalibriert als die <code>-S</code>-Klassen früherer Sprints.</p>
+<p><strong>Geld:</strong> OpenRouter-Verbrauch seit dem letzten Abgleich gemessen:
+<strong>≈ 2,75&nbsp;USD</strong> über alle Rollen, davon <strong>≈ 2,45&nbsp;USD</strong>
+auf die fünf Rollen, die S3-Karten ausgeführt haben.</p>
+<p><strong>Entscheidung nötig:</strong> Der verlorene Schätz-Handoff auf
+<code>t_de53e678</code> muss benannt werden, bevor der Sprint als kalibrierbar
+gilt — der Chief-of-Staff schreibt danach <code>reports/sprint-s3-report.html</code>
+(Prüfung&nbsp;6 wird damit vollständig grün).</p>
+</div>
+
+<h2>Das rote Prüfungsergebnis — an erster Stelle</h2>
+<div class="befund">
+<p><strong>Prüfung 3 — (Schätzung, Ist)-Paare — ist rot auf
+<code>t_de53e678</code> (S3 F1 3/5, Umsetzung F-R1-1 Import CSV + WeKan).</strong>
+<code>check-sprint.sh S3</code> meldet für dieselbe Karte zweifach:</p>
+<ul>
+  <li><code>ohne metadata.estimate.reference_class: t_de53e678</code></li>
+  <li><code>Istwert ohne bezifferte Schätzung: t_de53e678</code></li>
+</ul>
+<p>Das Abschluss-metadata der Karte (Board, ein Lauf
+<code>1787128962→1787131933</code>) führt <code>acceptance</code> (AC1–AC11, alle
+grün) und <code>worker_session_id</code> — <strong>aber kein
+<code>estimate</code>-Objekt und keine <code>reference_class</code></strong>. Die
+Estimator-Karte <code>t_5d4b570f</code> (S3 F1 2/5, esf-estimator) hatte für die
+drei Karten der Kette drei Schätzungen in ihrem <code>estimates</code>-Objekt
+abgelegt: <code>S3 F1 3/5 Umsetzung</code> → <code>impl-worktree-M</code>,
+p50&nbsp;=&nbsp;65, p90&nbsp;=&nbsp;130, confidence&nbsp;=&nbsp;0,2; Review und
+Merge nahmen ihre Schätzung mit, die Umsetzungs-Karte nicht.</p>
+<p><code>ledger-sync.sh</code> legte die Karte als <code>unklassifiziert</code> mit
+<code>estimate:null</code> und <code>actual.wall_minutes=49</code> ab — ein
+Istwert ohne Paar. Damit fehlt der <code>impl-worktree-M</code>-Klasse ihr zweiter
+Messpunkt.</p>
+<p class="src">Belege: <code>scripts/check-sprint.sh S3</code> Ausgabe (Prüfung 3);
+Board <code>hermes kanban show t_de53e678 --json</code> → <code>.runs[0].metadata</code>;
+Board <code>hermes kanban show t_5d4b570f --json</code> → <code>.runs[0].metadata.estimates</code>;
+<code>ledger/estimates.jsonl</code> Zeile t_de53e678. Widerspruch nach AGENTS.md 3.3
+nebengestellt: das metadata verspricht eine erfolgreiche Umsetzung, aber nicht die
+Kalibrierbarkeit des Paares.</p>
+</div>
+
+<h2>Schätzgüte-Baseline — der Phase-2-Nachweis</h2>
+<p>Je Referenzklasse die vollständigen Paare aus <code>ledger/estimates.jsonl</code>
+nach dem <code>ledger-sync.sh</code>-Lauf vom 2026-08-19, mit den S3-Anteilen
+markiert. Wanduhrminuten aus Board-Zeitstempeln
+(<code>.runs[].started_at/.ended_at</code>); Schätzung p50 aus dem
+<code>estimate.wall_minutes.p50</code> des Karten-metadata. Quotient = Ist/(p50).</p>
+<table>
+  <thead><tr><th>Referenzklasse</th><th>Karte (S3)</th><th>Schätzung p50/p90</th>
+    <th>Ist (min)</th><th>Ist/Schätzung</th><th>Faktor</th><th>n (gesamt)</th><th>Trend</th></tr></thead>
+  <tbody>
+    <tr><td>review-repo-M</td><td>t_4ebb816f Review F-R1-1</td><td>15 / 30</td><td>17</td><td>1,13</td><td>leicht unterschätzt</td><td>3</td><td>S2: 1,20 &amp; 0,55 → Mittel 0,96</td></tr>
+    <tr><td>merge-repo-S</td><td>t_e027226a Merge F-R1-1 am Riegel</td><td>12 / 30</td><td>9</td><td>0,75</td><td class="gruen">gut (leicht überschätzt)</td><td>3</td><td>S2: 0,87 &amp; 0,27; jetzt stabiler</td></tr>
+    <tr class="rot"><td>impl-worktree-M (zerrissen)</td><td>t_de53e678 Umsetzung F-R1-1</td><td>— (fehlt)</td><td>49</td><td>torn</td><td class="rot">—</td><td>1</td><td>S2 t_7c31acd6 q=1,38; S3-Punkt verloren</td></tr>
+  </tbody>
+</table>
+<p>Referenzklassen-Aggregation aller Paare im Ledger (aus Prüfung 4 von
+<code>check-sprint.sh S3</code>), je Mittel über die vorhandenen Paare:</p>
+<table>
+  <thead><tr><th>Referenzklasse</th><th>n</th><th>Ist/Schätzung im Mittel</th></tr></thead>
+  <tbody>
+    <tr><td>impl-worktree-M</td><td>1</td><td>1,38</td></tr>
+    <tr><td>impl-worktree-S</td><td>1</td><td>0,21</td></tr>
+    <tr><td>merge-repo-S</td><td>3</td><td>0,63</td></tr>
+    <tr><td>review-repo-M</td><td>3</td><td>0,96</td></tr>
+    <tr><td>review-repo-S</td><td>1</td><td>0,09</td></tr>
+    <tr><td>estimate-vault-S</td><td>2</td><td>0,70</td></tr>
+    <tr><td>e2e-repo-M</td><td>1</td><td>0,63</td></tr>
+  </tbody>
+</table>
+<p><strong>Interpretation:</strong> Die S3-Paare liegen im Bereich
+q&nbsp;≈&nbsp;0,75…1,13 und bestätigen den S2-Umschwung: die Arbeitsklassen sind
+nicht mehr massiv überschätzt (S1: impl&nbsp;4,7×, review&nbsp;11,7×). Der
+<code>review-repo-M</code> braucht im Mittel rund die p50 (q&nbsp;=&nbsp;0,96);
+<code>merge-repo-S</code> liegt im Mittel bei 0,63 — eine p50-Schätzung für einen
+Merge deckt deutlich mehr als nötig. Der einzige echte Ausreißer nach unten in den
+Daten ist die frühere Schätzkarte (<code>estimate-vault-S</code> q=0,08), kein
+Arbeitskarten-Wert.</p>
+<p><strong>Faktor für den nächsten Plan:</strong> <code>review-repo-M</code>
+kostet näherungsweise das p50-Intervall (Faktor ≈ 1,0); <code>merge-repo-S</code>
+braucht ≈ 0,6× des p50. Achtung: überwiegend <code>n=1…3</code> je Klasse — breite
+Intervalle bleiben Pflicht, die Verteilung ist erst drei Sprints alt.</p>
+
+<h2>Wanduhrminuten je Karte — Board-Zeitstempel</h2>
+<p>Aus <code>hermes kanban show &lt;id&gt; --json</code> → <code>.runs[].started_at/.ended_at</code>,
+Summe der Wanduhrdauer je Karte, abgelesen durch <code>ledger-sync.sh</code>.
+Board-Zeitstempel tragen, Modelltext nie (AGENTS.md 3.2).</p>
+<table>
+  <thead><tr><th>Karte</th><th>Wanduhr (min)</th><th>Läufe</th><th>Anmerkung</th></tr></thead>
+  <tbody>
+    <tr><td>t_0b6f6f2b S3 W 1/1 Wartung Palette-Keydown-Guard</td><td>28</td><td>1</td><td></td></tr>
+    <tr><td>t_eb272a28 S3 F1 1/5 Spezifikation F-R1-1</td><td>21</td><td>1</td><td></td></tr>
+    <tr><td>t_5d4b570f S3 F1 2/5 Schätzung F-R1-1</td><td>7</td><td>1</td><td></td></tr>
+    <tr><td>t_de53e678 S3 F1 3/5 Umsetzung F-R1-1</td><td>49</td><td>1</td><td class="rot">Istwert ohne Schätzung im metadata — Paar zerrissen</td></tr>
+    <tr><td>t_4ebb816f S3 F1 4/5 Review F-R1-1</td><td>17</td><td>1</td><td>q=1,13</td></tr>
+    <tr><td>t_e027226a S3 F1 5/5 Merge F-R1-1 am Riegel</td><td>9</td><td>1</td><td>q=0,75</td></tr>
+    <tr><td><strong>Summe S3</strong></td><td><strong>131</strong></td><td>6</td><td></td></tr>
+  </tbody>
+</table>
+
+<h2>Kosten je Rolle</h2>
+<p>Ermittelt von <code>ledger-sync.sh</code> über <code>scripts/assign-keys.sh --verbrauch</code>
+(OpenRouter <code>GET /api/v1/key</code>, je Profil-Key kumulativ), abgelegt in
+<code>ledger/kosten-je-rolle.jsonl</code>. Der Tagesverbrauch je Rolle ist die
+Differenz der <code>usage_total</code> zweier Schnappschüsse — ein echtes Delta,
+kein Mischwert.</p>
+<p><strong>Je KARTE gibt es keine Kosten</strong>: der Zähler läuft kumulativ je
+Key, also je Rolle, und eine Division wäre eine erfundene Zahl mit dem Anschein
+einer Messung (AGENTS.md 6).</p>
+<table>
+  <thead><tr><th>Rolle (Profil-Key)</th><th>Delta seit letztem Abgleich (USD)</th><th>S3-Beteiligung</th></tr></thead>
+  <tbody>
+    <tr><td>esf-dev-a</td><td>1,7471</td><td>Wartung + Umsetzung F-R1-1</td></tr>
+    <tr><td>esf-qa-release</td><td>0,3500</td><td>Merge F-R1-1 am Riegel</td></tr>
+    <tr><td>esf-reviewer</td><td>0,1783</td><td>Review F-R1-1</td></tr>
+    <tr><td>esf-architect</td><td>0,1061</td><td>Spezifikation F-R1-1</td></tr>
+    <tr><td>esf-estimator</td><td>0,0639</td><td>Schätzung F-R1-1</td></tr>
+    <tr><td><strong>Summe S3-Rollen</strong></td><td><strong>≈ 2,45</strong></td><td></td></tr>
+    <tr><td class="src">davon übrige (Controller-Aktivität, Chief-of-Staff)</td><td class="src">≈ 0,31</td><td class="src">Kalibrierung selbst, Sprint-Report</td></tr>
+  </tbody>
+</table>
+<p class="src">Differenz <code>usage_total</code>[letzter Schnappschuss] −
+<code>usage_total</code>[voriger Abgleich] je Profil aus
+<code>ledger/kosten-je-rolle.jsonl</code>. Der Delta-Zeitraum ist der Abstand
+zwischen dem letzten Sync (S2-Kalibrierung / Auflage-C) und diesem Lauf — in der
+Praxis die S3-Phase plus der Controller-Abschluss dieser Karte selbst. Für die
+Kalibrierung zählt der Wanduhr-Blick; die Kostenablage bleibt je Rolle.</p>
+
+<h2>Kontaminationen — benannt</h2>
+<h3>Gate-Wartezeit</h3>
+<p>Sprint S3 enthält die F1-Kette (Spezifikation→Schätzung→Umsetzung→Review→Merge)
+plus eine Wartungskarte. Die R1-Gates und Auflagen-Karten
+(<code>t_d85e4216</code>, <code>t_28c5032d</code>, <code>t_c735aff4</code>,
+<code>t_2616e83d</code>) sind eigene Karten <em>außerhalb</em> des
+<code>S3 </code>-Präfixes (AGENTS.md 7, Namensraumregel Zeile 59/61). Ihre
+Wartezeit kann also nicht in eine S3-Arbeitskarte geleckt sein:
+<span class="gruen">Die Trennung hat gehalten.</span> Keine S3-Karte wartete auf
+ein menschliches Gate.</p>
+<h3>Rechner-Standby</h3>
+<p>Im Ledger trägt <em>keine</em> S3-Karte <code>standby_overlap:true</code>
+(insgesamt 0 über alle 47 Ledger-Zeilen); die längste S3-Wanduhr (49&nbsp;min,
+Umsetzung) bleibt weit unter der 240-Minuten-Heuristik
+(<code>ledger-sync.sh</code> Zeile 165–166). Kein Lauf wurde wegen Standby aus der
+Kalibrierung geworfen — es gab nichts zu werfen. Ein unkontaminierter Durchschnitt
+kontaminierter Daten ist hier nicht das Problem.</p>
+
+<h2>Retries und Abbrüche</h2>
+<ul>
+  <li><strong>Alle sechs S3-Karten liefen exakt einmal</strong>
+      (<code>runs=1</code> im Ledger für jede). Kein <code>timed_out</code>, kein
+      Neustart auf Kartenebene.</li>
+  <li><strong>Der Merge (t_e027226a) lief als Karte einmal</strong>, aber die
+      <em>Riegel-Schleife</em> dahinter lief zweimal: der erste Riegel-Lauf
+      verweigerte auf reiner Betriebsbasis (fehlende <code>node_modules</code>-Links
+      der beiden neuen Workspace-Pakete <code>packages/csv-import</code> und
+      <code>packages/kaneo-client</code> in main; <code>ERR_MODULE_NOT_FOUND</code>),
+      wurde durch <code>pnpm install</code> im materialisierten Branch-Zustand
+      behoben, zweiter Lauf grün (Abschluss-metadata von <code>t_e027226a</code>).
+      Das ist ein Riegel-interner Retry, keine Karten-Wiederholung — die Wanduhr
+      (9&nbsp;min) zählt die Karte, nicht die beiden Riegel-Starts.</li>
+</ul>
+
+<h2>E2E-Schrittzahl je Journey — die Bedienbarkeits-Kennzahl</h2>
+<p>Aus <code>analysis/journeys.html</code> (Katalog) und den gemergten Spec-Dateien
+auf main des Produkt-Repos. Gezählt werden sichtbare Schritte der Journey-Spec,
+nicht Codezeilen.</p>
+<table>
+  <thead><tr><th>Journey</th><th>Schritte</th><th>Trend</th></tr></thead>
+  <tbody>
+    <tr><td>J-00 Anwendung erreichbar</td><td>2</td><td>unverändert</td></tr>
+    <tr><td>J-01 Konto anlegen</td><td>7</td><td>unverändert</td></tr>
+    <tr><td>J-02 Erstes Projekt anlegen</td><td>5</td><td>unverändert</td></tr>
+    <tr><td>J-03 Vorgang anlegen und zuweisen</td><td>5</td><td class="gruen">Widerspruch S2 aufgelöst (Katalog = Spec = 5)</td></tr>
+    <tr><td>J-04 Vorgang im Board weiterziehen</td><td>3</td><td>unverändert</td></tr>
+    <tr><td>J-05 Teammitglied einladen</td><td>7</td><td>unverändert (e2e-fest)</td></tr>
+    <tr><td>J-06 Vorgang ins Detail pflegen</td><td>5</td><td>unverändert (e2e-fest)</td></tr>
+    <tr><td>J-07 / J-08</td><td>offen</td><td>—</td></tr>
+  </tbody>
+</table>
+<p><strong>Ist die Kennzahl gewachsen?</strong> In S3 <strong>nicht</strong> — und
+die Spezifikations-Karte hat das bewusst so entschieden: F-R1-1 Import ist ein
+CLI-Prozess (<code>kaneo-csv-import</code>), der nicht durch den Browser läuft; eine
+erfundene Journey wäre Scheinabdeckung (Abschluss-metadata <code>t_eb272a28</code>,
+Feld <code>e2e.entscheidung</code>). Positiver Nebeneffekt: der in S2 gemeldete
+Widerspruch bei J-03 (Katalog 6 / Spec 5) ist aufgelöst — beide einigen sich jetzt
+auf 5. Eine neue Journey ist für den WeKan-Export (F-R1-1b Folgekarte) als
+e2e-Steigerung wieder möglich.</p>
+
+<h2>Was die nächste Schätzung anders machen muss</h2>
+<p>Ein Satz:</p>
+<p class="befund"><strong>Der Handoff der Schätzung von der Estimator-Kette in das
+Abschluss-metadata der <em>Umsetzungs</em>-Karte muss maschinell abgesichert werden —
+es ist der dritte Sprint in Folge, in dem an einer anderen Kettenposition ein Paar
+zerreißt (S1 Merge, S2 Merge, S3 Umsetzung), und die nächste Schätzung rechnet für
+die <code>-M</code>-Arbeitsklassen weiter auf den gemessenen Quotienten, mit breiten
+Intervallen, solange <code>n</code> einstellig ist.</strong></p>
+
+<h2>Quellen &amp; Belege</h2>
+<ul>
+  <li>ledger/estimates.jsonl — (Schätzung, Ist)-Paare nach ledger-sync-Lauf vom 2026-08-19 (Commit 84322e0).</li>
+  <li>ledger/kosten-je-rolle.jsonl — OpenRouter-Kosten je Profil-Key, Schnappschüsse 2026-08-19.</li>
+  <li>scripts/check-sprint.sh S3 — Lauf vom 2026-08-19; Prüfung 3 ROT auf t_de53e678, Prüfung 6 offen bis sprint-report.</li>
+  <li>Karten t_0b6f6f2b…t_e027226a — Board-Läufe (.runs[].started_at/.ended_at) und Abschluss-metadata; t_de53e678 ohne estimate (BEFUND), t_5d4b570f trägt estimates der Kette.</li>
+  <li>reports/controller-s2.html — S2-Baseline und der dort aufgelöste J-03-Widerspruch.</li>
+  <li>analysis/journeys.html — Journey-Katalog; J-03 = 5, Katalog und Spec stimmen überein.</li>
+  <li>Kaneo-Repo main c11647e — Merge feat/esf-r2-f1-import-csv-wekan (Riegel bestanden); Branch feat/esf-r2-f1-import-csv-wekan ist Vorfahr von main.</li>
+</ul>
+
+<h2>Video-Zusammenfassung</h2>
+<section id="video-skript">
+<p>Der dritte Sprint ist inhaltlich fertig, aber wieder nicht vollständig
+kalibrierbar: Die Umsetzungs-Karte des CSV-Imports wurde abgeschlossen, ohne ihre
+Schätzung ins Abschluss-metadata zu übernehmen. Ihr Istwert steht deshalb ohne
+Gegenstück da — und ein Istwert ohne Paar taugt nicht für den nächsten Plan. Das ist
+die erste Baustelle. Was sonst gut lief: Review und Merge von F-R1-1 liegen gut in
+ihrer Schätzung, keine Karte musste wiederholt werden, keine lief in den Standby,
+keine wartete auf ein Gate. Der Geldverbrauch für die fünf Rollen dieses Sprints
+liegt bei knapp zweieinhalb Dollar, sauber ausgemessen über die Rollen-Keys. Dabei
+blieb die größte Baustelle unsichtbar: Die Umsetzungs-Karte hat neunundvierzig
+Minuten Arbeit gesteckt, aber weil die Schätzung fehlt, kann die Organisation daraus
+keine Lehre ziehen. Die Empfehlung: Die Übergabe der Zahlen von der Schätzung zur
+Umsetzung maschinell absichern und die Umsetzungs-Klasse auf den gemessenen Wert
+setzen. Dann schließt dieser Sprint rechnerisch sauber ab.</p>
+</section>
+<figure class="esf-video">
+  <video controls preload="metadata" width="100%" src="controller-s3.mp4">
+    <track kind="subtitles" srclang="de" label="Untertitel" src="controller-s3.vtt">
+  </video>
+  <figcaption>Video-Zusammenfassung; Untertitel zuschaltbar. Gerendert von scripts/video-render.sh.</figcaption>
+</figure>
+
+</body>
+</html>

@@ -1,0 +1,54 @@
+{
+  "dokument": "roadmap/q1-freigegeben.html",
+  "titel": "Roadmap Q1 (freigegeben)",
+  "typ": "roadmap",
+  "dauer": 79.9,
+  "audio": "audio.m4a",
+  "cues": [
+    {
+      "text": "Die Q1-Roadmap für Kaneo ist freigegeben.",
+      "start": 0.0,
+      "dauer": 2.888
+    },
+    {
+      "text": "Das Quartal plant drei Releases mit dreizehn Features: drei im ersten, fünf im zweiten, fünf im dritten.",
+      "start": 2.888,
+      "dauer": 8.182
+    },
+    {
+      "text": "Nach der Entscheidung des Supervisors startet der erste Release bewusst klein mit dem täglichen Kern — den Vorgangs-Dialog entschlacken, Tastatur und Command-Palette, und ein grünes E2E-Regressionsnetz.",
+      "start": 11.07,
+      "dauer": 12.515
+    },
+    {
+      "text": "Die Wartungsarbeit an der Werkzeugkette läuft vor der Feature-Arbeit und belegt keinen Feature-Platz.",
+      "start": 23.585,
+      "dauer": 6.257
+    },
+    {
+      "text": "Der zweite Release führt mit dem größten und riskantesten Stück, dem Import aus CSV und WeKan, das auf ein kalibriertes Schätzintervall wartet, gefolgt vom Agentenkanal, der Zwei-Faktor-Anmeldung, dem Quick-Start und der leichteren Einladung.",
+      "start": 29.842,
+      "dauer": 15.884
+    },
+    {
+      "text": "Der dritte Release automatisiert wiederkehrende Arbeit und bringt Mobile, Übersetzungen und die Backlog-Vereinfachung.",
+      "start": 45.726,
+      "dauer": 6.257
+    },
+    {
+      "text": "Genauso wichtig ist, was wir nicht machen: kein Gantt, keine Zeiterfassung, keine native Mobile-App, kein volles Enterprise-Single-Sign-on.",
+      "start": 51.983,
+      "dauer": 8.183
+    },
+    {
+      "text": "Wir schätzen weiterhin nur mit Referenzklassen ohne Historie, weil das Schätzledger noch leer ist — und genau deshalb ist das erste Release klein gehalten.",
+      "start": 60.166,
+      "dauer": 11.551
+    },
+    {
+      "text": "Als Nächstes werden die Arbeitskarten gemäß den Auflagen verteilt; der Entwurf bleibt für den Abgleich daneben stehen.",
+      "start": 71.717,
+      "dauer": 8.183
+    }
+  ]
+}

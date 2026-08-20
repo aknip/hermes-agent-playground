@@ -1,0 +1,90 @@
+[WebServer] 
+[WebServer] > @kaneo/api@ dev /Users/aknipschild/github/hermes-agent-playground/04-hermes-agent-software-company-test-kaneo/apps/api
+[WebServer] > tsx watch src/index.ts
+[WebServer] 
+[WebServer] 🔄 Preparing database startup {
+[WebServer]   source: 'DATABASE_URL',
+[WebServer]   host: 'localhost',
+[WebServer]   port: 5432,
+[WebServer]   database: 'kaneo',
+[WebServer]   username: 'kaneo'
+[WebServer] }
+[WebServer] 2026-08-19T13:39:22.464Z WARN [Better Auth]: Social provider github is missing clientId or clientSecret
+[WebServer] 2026-08-19T13:39:22.464Z WARN [Better Auth]: Social provider google is missing clientId or clientSecret
+[WebServer] 2026-08-19T13:39:22.464Z WARN [Better Auth]: Social provider discord is missing clientId or clientSecret
+[WebServer] 🔄 Checking workspace_member table for user_email to user_id migration...
+[WebServer] ✅ Workspace member migration completed successfully!
+[WebServer] 🔄 Checking session table for active_workspace_id to active_organization_id migration...
+[WebServer] ✅ active_organization_id column already exists; skipping migration.
+[WebServer] 🔄 Checking invitation table for created_at column migration...
+[WebServer] ✅ created_at column already exists in invitation table; skipping migration.
+[WebServer] 🔄 Migrating database...
+[WebServer] ✅ Database migrated successfully!
+[WebServer] 🔄 Checking apikey table reference_id migration...
+[WebServer] ✅ API key reference_id migration completed successfully!
+[WebServer] 🔄 Checking notification preference schema...
+[WebServer] ✅ Notification preference schema check complete!
+[WebServer] No old github_integration table found, skipping migration
+[WebServer] 🔄 Starting column migration...
+[WebServer] ✅ Column migration complete! Migrated 335 projects
+[WebServer] Initializing plugins...
+[WebServer] ✓ Registered plugin: GitHub
+[WebServer] ✓ Registered plugin: Gitea
+[WebServer] ✓ Registered plugin: Slack
+[WebServer] ✓ Registered plugin: Discord
+[WebServer] ✓ Registered plugin: Generic Webhook
+[WebServer] ✓ Registered plugin: Telegram
+[WebServer] GitHub App not configured, skipping webhook handlers
+[WebServer] ✓ Plugin event subscriptions initialized
+[WebServer] ✅ Plugins initialized
+[WebServer] ⏰ Scheduler started (reminders every 5 minutes, seat reconciliation and trial reminders hourly)
+[WebServer] 📡 WebSockets Initialized using: "InMemoryBroadcastAdapter"
+[WebServer] ⚡ API is running at http://localhost:1337
+[WebServer] 
+[WebServer] > @kaneo/web@0.0.0 dev /Users/aknipschild/github/hermes-agent-playground/04-hermes-agent-software-company-test-kaneo/apps/web
+[WebServer] > vite
+[WebServer] 
+[WebServer] (!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+[WebServer]   - `__dirname` (vite.config.ts:37:25). Use `import.meta.dirname` instead
+[WebServer]   - JSON import "../../package.json" without import attributes (vite.config.ts:7:25). Add `with { type: 'json' }`
+[WebServer] Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+[WebServer] 
+[WebServer]   VITE v8.2.1  ready in 966 ms
+[WebServer] 
+[WebServer]   ➜  Local:   http://localhost:5173/
+[WebServer]   ➜  Network: http://10.30.6.63:5173/     en0
+[WebServer]   ➜  Network: http://100.94.120.37:5173/  utun10
+
+Running 14 tests using 1 worker
+
+  ✓   1 [chromium] › tests/e2e/journeys/anwendung-erreichbar.spec.ts:12:3 › J-00 Anwendung erreichbar › Ein Besucher ohne Sitzung landet auf der Anmeldeseite (2.1s)
+  ✓   2 [chromium] › tests/e2e/journeys/anwendung-erreichbar.spec.ts:25:3 › J-00 Anwendung erreichbar › Die Anmeldeseite bietet den Weg zur Registrierung an (1.5s)
+  ✓   3 [chromium] › tests/e2e/journeys/konto-anlegen.spec.ts:17:3 › J-01 Konto anlegen › Ein neuer Anwender legt ein Konto an und richtet seinen Arbeitsbereich ein (5.9s)
+  ✓   4 [chromium] › tests/e2e/journeys/konto-anlegen.spec.ts:33:3 › J-01 Konto anlegen › Ein zu kurzes Passwort wird sichtbar abgewiesen (2.9s)
+  ✓   5 [chromium] › tests/e2e/journeys/projekt-anlegen.spec.ts:22:3 › J-02 Erstes Projekt anlegen › Ein Anwender legt im Arbeitsbereich sein erstes Projekt an (7.6s)
+  ✓   6 [chromium] › tests/e2e/journeys/projekt-anlegen.spec.ts:60:3 › J-02 Erstes Projekt anlegen › Ein Anwender legt sein erstes Projekt rein über die Tastatur an (6.8s)
+  ✓   7 [chromium] › tests/e2e/journeys/tastatur-command-palette.spec.ts:21:3 › F-R1-3 Command-Palette & Eingabeschutz › Wechselt das Board direkt über die Projektsuche der Palette (9.1s)
+[WebServer] 3:40:08 PM [vite] (client) [console.warn] [tiptap warn]: Duplicate extension names found: ['link']. This can lead to issues.
+[WebServer] 3:40:09 PM [vite] (client) [console.warn] [tiptap warn]: Duplicate extension names found: ['link']. This can lead to issues.
+  ✓   8 [chromium] › tests/e2e/journeys/tastatur-command-palette.spec.ts:67:3 › F-R1-3 Command-Palette & Eingabeschutz › Kein Kurzbefehl feuert in einem Textfeld (t/p/v/s bleiben Zeichen) (9.1s)
+  ✓   9 [chromium] › tests/e2e/journeys/tastatur-command-palette.spec.ts:99:3 › F-R1-3 Command-Palette & Eingabeschutz › Tippen ins Suchfeld der Palette löst kein Kürzel aus (pc/tc bleiben Suche) (7.3s)
+[WebServer] Invitation created but email not sent due to SMTP not being configured
+  ✓  10 [chromium] › tests/e2e/journeys/teammitglied-einladen.spec.ts:21:3 › J-05 Teammitglied einladen › Ein Anwender lädt ein Teammitglied ein und der Eingeladene nimmt an (11.3s)
+[WebServer] 3:40:36 PM [vite] (client) [console.warn] [tiptap warn]: Duplicate extension names found: ['link']. This can lead to issues.
+  ✓  11 [chromium] › tests/e2e/journeys/vorgang-anlegen-zuweisen.spec.ts:20:3 › J-03 Vorgang anlegen und zuweisen › Ein Anwender legt einen priorisierten Vorgang an und weist ihn zu (7.6s)
+[WebServer] 3:40:43 PM [vite] (client) [console.warn] [tiptap warn]: Duplicate extension names found: ['link']. This can lead to issues.
+  ✓  12 [chromium] › tests/e2e/journeys/vorgang-im-board-weiterziehen.spec.ts:24:3 › J-04 Vorgang im Board weiterziehen › Ein Anwender zieht einen Vorgang von "To Do" zu "In Progress" (9.1s)
+[WebServer] 3:40:52 PM [vite] (client) [console.warn] [tiptap warn]: Duplicate extension names found: ['link']. This can lead to issues.
+[WebServer] 3:40:54 PM [vite] (client) [console.warn] [tiptap warn]: Duplicate extension names found: ['link']. This can lead to issues.
+[WebServer] 3:40:54 PM [vite] (client) [console.warn] [tiptap warn]: Duplicate extension names found: ['link']. This can lead to issues.
+  ✓  13 [chromium] › tests/e2e/journeys/vorgang-im-board-weiterziehen.spec.ts:71:3 › J-04 Vorgang im Board weiterziehen › Ein Anwender wechselt den Status per Detail-Kürzel in der Shelf (8.5s)
+[WebServer] 3:41:01 PM [vite] (client) [console.warn] [tiptap warn]: Duplicate extension names found: ['link']. This can lead to issues.
+[WebServer] 3:41:02 PM [vite] (client) [console.warn] [tiptap warn]: Duplicate extension names found: ['link']. This can lead to issues.
+[WebServer] 3:41:02 PM [vite] (client) [console.warn] [tiptap warn]: Duplicate extension names found: ['link']. This can lead to issues.
+[WebServer] 3:41:05 PM [vite] (client) [console.warn] [tiptap warn]: Duplicate extension names found: ['link']. This can lead to issues.
+[WebServer] 3:41:06 PM [vite] (client) [console.warn] [tiptap warn]: Duplicate extension names found: ['link']. This can lead to issues.
+[WebServer] 3:41:06 PM [vite] (client) [console.warn] [tiptap warn]: Duplicate extension names found: ['link']. This can lead to issues.
+[WebServer] 3:41:06 PM [vite] (client) [console.warn] [tiptap warn]: Duplicate extension names found: ['link']. This can lead to issues.
+  ✓  14 [chromium] › tests/e2e/journeys/vorgang-ins-detail-pflegen.spec.ts:21:3 › J-06 Vorgang bis ins Detail pflegen › Ein Anwender ergänzt Beschreibung, Termin und Kommentar an einem Vorgang (11.5s)
+
+  14 passed (1.9m)

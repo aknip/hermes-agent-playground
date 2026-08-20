@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <title>Controller-Report S4 — Kalibrierung — ESF</title>
+  <meta name="esf-typ" content="report">
+  <meta name="esf-karte" content="t_a37e2da8">
+  <meta name="esf-datum" content="2026-08-19">
+  <meta name="esf-video" content="controller-s4.mp4">
+  <style>
+    body { font-family: system-ui, -apple-system, sans-serif; max-width: 60rem;
+           margin: 2rem auto; padding: 0 1.5rem; line-height: 1.55; color: #1a1a1a; }
+    h1 { font-size: 1.6rem; border-bottom: 2px solid #333; padding-bottom: .4rem; }
+    h2 { font-size: 1.2rem; margin-top: 2.2rem; }
+    table { border-collapse: collapse; width: 100%; margin: 1rem 0; font-size: .92rem; }
+    th, td { border: 1px solid #ccc; padding: .4rem .55rem; text-align: left; vertical-align: top; }
+    th { background: #f2f2f2; }
+    code { background: #f4f4f4; padding: .05rem .3rem; border-radius: 3px; font-size: .9em; }
+    .src { color: #555; font-style: italic; }
+    .zusammenfassung { background: #fff8dc; border-left: 4px solid #e0c000; padding: .8rem 1.1rem; }
+    .befund { background: #fdf0f0; border-left: 4px solid #c0392b; padding: .6rem .9rem; }
+    .gruen { color: #2e7d32; }
+    .rot { color: #c0392b; }
+    li { margin: .3rem 0; }
+    section#video-skript p { font-style: italic; color: #333; }
+  </style>
+</head>
+<body>
+
+<h1>Controller-Report Sprint S4 — Kalibrierung</h1>
+
+<div class="zusammenfassung">
+<h2>Das Wichtigste in drei Minuten</h2>
+<p><strong>Der Riegel dieses Sprints ist <span class="gruen">grün</span>.</strong>
+Prüfung 3 von <code>scripts/check-sprint.sh</code> — die (Schätzung, Ist)-Paare —
+findet <strong>sechs vollständige Paare</strong> über alle Umsetzungs-, Review- und
+Merge-Karten von S4. Kein Istwert steht ohne bezifferte Schätzung da; die drei
+Sprints mit zerrissenem Handoff (S1 Merge, S2 Merge, S3 Umsetzung) haben sich nicht
+wiederholt. Das ist der Phase-2-Nachweis, den die Sprint-Kalibrierung erbringen
+muss, und er ist für das gesamte Arbeitsbild eines Sprints erstmals vollständig.</p>
+<p><strong>Aber der Sprint ist noch nicht fertig geliefert:</strong> F-R2-1
+(MCP-Agentenkanal) ist <strong>nicht auf main</strong>. Sein Review verlangte
+Änderungen (H3-Guard lehnt die API-gültigen virtuellen Status
+<code>planned</code>/<code>archived</code> ab), der Merge brach ab
+(<code>t_c0bd7173</code>, Sachgrund), eine Nacharbeit läuft
+(<code>t_4b497229</code>). Der Istwert von 3&nbsp;min ist der Abbruch, kein Merge.
+Der Gesamt-Check ist deshalb rot — auf Prüfung 1, 5 und 6, nicht auf die Paare.</p>
+<p><strong>Wanduhr:</strong> S4 kostete 452&nbsp;min über neun Karten; darunter zwei
+Timeouts im F2-Strang, die die MCP-Härtung auf 204&nbsp;min (impl) und 65&nbsp;min
+(spec) trieben. <strong>Geld:</strong> 2,44&nbsp;USD Rollenkosten seit dem letzten
+Abgleich, davon ≈&nbsp;1,81&nbsp;USD auf die sechs Rollen der S4-Arbeitskarten.</p>
+<p><strong>Der wichtigste Befund:</strong> zwei Klassen sind nachweislich
+unterschätzt — <code>review-repo-M</code> (Mittel 1,82, im Extremfall 5,08) und
+<code>impl-worktree-M</code> (1,61, Extrem 2,27). Der nächste Plan braucht dafür
+einen Faktor, nicht die nackte p50-Zahl.</p>
+</div>
+
+<h2>Schätzgüte-Baseline — der Phase-2-Nachweis</h2>
+<p>Je Referenzklasse die vollständigen S4-Paare aus <code>ledger/estimates.jsonl</code>
+nach dem <code>ledger-sync.sh</code>-Lauf vom 2026-08-19. Wanduhrminuten aus
+Board-Zeitstempeln (<code>.runs[].started_at/.ended_at</code>); Schätzung p50 aus dem
+<code>estimate.wall_minutes.p50</code> des Karten-metadata. Quotient = Ist/(p50).</p>
+<table>
+  <thead><tr><th>Referenzklasse</th><th>Karte (S4)</th><th>Schätzung p50/p90</th>
+    <th>Ist (min)</th><th>Ist/Schätzung</th><th>Bewertung</th></tr></thead>
+  <tbody>
+    <tr><td>impl-worktree-M</td><td>t_fa08a5b5 Umsetzung F-R1-1b WeKan</td><td>55 / 90</td><td>66</td><td>1,20</td><td>gut</td></tr>
+    <tr class="rot"><td>impl-worktree-M</td><td>t_e66652b4 Umsetzung F-R2-1 MCP</td><td>90 / 160</td><td>204</td><td>2,27</td><td class="rot">stark unterschätzt, 2 Läufe, 1× timed_out</td></tr>
+    <tr class="rot"><td>review-repo-M</td><td>t_4798143b Review F-R1-1b</td><td>12 / 20</td><td>61</td><td>5,08</td><td class="rot">deutlich unterschätzt</td></tr>
+    <tr><td>review-repo-M</td><td>t_740896e8 Review F-R2-1</td><td>15 / 30</td><td>17</td><td>1,13</td><td>gut</td></tr>
+    <tr><td>merge-repo-S</td><td>t_9ef532cc Merge F-R1-1b am Riegel</td><td>10 / 15</td><td>12</td><td>1,20</td><td>gut</td></tr>
+    <tr><td>merge-repo-S</td><td>t_c0bd7173 Merge F-R2-1 am Riegel</td><td>10 / 15</td><td>3</td><td>0,30</td><td class="src">kein Merge — Sachgrund-Abbruch (Review nicht approved)</td></tr>
+  </tbody>
+</table>
+<p>Referenzklassen-Aggregation aller Paare im Ledger (aus Prüfung 4 von
+<code>check-sprint.sh S4</code>), Mittel über die vorhandenen Paare, mit dem
+S3-Wert zum Vergleich:</p>
+<table>
+  <thead><tr><th>Referenzklasse</th><th>n</th><th>Ist/Schätzung Mittel</th><th>S3-Wert</th><th>Trend</th></tr></thead>
+  <tbody>
+    <tr class="rot"><td>review-repo-M</td><td>5</td><td>1,82</td><td>0,96</td><td class="rot">verschlechtert — unterschätzt</td></tr>
+    <tr class="rot"><td>impl-worktree-M</td><td>3</td><td>1,61</td><td>1,38</td><td class="rot">leicht unterschätzt</td></tr>
+    <tr><td>merge-repo-S</td><td>5</td><td>0,68</td><td>0,63</td><td>stabil (überschätzt)</td></tr>
+    <tr><td>estimate-vault-S</td><td>3</td><td>0,58</td><td>0,70</td><td>leicht überschätzt</td></tr>
+    <tr><td>e2e-repo-M</td><td>1</td><td>0,63</td><td>0,63</td><td>stabil</td></tr>
+    <tr><td>impl-worktree-S</td><td>1</td><td>0,21</td><td>0,21</td><td>stabil</td></tr>
+    <tr><td>review-repo-S</td><td>1</td><td>0,09</td><td>0,09</td><td>stabil</td></tr>
+  </tbody>
+</table>
+<p><strong>Interpretation — und der FAKTOR, den der nächste Plan braucht:</strong>
+<code>review-repo-M</code> kostet jetzt im Mittel das <strong>1,8-fache</strong> der
+p50-Schätzung (S3 noch 0,96); der Extremwert 5,08 auf dem WeKan-Paket-Review
+(<code>t_4798143b</code>) liegt genau an der Klasse, die laut Schätzbasis „neuer
+Paket-Review typisch" war. <code>impl-worktree-M</code> liegt bei <strong>1,6×</strong>,
+gezogen von der MCP-Härtung (<code>t_e66652b4</code>, q=2,27 auf zwei duplizierte
+Kataloge). <code>merge-repo-S</code> bleibt bei 0,6–0,7 — eine p50-Merge-Schätzung
+deckt mehr als nötig, wo der Merge wirklich läuft. Warnung: n ist je Klasse 1–5,
+die Verteilung erst drei Sprints alt; Faktor setzen, Intervalle breit lassen.</p>
+
+<h2>Wanduhrminuten je Karte — Board-Zeitstempel</h2>
+<p>Aus <code>hermes kanban show &lt;id&gt; --json</code> → <code>.runs[].started_at/.ended_at</code>,
+Summe der Wanduhrdauer je Karte, abgelesen durch <code>ledger-sync.sh</code>.
+Board-Zeitstempel tragen, Modelltext nie (AGENTS.md 3.2).</p>
+<table>
+  <thead><tr><th>Karte</th><th>Wanduhr (min)</th><th>Läufe</th><th>Anmerkung</th></tr></thead>
+  <tbody>
+    <tr><td>t_954918ae S4 F1b 1/4 Spezifikation F-R1-1b</td><td>14</td><td>1</td><td></td></tr>
+    <tr class="rot"><td>t_c8a338ba S4 F2 1/4 Spezifikation F-R2-1 MCP</td><td>65</td><td>2</td><td>Lauf 1 timed_out (45), Lauf 2 (20)</td></tr>
+    <tr><td>t_c04e1420 S4 Schätzung F-R1-1b / F-R2-1</td><td>10</td><td>1</td><td></td></tr>
+    <tr><td>t_fa08a5b5 S4 F1b 2/4 Umsetzung F-R1-1b</td><td>66</td><td>1</td><td>q=1,20</td></tr>
+    <tr class="rot"><td>t_e66652b4 S4 F2 2/4 Umsetzung F-R2-1</td><td>204</td><td>2</td><td>Lauf 1 timed_out (150), Lauf 2 (54); q=2,27</td></tr>
+    <tr class="rot"><td>t_4798143b S4 F1b 3/4 Review F-R1-1b</td><td>61</td><td>1</td><td>q=5,08 — die teuerste Überschreitung des Sprints</td></tr>
+    <tr><td>t_740896e8 S4 F2 3/4 Review F-R2-1</td><td>17</td><td>1</td><td>q=1,13</td></tr>
+    <tr><td>t_9ef532cc S4 Merge F1b am Riegel</td><td>12</td><td>1</td><td>q=1,20</td></tr>
+    <tr><td>t_c0bd7173 S4 Merge F2 am Riegel</td><td>3</td><td>1</td><td class="rot">kein Merge — Sachgrund-Abbruch</td></tr>
+    <tr><td><strong>Summe S4 (9 Karten)</strong></td><td><strong>452</strong></td><td>11</td><td></td></tr>
+  </tbody>
+</table>
+
+<h2>Kosten je Rolle</h2>
+<p>Ermittelt von <code>ledger-sync.sh</code> über <code>scripts/assign-keys.sh --verbrauch</code>
+(OpenRouter <code>GET /api/v1/key</code>, je Profil-Key kumulativ), abgelegt in
+<code>ledger/kosten-je-rolle.jsonl</code>; Tagesverbrauch = Differenz der
+<code>usage_total</code> zweier Schnappschüsse. <strong>Je KARTE gibt es keine
+Kosten</strong>: der Zähler läuft kumulativ je Key — eine Division wäre eine
+erfundene Zahl mit dem Anschein einer Messung (AGENTS.md 6).</p>
+<table>
+  <thead><tr><th>Rolle (Profil-Key)</th><th>Delta seit letztem Abgleich (USD)</th><th>S4-Beteiligung</th></tr></thead>
+  <tbody>
+    <tr><td>esf-dev-a</td><td>0,6359</td><td>Umsetzung F-R1-1b</td></tr>
+    <tr><td>esf-dev-b</td><td>0,3586</td><td>Umsetzung F-R2-1 MCP (2 Läufe)</td></tr>
+    <tr><td>esf-reviewer</td><td>0,3466</td><td>Reviews F-R1-1b / F-R2-1</td></tr>
+    <tr><td>esf-architect</td><td>0,3307</td><td>Spezifikationen F-R1-1b / F-R2-1</td></tr>
+    <tr><td>esf-qa-release</td><td>0,1046</td><td>Merge F-R1-1b am Riegel</td></tr>
+    <tr><td>esf-estimator</td><td>0,0340</td><td>Schätzung S4</td></tr>
+    <tr><td><strong>Summe S4-Arbeitsrollen</strong></td><td><strong>≈ 1,81</strong></td><td></td></tr>
+    <tr><td class="src">übrige (Chief-of-Staff, Controller)</td><td class="src">≈ 0,63</td><td class="src">Betrieb, Sprint-/Kalibrierungs-Report</td></tr>
+  </tbody>
+</table>
+<p class="src">Delta <code>usage_total</code>[letzter Schnappschuss] −
+<code>usage_total</code>[voriger Abgleich] je Profil aus
+<code>ledger/kosten-je-rolle.jsonl</code>. Summe aller Deltas = 2,44&nbsp;USD.
+Der Delta-Zeitraum ist der Abstand zwischen dem letzten Sync (S3-Kalibrierung) und
+diesem Lauf — also die S4-Phase plus der Abschluss dieser Karte selbst.</p>
+
+<h2>Kontaminationen — benannt</h2>
+<h3>Gate-Wartezeit</h3>
+<p>Die Gates von S4 sind eigene Karten außerhalb des <code>S4 </code>-Präfixes
+(AGENTS.md 7, Namensraumregel). Die Wartezeit des F2-Strangs war erheblich — der
+Merge-Karte fehlte das Reviewer-Urteil <code>approved</code>, sie wartete auf die
+Nacharbeit — aber sie ist <strong>nicht in eine Arbeitskarte geleckt</strong>:
+der Merge <code>t_c0bd7173</code> brach als Sachgrund ab (3&nbsp;min), statt 12–15
+min für einen Riegel-Lauf zu fressen. Diese Trennung hat gehalten, und der Report
+macht daraus keinen falschen Kalibrier-Wert: Der 3-min-Istwert ist ein
+Abbruchwert und fließt <strong>nicht</strong> in die Lehre „Merge dauert 0,3× p50"
+ein — siehe Paartabelle.</p>
+<h3>Rechner-Standby</h3>
+<p>Keine S4-Karte trägt <code>standby_overlap:true</code> im Ledger. Zwar liegen die
+F2-Wanduhren hoch (impl 204&nbsp;min), aber sie entstehen aus zwei <em>getrennten</em>
+Läufen (150&nbsp;timed_out + 54) mit je eigenem Zeitstempel, nicht aus einem Lauf über
+eine Schlafphase; kein Einzellauf überschreitet die 240-Minuten-Heuristik von
+<code>ledger-sync.sh</code> (Z. 165–166). Nichts musste aus der Kalibrierung geworfen
+werden.</p>
+
+<h2>Retries und Abbrüche</h2>
+<ul>
+  <li><strong>Beide F2-Karten brauchten einen Retry.</strong>
+      Spezifikation F-R2-1 (<code>t_c8a338ba</code>): Lauf 1 <code>timed_out</code>
+      nach 45&nbsp;min, Lauf 2 grün (20&nbsp;min), Summe 65. Umsetzung F-R2-1
+      (<code>t_e66652b4</code>): Lauf 1 <code>timed_out</code> nach 150&nbsp;min,
+      Lauf 2 grün (54&nbsp;min), Summe 204. Diese Timeouts sind der mechanische
+      Abdruck dessen, was die Schätzung (<code>impl-worktree-M</code> p50=90,
+      confidence 0,2) nicht traf: die MCP-Härtung über <em>zwei duplizierte</em>
+      Kataloge hat die längste Wanduhr des Sprints produziert.</li>
+  <li><strong>Der F1b-Strang lief einmal durch ohne Wiederholung</strong>
+      (spec → estimate → impl → review → merge, je ein Lauf).</li>
+  <li><strong>Der F2-Merge (<code>t_c0bd7173</code>) ist ein Abbruch, kein Retry:</strong>
+      er startete, fand das Review-Urteil <code>changes_requested</code>, führte
+      keinen Riegel-Lauf aus und schloss mit Sachgrund ab. Die Nacharbeit
+      (<code>t_4b497229</code>) ist die Folgekarte aus dem Abschluss-metadata des
+      Merge-Workers.</li>
+</ul>
+
+<h2>E2E-Schrittzahl je Journey — die Bedienbarkeits-Kennzahl</h2>
+<p>Aus <code>analysis/journeys.html</code> (Katalog). Gezählt werden sichtbare
+Schritte der Journey-Spec, nicht Codezeilen.</p>
+<table>
+  <thead><tr><th>Journey</th><th>Schritte</th><th>Trend</th></tr></thead>
+  <tbody>
+    <tr><td>J-00 Anwendung erreichbar</td><td>2</td><td>unverändert</td></tr>
+    <tr><td>J-01 Konto anlegen</td><td>7</td><td>unverändert</td></tr>
+    <tr><td>J-02 Erstes Projekt anlegen</td><td>5</td><td>unverändert</td></tr>
+    <tr><td>J-03 Vorgang anlegen und zuweisen</td><td>5</td><td>unverändert (Katalog = Spec = 5)</td></tr>
+    <tr><td>J-04 Vorgang im Board weiterziehen</td><td>3</td><td>unverändert</td></tr>
+    <tr><td>J-05 Teammitglied einladen</td><td>7</td><td>unverändert (e2e-fest)</td></tr>
+    <tr><td>J-06 Vorgang ins Detail pflegen</td><td>5</td><td>unverändert (e2e-fest)</td></tr>
+    <tr><td>J-07 / J-08</td><td>offen</td><td>—</td></tr>
+  </tbody>
+</table>
+<p><strong>Ist die Kennzahl gewachsen?</strong> In S4 <strong>nicht</strong> — und
+das ist keine Verschlechterung: beide S4-Features sind keine neuen
+Nutzer-Journeys. F-R1-1b ist ein CLI-Importprozess (<code>@kaneo/wekan-import</code>)
+wie zuvor der CSV-Import (S3); F-R2-1 härtet den MCP-Kanal hinter der bestehenden
+Oberfläche. Eine erfundene Journey wäre Scheinabdeckung. Die Bedienbarkeits-Kennzahl
+bleibt bei 7 Schritten (Konto anlegen, Teammitglied einladen) für die längsten
+Journeys, kein Kern-Handgriff über 5 Schritte; die offenen P2/P3-Journeys (J-07,
+J-08) sind unverändert abgegrenzt.</p>
+
+<h2>Was die nächste Schätzung anders machen muss</h2>
+<p>Ein Satz:</p>
+<p class="befund"><strong>Für <code>review-repo-M</code> und
+<code>impl-worktree-M</code> die p50-Schätzung mit dem gemessenen Faktor rechnen
+(review ≈ 1,8×, impl ≈ 1,6× — und für Härtung über zwei duplizierte Kataloge noch
+höher), statt auf die nackte p50 zu schätzen; der Faktor ist jetzt messbar, weil
+Prüfung 3 fünf Paare trägt, und er ist die Zahl, die den F-R2-1-Nacharbeits-Unterplan
+glaubwürdig macht.</strong></p>
+
+<h2>Quellen &amp; Belege</h2>
+<ul>
+  <li>ledger/estimates.jsonl — (Schätzung, Ist)-Paare nach ledger-sync-Lauf vom 2026-08-19 (13 neue Zeilen je fertige S4-Karte, Stand 60 Zeilen).</li>
+  <li>ledger/kosten-je-rolle.jsonl — OpenRouter-Kosten je Profil-Key, Schnappschüsse 2026-08-19; Summe letzter Deltas 2,44 USD.</li>
+  <li>scripts/check-sprint.sh S4 — Lauf vom 2026-08-19; Prüfung 3 (Paare) GRÜN mit 6 Paaren; rot auf Prüfung 1 (Nacharbeit t_4b497229 running), 5 (F2 nicht auf main: „1 Commit davor"), 6 (Berichte fehlten noch; sprint-s4-report folgt vom Chief-of-Staff).</li>
+  <li>Karten t_954918ae … t_c0bd7173 — Board-Läufe (.runs[].started_at/.ended_at) und Abschluss-metadata; Estimator t_c04e1420 trägt die estimates der Kette.</li>
+  <li>reports/controller-s3.html — S3-Baseline (review-repo-M 0,96, impl-worktree-M 1,38).</li>
+  <li>analysis/journeys.html — Journey-Katalog; Schrittzahlen unverändert seit S3.</li>
+  <li>Kaneo-Repo main 37cbdb6 — feat/esf-r2-f1b-import-wekan gemergt; feat/esf-r2-f2-mcp-agentenkanal NICHT auf main (Abschluss-metadata t_c0bd7173, nicht_gemerged=true).</li>
+</ul>
+
+<h2>Video-Zusammenfassung</h2>
+<section id="video-skript">
+<p>Der Paar-Riegel dieses Sprints ist zum ersten Mal grün: alle sechs Umsetzungs-,
+Review- und Merge-Karten tragen ein vollständiges Paar aus Schätzung und gemessener
+Dauer. Damit ist die Kalibrierung belegt — die Frage ist jetzt nicht mehr, ob
+gemessen wird, sondern was die Messung kostet. Zwei Klassen sind nachweislich
+unterschätzt: Die Review-Klasse liegt im Mittel fast doppelt über ihrer Schätzung,
+mit einem Ausreißer beim WeKan-Import-Review über dem Fünffachen; die Härtung des
+Agentenkanals brauchte mehr als das Doppelte ihrer Schätzung, zwei Läufe statt
+einem, der erste unterbrochen. Der nächste Plan rechnet deshalb mit einem
+gemessenen Faktor statt mit der nackten Schätzung. Ein Feature ist dabei noch nicht
+auf dem Hauptstand: der Agentenkanal fehlt dort, weil sein Review Änderungen
+verlangte und die Nacharbeit noch läuft. Das ist kein Messfehler, sondern ein
+Sachgrund und eine Entscheidung für den nächsten Sprint. Empfehlung: Die beiden
+Faktoren in den nächsten Schätzungen verbuchen, das Intervall für duplizierte
+Kataloge großzügiger wählen, und die Agentenkanal-Nacharbeit in einem Plan mit
+realistischen Puffern fortsetzen.</p>
+</section>
+<figure class="esf-video">
+  <video controls preload="metadata" width="100%" src="controller-s4.mp4">
+    <track kind="subtitles" srclang="de" label="Untertitel" src="controller-s4.vtt">
+  </video>
+  <figcaption>Video-Zusammenfassung; Untertitel zuschaltbar. Gerendert von scripts/video-render.sh.</figcaption>
+</figure>
+
+</body>
+</html>

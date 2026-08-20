@@ -1,0 +1,354 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <title>F-R1-1b Import aus WeKan — Spezifikation — ESF</title>
+  <meta name="esf-typ" content="spec">
+  <meta name="esf-karte" content="t_954918ae">
+  <meta name="esf-datum" content="2026-08-19">
+  <meta name="esf-video" content="r2-f1b-import-wekan.mp4">
+  <style>
+    body { font-family: -apple-system, "Segoe UI", Roboto, sans-serif; max-width: 70rem;
+           margin: 2rem auto; padding: 0 1.5rem; line-height: 1.55; color: #1a1a1a; }
+    h1 { font-size: 1.6rem; border-bottom: 3px solid #111; padding-bottom: .4rem; }
+    h2 { margin-top: 2.4rem; border-bottom: 1px solid #ccc; padding-bottom: .3rem; }
+    h3 { margin-top: 1.6rem; }
+    code { background: #f2f2f2; padding: .05rem .3rem; border-radius: 3px; font-size: .92em; }
+    table { border-collapse: collapse; width: 100%; margin: 1rem 0; font-size: .93em; }
+    th, td { border: 1px solid #ddd; padding: .45rem .6rem; text-align: left; vertical-align: top; }
+    th { background: #f6f6f6; }
+    .kern { background: #fffbe6; border-left: 4px solid #f5c518; padding: .8rem 1rem; margin: 1rem 0; }
+    .entscheid { background: #eaf3ff; border-left: 4px solid #1d4a8f; padding: .8rem 1rem; margin: 1rem 0; }
+    .nicht { background: #fdecec; border-left: 4px solid #c0392b; padding: .7rem 1rem; margin: .7rem 0; }
+    .ac { background: #eef7ee; border-left: 4px solid #2f6f4f; padding: .55rem .8rem; margin: .4rem 0; }
+    .annahme { background: #f7f3e8; border-left: 4px solid #b58900; padding: .7rem 1rem; margin: .7rem 0; }
+    .fig { color: #555; font-size: .9em; }
+  </style>
+</head>
+<body>
+
+  <h1>F-R1-1b — Import aus WeKan</h1>
+  <p class="fig">Spezifikation · Karte <code>t_954918ae</code> · datum <code>2026-08-19</code> ·
+  Architekturentscheidung: <code>decisions/ADR-001-import-architektur.html</code> ·
+  Feature F-R1-1b (roadmap/r2-freigegeben.html §3.1, Referenzklasse <code>spec-vault-M</code>) ·
+  Vorläufer: <code>specs/r2-f1-import-csv-wekan.html</code> (dort §3.2 als benannte Folgekarte skizziert)</p>
+
+  <div class="kern">
+    <p><strong>In drei Minuten:</strong> F-R1-1b schließt die zweite Hälfte des Imports: die Aufgaben aus einem
+    WeKan-Export nach Kaneo zu übernehmen. Ein WeKan-Export ist ein JSON-Bundle, kein CSV — die Abbildung ist
+    strukturell reicher (Board, Listen, Karten mit Labels, Mitgliedern, Checklisten, Kommentaren) und nicht
+    zeilenweise. Der geteilte Schreib-Client <code>@kaneo/kaneo-client</code> (aus F-R1-1 extrahiert) kann dafür
+    <strong>heute schon alles Nötige</strong>; diese Karte erweitert ihn <em>nicht</em>, weil der einzige
+    fehlende Weg — Kommentar-Autor als eingeblendeter Fremdname — eine Änderung der öffentlichen API erzwingen
+    würde, die diese Spezifikation verbietet. WeKan bekommt die Abbildung <strong>als eigene, neue</strong> auf
+    demselben Muster wie das Schwester-Paket: Trockenlauf, neues Projekt je Board, Zähler im Report. Keine
+    API-Route, keine Schema-Änderung, keine E2E-Journey.</p>
+  </div>
+
+  <h2>1. Ist-Zustand — was der geteilte Client trägt, was csv-import trägt, was wiederverwendbar ist</h2>
+  <p>Quelle: <code>packages/kaneo-client</code>, <code>packages/csv-import</code>,
+  <code>packages/planka-import</code> im Kaneo-Repo, gelesen am 2026-08-19. F-R1-1 ist gebaut und gemergt
+  (Commit <code>c11647e</code>); die Paket-Grenzen unten sind am Code belegt, nicht aus einem Plan.</p>
+
+  <div class="entscheid">
+    <h2>1.0 Die Architekturentscheidung dieser Karte, in einem Satz</h2>
+    <p><strong>Der geteilte Client wird <em>nicht</em> erweitert;</strong> WeKan wird als
+    Schwester-Paket <code>@kaneo/wekan-import</code> auf dem bestehenden <code>@kaneo/kaneo-client</code> gebaut,
+    mit eigener Abbildung und ohne geteilten Migrations-Kern — begründet in §2 (Entscheidung) und geprüft gegen
+    die Revisionsklausel ADR-001 §5.</p>
+  </div>
+
+  <h3>1.1 Der geteilte Client — kann er WeKan heute?</h3>
+  <p><code>packages/kaneo-client/src/kaneo.ts:22</code> führt <code>KaneoClient</code> (baseUrl + apiKey; alle
+  Schreiboperationen über <code>request()</code> in <code>kaneo.ts:139</code>). Er deckt <strong>jeden</strong>
+  Kaneo-Schritt ab, den ein WeKan-Import auslöst:</p>
+  <ul>
+    <li>Lesen: <code>listWorkspaces</code> <code>kaneo.ts:31</code>,
+    <code>listProjects</code> <code>:35</code>, <code>listMembers</code> <code>:41</code>.</li>
+    <li>Projekt + Spalten: <code>createProject</code> <code>kaneo.ts:47</code>,
+    <code>listColumns</code> <code>:59</code>, <code>createColumn</code> <code>:65</code>,
+    <code>deleteColumn</code> <code>:75</code>. Kaneo sät vier Standardspalten beim Anlegen; das CSV-Paket löscht sie
+    in <code>migrate.ts:92–94</code> — WeKan übernimmt genau dieses Muster.</li>
+    <li>Tasks, Labels, Kommentare: <code>createTask</code> <code>kaneo.ts:81</code>, <code>createLabel</code>
+    <code>:100</code> (Workspace- <em>und</em> taskgebunden über <code>taskId</code>), <code>createComment</code>
+    <code>:123</code>.</li>
+    <li>Steuer: <code>normalizeBaseUrl</code> <code>kaneo.ts:8</code>;
+    <code>toColumnSlug</code> <code>keys.ts:4</code>, <code>RESERVED_COLUMN_SLUGS</code> <code>keys.ts:16</code>,
+    <code>toProjectKey</code>/<code>uniqueKey</code> <code>keys.ts:20,39</code>.</li>
+  </ul>
+  <p><strong>Die eine Lücke und warum sie hier bewusst bleibt:</strong> Kommentare mit Fremdnamen. Der Client
+  kann <code>createComment(…, externalUserName)</code>, vervollständigt das Datenpaket aber fest mit
+  <code>externalSource: "planka"</code> (<code>kaneo.ts:133</code>), und die öffentliche API kennt dafür einen
+  <em>geschlossenen</em> Wertkanon: <code>["planka","trello","jira"]</code>
+  (<code>apps/api/src/comment/index.ts:63</code>), wo <code>"wekan"</code> nicht vorkommt, mit der
+  Vertragsregel „beides oder keins“ (<code>comment/index.ts:74–77</code>). Ein Kommentar <em>mit</em>
+  ausgespieltem Autor über die API erfordert also eine Änderung der öffentlichen API-Oberfläche — genau das,
+  was §7 verbietet. WeKan übernimmt Kommentare deshalb als Kommentare unter dem API-Key-Inhaber und trägt den
+  Original-Autor + Datum <em>als Text</em> (§5.1). Das ist die eine Stelle, an der meine frühere Skizze
+  (Autor als Fremdname via externalUserName, specs/r2-f1 §3.2) vom Bau-Zustand der API <strong>widerlegt</strong>
+  ist — siehe §3.</p>
+  <div class="annahme">
+    <p><strong>Annahme (Exportform):</strong> Die Bau-Karte bekommt einen WeKan-Export als Datei
+    <code>--file</code>. WeKans Standard-Export ist ein JSON-Bundle, dessen <em>Modell</em> in §4 verbindlich
+    festgelegt wird. Die konkreten <em>Feldnamen</em> des echten Exports sind am Bau zu verifizieren: Der
+    Parser-Test zieht einen echten WeKan-Export als Fixture und bleibt grün. Weicht der echte Export in den
+    Feldnamen ab, passt nur der Parser an — das Modell dieser Spezifikation bleibt.</p>
+  </div>
+
+  <h3>1.2 Was trägt csv-import — was davon ist für WeKan wiederverwendbar?</h3>
+  <p><code>@kaneo/csv-import</code> ist das erste Schwester-Paket. Es trägt zwei Dinge, die WeKan nicht als Code,
+  aber <strong>als Muster</strong> übernimmt:</p>
+  <ul>
+    <li><strong>Der Ablauf (Muster, nicht geteilte Code).</strong> <code>migrate.ts:34</code>
+    (<code>importCsv</code>) ist der Wellen-Fluss: neue Projekt-Keys einsammeln → Projekt anlegen → die vier
+    Standardspalten löschen → Spalten anlegen → Labels deduplizieren → Task-Schleife, die den Fehler je Einheit
+    auffängt und weitermacht → Report. WeKan hat genau diesen Fluss, nur mit einem reicheren
+    Task-Modell (mehrere Kommentare, mehrere farbige Labels je Karte, Checklisten, mehrere Boards).</li>
+    <li><strong>Die Muster-Funktionen (WeKan schreibt seine eigenen):</strong>
+    <code>planColumns</code> (mapping.ts:79), <code>splitLabels</code> (<code>:62</code>),
+    <code>toDueDate</code> (<code>:56</code>), <code>normalizePriority</code> (<code>:41</code>) — jede ist
+    klein und Format-bezogen; in den geteilten Client gehörten sie nicht (falsche Abstraktion, §2.3).</li>
+    <li><strong>Nicht wiederverwendbar als Code:</strong> <code>CsvTask</code> (mapping:20–31) ist flach — eine
+    Zeile, genau <em>ein</em> Kommentar und ein flaches Label. Eine WeKan-Karte kann mehrere Kommentare,
+    mehrere farbige Labels, eine Checkliste und Mitglieder tragen; das in den CSV-Typ zu pressen würde beide
+    Modelle aus höhlen. <code>parseCsv</code> (csv.ts:29) ist CSV-spezifisch. <code>args.ts</code> ist
+    CSV-spezifisch (keine Mehr-Board-Semantik).</li>
+  </ul>
+
+  <h3>1.3 Das ältere Vorbild planka-import — wo WeKan es benutzt, wo nicht</h3>
+  <p><code>packages/planka-import</code> ist in drei Punkten das direkte Vorbild für WeKan, mehr als csv-import:</p>
+  <ul>
+    <li><strong>Board → Projekt, mehrere Projekte je Export:</strong> <code>mapping:118–125</code>
+    (<code>boardProjectName</code>) benennt das Ziel-Projekt <code>Projekt - Board</code>, wenn ein
+    Quell-Projekt mehrere Boards hat. <code>migrate.ts:227–233</code> legt je Board ein eigenes Kaneo-Projekt
+    an. Ein WeKan-Export kann mehrere Boards halten (§4).</li>
+    <li><strong>Checklisten als Markdown-Checkboxen im Beschreibungstext:</strong> <code>mapping:62–87</code>
+    (<code>buildDescription</code>) flacht Checklisten zu <code>- [x] …</code>-Zeilen in die Beschreibung.
+    WeKan-Checklisten tragen keinen Verweis auf eine Fremd-Karte → exakt so übernommen.</li>
+    <li><strong>Listene-Board-Isolation beim Fehler:</strong> <code>migrate.ts:86–132</code> — ein
+    fehlschlagendes Board stoppt die anderen nicht; der Report nennt je Board, was fehlschlug.</li>
+    <li><strong>Nicht übernommen:</strong> der Planka-Quell-<code>planka.ts</code> (liest per Remote-API, nicht
+    aus Datei), <code>colors.ts</code> (benannte Farbe → hex; WeKan-Farben sind bereits hex), und die
+    Listen-Typen (<code>closed</code> → <code>isFinal</code>, mapping:50 — WeKan hat kein
+    verlässliches „finale Spalte“-Konzept, alle Spalten nicht-final, §4).</li>
+  </ul>
+  <p><strong>Zusammenfassung Ist-Zustand:</strong> Der geteilte Client reicht <em>unverändert</em> aus. WeKan
+  baut seine eigeneargs, Parser, Abbildung und migrate — alles auf <code>@kaneo/kaneo-client</code>. Keine
+  Client-Erweiterung, keine API-Änderung, kein geteilter Abbildungs-Kern.</p>
+
+  <h2>2. Architekturentscheidung: Warum der Client sich <em>nicht</em> erweitert</h2>
+  <div class="entscheid">
+    <ol>
+      <li><em>Der Client ist vollständig.</em> Jeder Kaneo-Schritt aus §1.1 existiert. Die einzige
+      Abweichung wäre <code>createComment</code> mit Fremdnamen — und die blockiert die öffentliche API, nicht
+      der Client: der geschlossene Kanon <code>["planka","trello","jira"]</code>
+      (<code>comment/index.ts:63</code>) kennt kein <code>"wekan"</code>. Eine Client-„Erweiterung“ (z. B. eine Parameterisierung
+      des <code>externalSource</code>) löst nichts, solange die API den Wert ablehnt. Den Wert zuzulassen
+      wäre genau die öffentliche API-Änderung, die §7 verbietet. Diese Option (Fremdnamen für WeKan-Autoren)
+      ist bewusst verworfen als über der Grenze dieser Karte.</li>
+      <li><em>Eigene Abbildung, kein geteilter Kern:</em> ADR-001 §5 b legt fest, dass ein geteilter
+      „Abbildungs-Kern“ erst gerechtfertigt ist, wenn ein <em>vierter</em> Baustein erwächst. Drei Pakete
+      (Planka, CSV, WeKan) rechtfertigen <strong>keine</strong> Neubewertung — eine Abstraktion, die genau über
+      die drei schwebt, wäre die „falsche Abstraktion“, vor der der Kartenauftrag warnt. WeKans Modell ist
+      reicher als das CSV-Flachmodell; in die Hülse von csv-import zu mischen würde beide aushöklen.</li>
+      <li><em>Doppelter Code ist billiger als eine falsche Abstraktion.</em> Die migrate-Format ist klein und
+      testbewehrt; eine Kopie im wekan-import-Paket ist billig und unabhängig testbar. WeKan folgt dem
+      Planka/CSV-Muster, verschiebt aber keine Paketgrenze (ADR-001 §5 bleibt unberührt).</li>
+    </ol>
+    <p><strong>Zuschnitt:</strong> Der Soll-Zustand — ein Paket, ein bin, Parser + Abbildung + migrate + Report —
+    ist eine Bau-Karte ≈ Import-CSV (49 min Ist, <code>t_de53e678</code>); die Roadmap bemisst F-R1-1b mit
+    <code>1×impl-M</code> (r2-freigegeben §3.1). Was bewusst liegen bleibt (Anhänge, archivierte Listen, §4) ist
+    <em>nicht</em> abbildbar und gehört in die Spezifikations-Zeile „was nicht abbildbar ist“ — nicht auf eine
+    Folgekarte.</p>
+  </div>
+
+  <h2>3. Widerlegte eigene Sätze — was der Bau gezeigt hat</h2>
+  <p><code>specs/r2-f1-import-csv-wekan.html</code> (meine Spezifikation aus S3, Karte <code>t_eb272a28</code>)
+  hat WeKan als Folgekarte benannt und §3.2 die Abbildung skizziert. Zwei Sätze dort sind ausdrücklich
+  <em>widerlegt</em> (ein Ergebnis, kein Makel — AGENTS.md 3.3):</p>
+  <ul>
+    <li><strong>„Kommentar-Autor als Fremdname via externalUserName“</strong> (dort §3.2, Zeile Kommentare):
+    Der Bau-Zustand der API hat das widerlegt — der Wertkanon ist geschlossen, kein "wekan" (§1.1).
+    <em>Ersatz, verbindlich:</em> Autor + Datum <em>im Text</em> des Kommentars, Konto = API-Key-Inhaber
+    (§5.1).</li>
+    <li><strong>„Checklisten … (→ ggf als Markdown-Checkboxen wie Planka, mapping.ts:62, oder benannt
+    weglassen)“</strong> (dort §3.2): Hier ist die Entscheidung gefallen — <em>Markdown-Checkboxen im
+    Beschreibungstext</em>, weil Planka das Muster belegt (mapping:62–87), WeKan-Karten Checklisten tragen
+    und der Wert real ist. Nicht Weglassen.</li>
+  </ul>
+  <p>Alles andere (§3.2: Board→Projekt, Liste→Spalte, Karte→Task, Labels, Karten-Mitglied→Zuweisung per
+  E-Mail, Priorität→no-priority, Attachments→nicht übertragen) gilt unverändert und wird unten konkret festgelegt.</p>
+
+  <h2>4. Datenmodell des Imports — die Abbildung WeKan → Kaneo</h2>
+  <p>Ein WeKan-Export ist ein <strong>JSON-Bundle</strong> mit Boards, deren Listen und deren Karten — jede Karte
+  ein Objekt mit Beschreibung, Termin, Labels, Mitgliedern, Checklisten, Anhängen und Kommentaren. Die
+  Abbildung ist strukturell, nicht zeilenweise.</p>
+
+  <h3>4.1 Die Abbildung (verbindlich)</h3>
+  <table>
+    <thead><tr><th>WeKan-Ebene</th><th>Kaneo-Ebene</th><th>Verwendeter Client-Aufruf</th><th>Regel</th></tr></thead>
+    <tbody>
+      <tr><td>Board</td><td>Projekt</td><td><code>createProject</code> kaneo.ts:47</td><td><strong>ein Board → ein Projekt.</strong> Ein Export kann mehrere Boards halten; dann entsteht je Board ein Projekt (Muster planka boardProjectName, mapping:118–125). <code>--project-name</code> ist der Basisname: ein einziges Board → dieser Name; mehrere → «Basis - Boardtitel».</td></tr>
+      <tr><td>Liste</td><td>Spalte</td><td><code>createColumn</code> kaneo.ts:65</td><td>Reihenfolge der Listen im Export; Slug-/Reserviert-Kollisionen wie csv (Muster <code>planColumns</code> mapping:102–108, <code>RESERVED_COLUMN_SLUGS</code> keys.ts:16). <strong>Archivierte Quelle</strong> → nicht importiert (§4.2).</td></tr>
+      <tr><td>Karte</td><td>Task</td><td><code>createTask</code> kaneo.ts:81</td><td>Titel, Beschreibung; Status = Slug der Ziel-Spalte. <strong>Archivierte Karte</strong> → nicht importiert (§4.2).</td></tr>
+      <tr><td>Karten-Beschreibung</td><td>Task-Beschreibung</td><td><code>createTask description</code></td><td>Mit eventueller Checklist-Anhang-Liste (§4.1, Zeile Checkliste).</td></tr>
+      <tr><td>Termin (due date)</td><td>dueDate</td><td><code>createTask dueDate</code></td><td>ISO-normalisiert (Muster <code>toDueDate</code> csv mapping:56); unlesbar → kein Termin.</td></tr>
+      <tr><td>Label (je Karte)</td><td>Label</td><td><code>createLabel</code> kaneo.ts:100</td><td>je Label Workspace-Label + taskgebunden mit <code>taskId</code>. <strong>Farbe übernommen</strong> (WeKan-Farbe ist hex). Deduplikation der Namen wie csv <code>migrate.ts:100–108</code>.</td></tr>
+      <tr><td>Karten-Mitglied</td><td>Zuweisung</td><td><code>createTask userId</code></td><td>Per E-Mail-Abgleich gegen Workspace-Mitglieder (<code>listMembers</code> kaneo.ts:41; Muster <code>resolveAssignee</code> planka migrate.ts:383). Kein Treffer → Warnung, bleibt unzugewiesen. Mehrere Mitglieder → erste im Workspace (Kaneo hat eine einzelne Zuweisung).</td></tr>
+      <tr><td>Kommentare</td><td>Kommentare</td><td><code>createComment</code> kaneo.ts:123</td><td>In Reihenfolge; Autor + Datum <em>im Text</em> (§5.1), nicht als externalUserName (§1.1).</td></tr>
+      <tr><td>Checkliste</td><td>Markdown-Checkboxen</td><td><code>createTask description</code></td><td>als <code>- [x] …</code>-Zeilen an die Beschreibung angehängt (Muster planka buildDescription mapping:62–87).</td></tr>
+      <tr><td>Priorität</td><td>nicht abbildbar</td><td>—</td><td>WeKan hat keinen Prioritätsbegriff → <code>no-priority</code> (Muster csv DEFAULT_PRIORITY mapping:12).</td></tr>
+      <tr><td>„finale Spalte“ / erledigt-Flag</td><td>nicht abbildbar</td><td>—</td><td>WeKan hat kein verlässliches Konzept einer „finalen Liste“ → jede Spalte <code>isFinal=false</code> (Plankas-<code>closed</code>-Typ, mapping:50, ist format-spezifisch).</td></tr>
+    </tbody>
+  </table>
+
+  <h3>4.2 Die Zeile „was NICHT abbildbar ist“ — die ehrlichste dieser Spezifikation</h3>
+  <table>
+    <thead><tr><th>WeKan-Ebene</th><th>Warum nicht</th><th>Im Report?</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Card-Anhänge (Attachments)</strong></td><td>Kein wiederverwendbarer Upload-Schritt über die öffentliche API; Übertragen wäre neue API-Fläche. Planka zählte nur (README planka), CSV hat keine Zeile.</td><td><strong>gezählt</strong> (Zähler <code>attachmentsSkipped</code>), nicht übertragen</td></tr>
+      <tr><td><strong>Archivierte Listen &amp; Karten</strong></td><td>archivierte Arbeit gehört nicht in den aktiven Board-Stand; stilles Einfügen wäre Müll. Muster: Planka-Skip von Archiv-/Trash-Listen (README).</td><td><strong>gezählt</strong> (<code>archivedLists</code>, <code>archivedCards</code>), nicht angelegt</td></tr>
+      <tr><td><strong>Kommentar-Autor als Konto</strong></td><td>API-Kanon hat kein "wekan" für externalUserName (§1.1). Kommentar läuft unter dem API-Key-Inhaber.</td><td>Autor <strong>im Text</strong> (§5.1)</td></tr>
+      <tr><td><strong>Priorität / finale Spalte</strong></td><td>das Modell-Konzept existiert in WeKan nicht.</td><td>—</td></tr>
+      <tr><td><strong>Aktivitäts-/Änderungslog und Swimlane-/Spaltenkonfiguration</strong></td><td>Kaneo protokolliert eigene Aktivität; Swimlane &amp; Kartenhintergründe haben kein Gegenstück.</td><td>nicht gezählt (außerhalb Modell)</td></tr>
+      <tr><td><strong>Karten-Verknüpfung / Unteraufgaben</strong></td><td>Der WeKan-Export trägt keine dem Planka-<code>linkedCardId</code> entsprechende Struktur.</td><td>nicht abbildbar</td></tr>
+    </tbody>
+  </table>
+  <div class="annahme">
+    <p><strong>Annahme (Exportform):</strong> Die Zeilen „Kommentare tragen Autor + Datum als Felder“, „Karte
+    liefert Labels/Mitglieder/Checklisten inline (nicht über Referenzen)“ und „Board hat <code>lists[]</code> mit
+    sortier- und archivier-Flag“ sind die erwartete reale WeKan-Exportform. Der Parser abstrahiert die Feldnamen
+    hinter einer Normalisierung (§1.1 Annahme); ein echter Fixture beim Bau verankert den Vertrag. Weicht die
+    Realform ab, ist nur der Parser anzupassen — das Modell hier bleibt statisch.</p>
+  </div>
+
+  <h2>5. Fehlerverhalten — halb durchgelaufener Import, Wiederholbarkeit</h2>
+  <p>Der CSV-Weg hat die Wiederholbarkeit gelöst: neues Projekt beim zweiten Lauf, das erste bleibt unangetastet
+  (csv README; Muster migrate:171). <strong>WeKan ist derselbe Weg</strong> — es ist kein anderes Problem:</p>
+  <ul>
+    <li><strong>Trockenlauf</strong> (<code>--dry-run</code>): liest + plant Export, gibt Zählungen je Board aus,
+    keine Schreiboperation (Muster csv migrate:64).</li>
+    <li><strong>Lauf:</strong> je Board ein neues Projekt; je Karte ein eigener <code>createTask</code>.
+    Schlägt eine Karte fehl → Fehler in den Report, <strong>Lauf fährt mit der nächsten fort</strong> (Muster csv
+    migrate:132–157, jetzt je Board isoliert). Es gibt kein Rollback über die API.</li>
+    <li><strong>Wiederholen:</strong> der Import <em>aktualisiert nie</em> ein bestehendes Projekt; jeder Lauf
+    erzeugt neue Projekte. Nach einem Teillauf löscht der Bediener die halben Projekte und führt neu aus —
+    dieselbe Faustregel wie CSV/Planka. Nicht anders; deterministisch.</li>
+    <li><strong>Board-Isolation:</strong> ein fehlschlagendes Board stoppt die anderen nicht; der Report je
+    Board nennt, was scheiterte (Muster planka migrate:157).</li>
+    <li><strong>Report:</strong> <code>--report</code> JSON mit Zählern (Boards=Projekte, Spalten, Tasks,
+    Labels, Kommentare, Zuweisung-Treffer, Checklisten-Items, archiviert-übersprungen, Anhänge-gezählt) +
+    Warnungen/Fehler je Karte — genau der Zähler, den der lokale Nachweis gegen die Quelle prüft (§9 AC).</li>
+  </ul>
+
+  <h2>6. E2E — die ehrliche Antwort ist wieder „keine Journey“</h2>
+  <p>Wie bei F-R1 (CSV) ergibt diese Karte <strong>keine neue Journey</strong> — als Entscheidung, nicht als
+  Weglassen. Die Roadmap führt für F-R1 eine E2E-Journey „Migrations-Import“, aber der Import ist ein
+  CLI-Prozess, der nicht durch einen Browser läuft; eine Journey nur zur Füllung der Zeile wäre
+  Scheinabdeckung, die den Prüfer für die echte Lücke blind macht (AGENTS.md 2.4). Den Nachweis, den eine
+  Journey sonst trüge, tragen die Abbildungs-Unit-Tests (§1, §5) und ein Importlauf gegen eine lokale Instanz mit
+  gezähltem Ergebnis. <code>analysis/journeys.html</code> wird in dieser Karte <em>nicht</em> verändert. Kommt
+  doch eine Journey dazu, gehört sie in dieselbe Karte mit Eintrag im Katalog (Auflage a des R1-Gates).</p>
+
+  <h2>7. Was NICHT passieren darf</h2>
+  <div class="nicht">
+    <p><strong>Keine Änderung an bestehenden Daten.</strong> Der Client kennt nur Anlegen und das Löschen der vier
+    Standardspalten eines <em>neu angelegten</em> Projekts (kaneo.ts:75; csv migrate:92). Nie wird ein
+    bestehendes Projekt, ein bestehender Task oder ein Label überschrieben oder gelöscht.</p>
+  </div>
+  <div class="nicht">
+    <p><strong>Keine Änderung der öffentlichen API-Oberfläche.</strong> Keine neue Route; kein Eingriff in
+    <code>apps/api</code> — auch der <code>externalSource</code>-Kanon (<code>comment/index.ts:63</code>) wird
+    <em>nicht</em> erweitert, deshalb der Autor-im-Text-Weg (§5.1). <code>@kaneo/libs</code> bleibt unberührt.</p>
+  </div>
+  <div class="nicht">
+    <p><strong>Keine Schema-Änderung, keine Migration.</strong> Keine neue Tabelle, kein
+    <code>pnpm db:generate</code>.</p>
+  </div>
+  <div class="nicht">
+    <p><strong>Die volle Suite bleibt grün.</strong> <code>pnpm exec turbo typecheck</code>,
+    <code>test</code> und <code>playwright test</code> grün — insbesondere die Planka- und CSV-Pfade nach dem
+    neuen Paket.</p>
+  </div>
+
+  <h2>8. Abgrenzung zu ADR-001</h2>
+  <p>Diese Spezifikation ist der Vertrag der Bau-Karte; ADR-001 ist der Entscheidungsbeleg. WeKan fällt unter
+  die gewählte Option C (Schwester-Paket auf geteiltem Client) und die Revisionsklausel §5b wird nicht ausgelöst
+  (kein vierter Baustein; kein geteilter Abbildungs-Kern).</p>
+
+  <h2>9. Akzeptanzkriterien (prüfbar, einzeln abhakbar)</h2>
+  <div class="ac"><strong>AC1 — Paket &amp; bin:</strong> <code>packages/wekan-import</code>
+  (<code>@kaneo/wekan-import</code>) existiert; <code>kaneo-wekan-import --help</code> und
+  <code>--version</code> arbeiten (Unit-Test).</div>
+  <div class="ac"><strong>AC2 — Geteilter Client:</strong> WeKan importiert <code>KaneoClient</code> + Steuer von
+  <code>@kaneo/kaneo-client</code> — kein Duplikat, keine Erweiterung; die Planka- und CSV-Suites bleiben grün.</div>
+  <div class="ac"><strong>AC3 — Parser:</strong> Ein echter WeKan-Export-Fixture parst zu geplanten
+  Boards/Karten/Nachweise; kaputtes JSON, leere Datei und fehlende Board-Struktur liefern eine klare Meldung
+  und Exit ≠ 0 (Unit-Tests).</div>
+  <div class="ac"><strong>AC4 — Modell-Abbildung je Ebene:</strong> Unit-Tests für jede Zeile aus §4.1 —
+  Board→Projekt (Einzel- und Mehr-Board-Benennung), Liste→Spalte (Reihenfolge, reserved), Karte→Task
+  (Titel/Beschreibung), Termin→ISO, Label→Workspace+Task (Farbe übernommen), Karten-Mitglied→userId per
+  E-Mail (kein Treffer→Warnung), Checkliste→Markdown-Boxen, Priorität→no-priority.</div>
+  <div class="ac"><strong>AC5 — Kommentare:</strong> Kommentare in Reihenfolge, „Autor am Datum: …“ im Text,
+  Konto = API-Key-Inhaber; kein anderes <code>externalUserName</code> (Unit-Test prüft den erzeugten Text).</div>
+  <div class="ac"><strong>AC6 — Trockenlauf:</strong> <code>--dry-run</code> ruft keine Schreiboperation auf und
+  gibt Zählungen je Board aus; keine Mutation.</div>
+  <div class="ac"><strong>AC7 — Importlauf gegen lokale Instanz:</strong> Ein Lauf erzeugt
+  <code>--report</code>-JSON mit Task-Zähler == Karten, Boards == Projekte, Labels == distinct je mit Farbe,
+  Kommentare == Quelle mit Autor-Text; Fehler je Karte geführt, Lauf fährt fort (Integration).</div>
+  <div class="ac"><strong>AC8 — Board-Isolation / Mehr-Board:</strong> Ein Export mit mehreren Boards erzeugt ein
+  Projekt je Board (Benennung wie §4); scheitert ein Board, bleibt der Rest grün (Integration).</div>
+  <div class="ac"><strong>AC9 — Wiederholbarkeit:</strong> Ein zweiter Lauf erzeugt neue Projekte und mutiert die
+  ersten nicht (Integration).</div>
+  <div class="ac"><strong>AC10 — Keine API-/DB-Änderung:</strong> <code>git diff</code> gegenüber dem
+  Ausgangspunkt berührt kein <code>apps/api</code>-Routing, keine Drizzle-Migration, kein
+  <code>@kaneo/libs</code>-Modul; der <code>externalSource</code>-Kanon ist unverändert.</div>
+  <div class="ac"><strong>AC11 — Suiten grün:</strong> <code>pnpm exec turbo typecheck/test/playwright test</code>
+  grün, ohne Regression.</div>
+  <div class="ac"><strong>AC12 — Lint:</strong> <code>biome</code> auf den neuen Dateien ohne neue Findings.</div>
+
+  <h2>10. Belege &amp; Quellen</h2>
+  <ul>
+    <li>Geteilter Client: <code>packages/kaneo-client/src/kaneo.ts:22,26,139</code> (KaneoClient/request),
+    <code>:31–137</code> (Operationen), <code>kaneo.ts:133</code> (externalSource "planka");
+    <code>keys.ts:4,16,20,39</code>.</li>
+    <li>CSV-Schwester: <code>packages/csv-import/src/migrate.ts:34</code> (importCsv-Fluss),
+    <code>:92–94</code> (Standard löschen), <code>:100–108</code> (Labels dedup), <code>:132–157</code>
+    (fehler-je-Karte weiter); <code>mapping.ts:56,62,79,102–108</code>; <code>csv.ts:29</code>.</li>
+    <li>Planka-Muster: <code>packages/planka-import/src/mapping.ts:62–87</code> (buildDescription,
+    Markdown-Checkliste), <code>:118–125</code> (boardProjectName); <code>migrate.ts:157–162</code>
+    (Board-Isolation), <code>:227–233</code>, <code>:383</code> (resolveAssignee).</li>
+    <li>API-Grenze: <code>apps/api/src/comment/index.ts:63</code> (externalSource-Picklist ohne "wekan"),
+    <code>:67–77</code> (extern nur mit wo-Source).</li>
+    <li>Architektur: <code>decisions/ADR-001-import-architektur.html</code> §3 (Schwester-Paket), §5
+    (Revision: vierter Baustein-Schwelle).</li>
+    <li>Vorläufer: <code>specs/r2-f1-import-csv-wekan.html</code> §3.2 (WeKan als Folgekarte), §4
+    (Attachments), §6 (keine Journey).</li>
+    <li>Feature/Schnitt: <code>roadmap/r2-freigegeben.html</code> §3.1 (Karten-Kette F-R1-1b);
+    <code>sources/2026-08-17/wekan-releases.md</code>.</li>
+  </ul>
+
+  <section id="video-skript">
+    <p>Der Import aus WeKan schließt die zweite Hälfte des ersten Features. WeKans Export ist eine
+    JSON-Datei, kein CSV, und genau das ist die Herausforderung dieser Baukarte. Der geteilte Schreib-Client
+    aus der Vorgängerarbeit kann hier schon alles — Projekte, Spalten, Aufgaben, Labels, Kommentare — und er wird
+    bewusst nicht erweitert. Die einzige Lücke, ein Kommentarautor als eingeblendeter Fremdname, wäre ein
+    Eingriff in die öffentliche Schnittstelle; deshalb wandern Autor und Datum in den Text des Kommentars,
+    das Konto bleibt der Inhaber des Schlüssels. Ein WeKan-Board wird ein Kaneo-Projekt; eine Datei mit
+    mehreren Boards erzeugt mehrere Projekte. Checklisten landen als abhakbare Listen in der Beschreibung,
+    Anhänge werden gezählt und nicht übertragen, archivierte Arbeit bleibt liegen und wird gemeldet. Ein halber
+    Lauf bricht nicht ab, er protokolliert die Fehler und lässt sich bestimmt wiederholen: neu anlegen, nicht
+    überschreiben. Eine Browser-Journey kommt nicht dazu, denn ein Kommandozeilen-Import läuft nicht durch den
+    Browser; den Nachweis tragen Abbildungstests und ein Importlauf gegen eine lokale Instanz mit gezähltem
+    Ergebnis. Als Nächstes wird diese Baukarte geschätzt und umgesetzt.</p>
+  </section>
+
+  <figure class="esf-video">
+    <video controls preload="metadata" width="100%" src="r2-f1b-import-wekan.mp4">
+      <track kind="subtitles" srclang="de" label="Untertitel" src="r2-f1b-import-wekan.vtt">
+    </video>
+    <figcaption>Video-Zusammenfassung; Untertitel zuschaltbar. Gerendert von scripts/video-render.sh.</figcaption>
+  </figure>
+
+</body>
+</html>

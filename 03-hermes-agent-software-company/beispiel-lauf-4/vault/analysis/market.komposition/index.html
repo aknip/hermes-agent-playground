@@ -1,0 +1,412 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1920, height=1080">
+<title>Marktbild Kaneo 2026 — ESF</title>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+<style>
+  /* Individuelle Komposition für analysis/market.html.
+     Acht Szenen, eine je Erzählsatz-Cue (aus auftrag.json).
+     Kernbild: Ranking-Balken der sieben Feature-Hypothesen.
+     Jede gezeigte Zahl steht im Dokument (analysis/market.html).
+     Rendern = seeks per Frame: keine Wanduhr, kein Animations-Frame-Callback.
+     Clip-Sichtbarkeit gehört dem Framework; animiert wird nur Binnen-Inhalt. */
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 1920px; height: 1080px; overflow: hidden;
+    background: #0d1512; color: #e9f2ec;
+    font-family: "Avenir Next", "Segoe UI", system-ui, sans-serif; }
+  #root { position: relative; width: 1920px; height: 1080px; }
+  .clip { position: absolute; inset: 0; overflow: hidden; }
+  .bg { position: absolute; inset: 0; }
+  .dunkel { background: radial-gradient(120% 105% at 22% 8%, #15241c, #0d1512 62%); }
+  .panel { background: #131e18; }
+  .binnen { position: absolute; left: 74px; right: 74px; top: 96px; bottom: 110px; }
+  .kopf { font-size: 24px; letter-spacing: .20em; color: #9fc0ac; text-transform: uppercase; }
+  .titel { font-size: 68px; line-height: 1.16; font-weight: 700; margin-top: 26px;
+           max-width: 15em; }
+  .unter { font-size: 34px; line-height: 1.45; color: #d0e3d8; margin-top: 30px;
+           max-width: 24em; font-weight: 500; }
+  .fuss { position: absolute; bottom: 34px; left: 74px; right: 74px;
+          font-size: 20px; color: #6d8a7a; letter-spacing: .05em; }
+
+  /* Szene 1 · Kategoriestandard-Leiste */
+  .catbar { position: absolute; left: 74px; right: 74px; bottom: 118px; }
+  .cat-label { font-size: 22px; letter-spacing: .16em; color: #8fb89a;
+               text-transform: uppercase; }
+  .cat-track { position: relative; height: 14px; background: #20301f; border-radius: 7px;
+               margin-top: 14px; }
+  .cat-fill { position: absolute; left: 0; top: 0; bottom: 0; background: linear-gradient(90deg,#1f6a46,#3fd99c);
+              transform-origin: left; }
+  .cat-peg { position: absolute; top: 50%; width: 4px; height: 46px; background: #f2f7f4;
+             transform: translateY(-50%); border-radius: 2px; }
+
+  /* Szene 2: Chips + Checkliste */
+  .chips { margin-top: 30px; }
+  .chip { display: inline-block; padding: 13px 24px; border: 2px solid #397b56;
+          border-radius: 40px; font-size: 28px; font-weight: 600; color: #d4e6da;
+          background: #15301f; margin: 6px 10px 6px 0; }
+  .chip.teils { border-color: #7a8c4c; background: #1b2a15; color: #e7e2c8; }
+  .std { margin-top: 34px; }
+  .std-reihe { display: flex; align-items: center; gap: 20px; padding: 11px 0;
+               font-size: 28px; font-weight: 500; }
+  .hak { flex: 0 0 42px; width: 42px; height: 42px; border-radius: 12px;
+         display: inline-flex; align-items: center; justify-content: center;
+         font-weight: 800; font-size: 24px; color: #0d1512; background: #3fd99c; }
+  .hak.teils { background: #b9c86a; }
+  .goal { color: #d3e3d9; }
+
+  /* Ranking-Balken (Szene 3, 4) */
+  .rank { margin-top: 30px; }
+  .rreihe { display: flex; align-items: center; gap: 22px; height: 60px; margin: 6px 0; }
+  .r-id { flex: 0 0 60px; font-size: 28px; font-weight: 800; color: #3fd99c; }
+  .r-name { flex: 0 0 560px; font-size: 25px; color: #cfdfd4; font-weight: 500; }
+  .r-track { position: relative; flex: 1; height: 26px; }
+  .r-grnd { position: absolute; inset: 0; background: #1a2922; border-radius: 4px; }
+  .r-bar { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 4px;
+           background: linear-gradient(90deg, #1f6a46, #3fd99c); transform-origin: left; }
+  .r-tresh { position: absolute; top: -9px; bottom: -9px; left: 60%; width: 3px;
+             background: #d5c06a; transform: translateX(-50%); }
+  .r-threshold { position: absolute; width: max-content; top: -34px; left: 60%;
+                 transform: translateX(-50%); font-size: 20px; color: #d9c66a;
+                 letter-spacing: .04em; white-space: nowrap; }
+  .r-score { flex: 0 0 90px; text-align: right; font-size: 30px; font-weight: 800;
+             color: #eef6ef; font-variant-numeric: tabular-nums; }
+  .rreihe.heli .r-id { color: #ffdf9e; }
+  .rreihe.heli .r-name { color: #fff; font-weight: 700; }
+  .rreihe.heli .r-bar { background: linear-gradient(90deg, #d08a2e, #ffd97b);
+                        box-shadow: 0 0 26px rgba(255,205,120,.35); }
+  .rreihe.heli .r-score { color: #ffd284; }
+
+  /* Vergleichskarten (Szene 5, 7) */
+  .col2 { display: flex; gap: 34px; margin-top: 44px; align-items: stretch; }
+  .karte { flex: 1; border: 1px solid #33573f; border-radius: 20px; padding: 34px;
+           background: #16251d; }
+  .karte .k-in { font-size: 22px; letter-spacing: .16em; color: #8fb89a; text-transform: uppercase; }
+  .karte h3 { font-size: 38px; line-height: 1.22; font-weight: 700; margin-top: 16px;
+              color: #e9f2ec; }
+  .karte .z { font-size: 25px; color: #b7cbbe; margin-top: 18px; line-height: 1.45; }
+  .karte.kaneo { border-color: #3fd99c; }
+  .karte.linear { border-color: #5a6670; background: #1a1e18; }
+
+  /* Empfehlung (Szene 6) */
+  .schritte { display: flex; gap: 26px; margin-top: 52px; align-items: stretch; }
+  .schritt { flex: 1; border: 1px solid #33513c; border-radius: 18px; padding: 30px;
+             background: #17251c; }
+  .s-zahl { width: 58px; height: 58px; border-radius: 14px; background: #1f6a46;
+            color: #0d1512; font-weight: 800; font-size: 30px;
+            display: flex; align-items: center; justify-content: center; }
+  .s-text { font-size: 26px; line-height: 1.4; color: #d7e6db; margin-top: 18px; font-weight: 600; }
+
+  /* Annahme (Szene 7) */
+  .ann { margin-top: 30px; border-left: 8px solid #c9a227; background: #2a2110;
+         padding: 28px; border-radius: 6px; }
+  .ann .t { font-size: 24px; letter-spacing: .14em; color: #e6d488;
+            text-transform: uppercase; font-weight: 700; }
+  .ann .b { font-size: 30px; line-height: 1.5; color: #efe8ca; margin-top: 16px; }
+
+  /* Szene 8 */
+  .reihe8 { display: flex; gap: 30px; margin-top: 40px; align-items: stretch; }
+  .feld { flex: 1; border: 1px solid #33513c; border-radius: 18px; padding: 30px;
+          background: #17251c; }
+  .f-t { font-size: 23px; letter-spacing: .12em; color: #3fd99c;
+         text-transform: uppercase; font-weight: 700; }
+  .band-wrap { position: relative; height: 64px; margin: 40px 0 10px; }
+  .band { position: absolute; left: 0; right: 0; top: 36px; height: 16px;
+          border-radius: 8px; background: #1a2922; }
+  .band .f { position: absolute; top: 0; bottom: 0; left: 72.5%; right: 0;
+             background: linear-gradient(90deg,#c9822f,#ffd97b); }
+  .band .ven { position: absolute; top: -12px; bottom: -12px; left: 72.5%; width: 3px;
+               background: #d5c06a; }
+  .band-wrap .etik { position: absolute; top: 2px; left: 72.5%; transform: translateX(-50%);
+                   font-size: 22px; color: #ecd37d; white-space: nowrap; }
+  .band-wrap .etik.ende { left: 100%; transform: translateX(-100%); color: #f6e6b8; }
+  .bandz { font-size: 27px; color: #d0e3d8; margin-top: 30px; line-height: 1.45; }
+  .akt { color: #f4e0b0; font-weight: 700; }
+</style>
+</head>
+<body>
+<div id="root"
+     data-composition-id="market"
+     data-start="0"
+     data-duration="85.3"
+     data-width="1920"
+     data-height="1080">
+
+  <!-- SZENE 1 · der Kategoriestandard geht über ein Kanban-Board hinaus -->
+  <div class="clip" id="s1"
+       data-start="0" data-duration="7.372" data-track-index="1">
+    <div class="bg dunkel"></div>
+    <div class="binnen">
+      <div class="kopf">MARKTBILD · KANEO · 2026</div>
+      <h1 class="titel" id="s1-t">Kaneo tritt in ein Feld, in dem der Kategoriestandard weit über ein Kanban-Board hinausgeht.</h1>
+    </div>
+    <div class="catbar">
+      <div class="cat-label" id="s1-clabel">KATEGORIESTANDARD · LIEFERKURVE DER KONKURRENZ</div>
+      <div class="cat-track"><div class="cat-fill" id="s1-fill"></div></div>
+      <div class="cat-peg" id="s1-standard" style="left:94%"></div>
+      <div class="cat-peg" id="s1-kaneo" style="left:8%"></div>
+    </div>
+    <div class="fuss">Korpus sources/2026-08-17/ · Schwelle 12 · Deckel 8</div>
+  </div>
+
+  <!-- SZENE 2 — die Konkurrenten liefern den Standard als Selbstverständlichkeit -->
+  <div class="clip" id="s2"
+       data-start="7.372" data-duration="12.11" data-track-index="2">
+    <div class="bg panel"></div>
+    <div class="binnen">
+      <div class="kopf">WETTBEWERBER IM KORPUS</div>
+      <h1 class="titel">Der Kategoriestandard wird mitgeliefert</h1>
+      <div class="chips">
+        <span class="chip">Importe</span>
+        <span class="chip">Sicherheitshärtung</span>
+        <span class="chip">Tastaturbedienung</span>
+        <span class="chip teils">Automatisierung · teils</span>
+        <span class="chip teils">Mobile · teils</span>
+      </div>
+      <div class="std">
+        <div class="std-reihe"><span class="hak">✓</span><span class="goal">Import aus anderen Tools</span></div>
+        <div class="std-reihe"><span class="hak">✓</span><span class="goal">Sicherheitshärtung als Dauerthema</span></div>
+        <div class="std-reihe"><span class="hak">✓</span><span class="goal">Tastatur · Command-Palette</span></div>
+        <div class="std-reihe"><span class="hak teils">✓</span><span class="goal">Automatisierung — nur teils vorhanden</span></div>
+        <div class="std-reihe"><span class="hak teils">✓</span><span class="goal">Mobile — nur Linear-Mobile-Apps</span></div>
+      </div>
+      <div class="fuss">„Kategoriestandard“ = Lieferstandard der Konkurrenz, nicht gemessene Käufererwartung</div>
+    </div>
+  </div>
+
+  <!-- SZENE 3 — sieben Hypothesen, alle über der Schwelle 12 -->
+  <div class="clip" id="s3"
+       data-start="19.482" data-duration="8.951" data-track-index="3">
+    <div class="bg dunkel"></div>
+    <div class="binnen">
+      <div class="kopf">LÜCKEN GEGENÜBER DEM STANDARD</div>
+      <h1 class="titel">Sieben Hypothesen — alle über der Schwelle 12</h1>
+      <div class="rank" id="rank3"></div>
+    </div>
+    <div class="fuss">Schwelle 12 · Deckel 8 · Kein Signal unter der Schwelle</div>
+  </div>
+
+  <!-- SZENE 4 — die stärkste Hypothese: Verbreiterung der Importe (20) -->
+  <div class="clip" id="s4"
+       data-start="28.433" data-duration="5.792" data-track-index="4">
+    <div class="bg panel"></div>
+    <div class="binnen">
+      <div class="kopf">STÄRKSTE HYPOTHESE</div>
+      <h1 class="titel">Verbreiterung der Importe</h1>
+      <div class="rank" id="rank4"></div>
+    </div>
+    <div class="fuss">H2 · Import-Tooling verbreitern · Score 20</div>
+  </div>
+
+  <!-- SZENE 5 — der offene MCP-Agentenkanal ist der eigene Unterschied -->
+  <div class="clip" id="s5"
+       data-start="34.225" data-duration="10.005" data-track-index="5">
+    <div class="bg dunkel"></div>
+    <div class="binnen">
+      <div class="kopf">DER DIFFERENZIERENDE SCHRITT</div>
+      <h1 class="titel">Der offene MCP-Agentenkanal</h1>
+      <div class="col2">
+        <div class="karte kaneo">
+          <div class="k-in">KANEO · selbstgehostet</div>
+          <h3>Offener MCP-Agentenkanal</h3>
+          <div class="z">Lauffähiger MCP-Server im offenen Open-Source-Kontext.</div>
+        </div>
+        <div class="karte linear">
+          <div class="k-in">LINEAR · geschlossen</div>
+          <h3>Nur als Enterprise-Produkt</h3>
+          <div class="z">Enterprise-managed Authorization · Okta-Verwaltung.</div>
+        </div>
+      </div>
+      <div class="fuss">H1 · MCP-Agentenkanal ausbauen · Score 18,5</div>
+    </div>
+  </div>
+
+  <!-- SZENE 6 — Empfehlung -->
+  <div class="clip" id="s6"
+       data-start="44.23" data-duration="9.477" data-track-index="6">
+    <div class="bg panel"></div>
+    <div class="binnen">
+      <div class="kopf">EMPFEHLUNG</div>
+      <h1 class="titel">Auf dem eigenen Unterschied aufbauen</h1>
+      <div class="schritte">
+        <div class="schritt">
+          <div class="s-zahl">1</div>
+          <div class="s-text">MCP-Agentenkanal ausbauen</div>
+        </div>
+        <div class="schritt">
+          <div class="s-zahl">2</div>
+          <div class="s-text">Importe auf CSV und WeKan verbreitern</div>
+        </div>
+        <div class="schritt">
+          <div class="s-zahl">3</div>
+          <div class="s-text">Anmeldung mit 2FA auf Kategorieniveau</div>
+        </div>
+      </div>
+      <div class="fuss">Empfehlung für die Roadmap-Entscheidung</div>
+    </div>
+  </div>
+
+  <!-- SZENE 7 — bewusst anders: Annahme mit fehlendem Käuferbeleg -->
+  <div class="clip" id="s7"
+       data-start="53.707" data-duration="16.323" data-track-index="7">
+    <div class="bg dunkel"></div>
+    <div class="binnen">
+      <div class="kopf">WO KANEO BEWUSST ANDERS BLEIBT</div>
+      <h1 class="titel">Schlank, selbstgehostet — trägt nur mit Käuferbeleg</h1>
+      <div class="col2">
+        <div class="karte kaneo">
+          <div class="k-in">POSITIONIERUNG</div>
+          <h3>Schlank · selbstgehostet</h3>
+          <div class="z">Kein breites PM, kein Wiki — bewusst anders als OpenProject · Huly · Linear.</div>
+        </div>
+        <div class="karte linear">
+          <div class="k-in">UNTER VORAUSSETZUNG</div>
+          <h3>Trägt nur, wenn…</h3>
+          <div class="z">…Käufer einfache Bedienbarkeit über Feature-Umfang stellen.</div>
+        </div>
+      </div>
+      <div class="ann">
+        <div class="t">Annahme — Käuferbeleg fehlt</div>
+        <div class="b">Im Korpus gibt es keinen Beleg, dass die schlanke Fokussierung tatsächlich trägt.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SZENE 8 — nächster Schritt -->
+  <div class="clip" id="s8"
+       data-start="70.03" data-duration="15.27" data-track-index="8">
+    <div class="bg panel"></div>
+    <div class="binnen">
+      <div class="kopf">NÄCHSTER SCHRITT</div>
+      <h1 class="titel">Sieben Hypothesen in die erste Roadmap</h1>
+      <div class="reihe8">
+        <div class="feld">
+          <div class="f-t">SCORE-BAND</div>
+          <div class="band-wrap">
+            <div class="band" id="band8">
+              <div class="f"></div>
+              <div class="ven"></div>
+            </div>
+            <div class="etik">14,5</div>
+            <div class="etik ende">20</div>
+          </div>
+          <div class="bandz">Die Hypothesen zwischen <span class="akt">14,5 und 20 Punkten</span> in die Roadmap übernehmen.</div>
+        </div>
+        <div class="feld">
+          <div class="f-t">FEHLENDE QUELLEN</div>
+          <div class="std">
+            <div class="std-reihe"><span class="hak">↳</span><span class="goal">Preislisten</span></div>
+            <div class="std-reihe"><span class="hak">↳</span><span class="goal">Käuferinterviews</span></div>
+            <div class="std-reihe"><span class="hak">↳</span><span class="goal">Height-Daten</span></div>
+          </div>
+          <div class="bandz">Die fehlenden Quellen nachziehen.</div>
+        </div>
+      </div>
+      <div class="fuss">Übernahme der sieben Hypothesen · fehlende Quellen schließen</div>
+    </div>
+  </div>
+
+</div>
+<audio id="audio" src="audio.m4a" data-start="0" data-track-index="0" data-volume="1"></audio>
+<script>
+  window.__timelines = window.__timelines || {};
+  const tl = gsap.timeline({ paused: true });
+
+  // ---------- Daten aus analysis/market.html (Abschnitt Gesamtbild) ----------
+  const HYP = [
+    { id: "H2", name: "Import-Tooling verbreitern",      score: 20 },
+    { id: "H3", name: "Wiederkehrende Automatisierung",  score: 19 },
+    { id: "H1", name: "MCP-Agentenkanal ausbauen",       score: 18.5 },
+    { id: "H4", name: "Sicherheit · 2FA",                score: 18.5 },
+    { id: "H5", name: "Tastatur · Palette",              score: 18.5 },
+    { id: "H6", name: "Mobile Zugriff",                  score: 15.5 },
+    { id: "H7", name: "i18n / Übersetzungen",            score: 14.5 },
+  ];
+  const MAX = 20;
+  function fmt(s) { return Number.isInteger(s) ? String(s) : s.toFixed(1).replace(".", ","); }
+
+  // Zurzeit im Dokument steht die Reihenfolge sortiert nach Score (H2, H3, H1,
+  // H4, H5, H6, H7) — exakt so wird sie gezeigt.
+  function baueRanking(sel, heliId, mitSchwelle) {
+    const container = document.querySelector(sel);
+    HYP.forEach(function (h, i) {
+      const row = document.createElement("div");
+      row.className = "rreihe" + (h.id === heliId ? " heli" : "");
+      const w = (h.score / MAX) * 100;
+      const track = document.createElement("div");
+      track.className = "r-track";
+      track.innerHTML = '<div class="r-grnd"></div>';
+      if (mitSchwelle) {
+        const tresh = document.createElement("div");
+        tresh.className = "r-tresh";
+        track.appendChild(tresh);
+        if (i === 0) {
+          const lab = document.createElement("div");
+          lab.className = "r-threshold";
+          lab.textContent = "Schwelle 12";
+          track.appendChild(lab);
+        }
+      }
+      const bar = document.createElement("div");
+      bar.className = "r-bar";
+      bar.style.width = w + "%";
+      track.appendChild(bar);
+
+      row.appendChild(createEl("div", "r-id", h.id));
+      row.appendChild(createEl("div", "r-name", h.name));
+      row.appendChild(track);
+      row.appendChild(createEl("div", "r-score", fmt(h.score)));
+      container.appendChild(row);
+    });
+    return container.querySelectorAll(".r-bar");
+  }
+  function createEl(tag, cls, text) {
+    const el = document.createElement(tag);
+    el.className = cls;
+    el.textContent = text;
+    return el;
+  }
+
+  const bars3 = baueRanking("#rank3", null, true);
+  const bars4 = baueRanking("#rank4", "H2", false);
+
+  // ---------- Szenen-Eintritte ----------
+  // Nur Binnen-Inhalt animieren, nie den Clip selbst (Clip-Lebenszyklus = Framework).
+  function enterScene(selector, at) {
+    const b = document.querySelector(selector + " .binnen");
+    // von Opacity 0 starten — der Binnen ist ein nicht-Clip-Element
+    tl.set(b, { autoAlpha: 0, y: 26 }, at);
+    tl.to(b, { autoAlpha: 1, y: 0, duration: 0.6, ease: "power2.out" }, at);
+  }
+
+  // Szene 1
+  enterScene("#s1", 0.1);
+  tl.fromTo("#s1-fill", { scaleX: 0 }, { scaleX: 1, duration: 1.2, ease: "power2.out" }, 0.5);
+  tl.fromTo("#s1-standard", { autoAlpha: 0, scale: 0.5 }, { autoAlpha: 1, scale: 1, duration: 0.5, ease: "back.out(1.7)" }, 1.2);
+  tl.fromTo("#s1-kaneo", { autoAlpha: 0, y: -14 }, { autoAlpha: 1, y: 0, duration: 0.4, ease: "power2.out" }, 2.0);
+
+  // Szenen 2–8
+  enterScene("#s2", 7.5);
+  enterScene("#s3", 19.6);
+  enterScene("#s4", 28.5);
+  enterScene("#s5", 34.3);
+  enterScene("#s6", 44.3);
+  enterScene("#s7", 53.8);
+  enterScene("#s8", 70.1);
+
+  // Ranking-Balken wachsen einzeln auf (gleiche Reihe wie die Sprache)
+  bars3.forEach(function (bar, i) {
+    tl.fromTo(bar, { scaleX: 0 }, { scaleX: 1, duration: 0.45, ease: "power2.out" }, 19.9 + i * 0.28);
+  });
+  bars4.forEach(function (bar, i) {
+    tl.fromTo(bar, { scaleX: 0 }, { scaleX: 1, duration: 0.45, ease: "power2.out" }, 28.8 + i * 0.28);
+  });
+
+  // Szene 8 · Band einblenden
+  tl.fromTo("#band8", { autoAlpha: 0, y: 16 }, { autoAlpha: 1, y: 0, duration: 0.6, ease: "power2.out" }, 70.3);
+
+  window.__timelines["market"] = tl;
+</script>
+</body>
+</html>

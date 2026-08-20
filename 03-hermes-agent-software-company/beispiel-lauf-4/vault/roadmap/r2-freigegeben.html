@@ -1,0 +1,292 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <title>Neuschnitt R2 (freigegeben) — ESF</title>
+  <meta name="esf-typ" content="roadmap">
+  <meta name="esf-karte" content="t_cc17fedf">
+  <meta name="esf-datum" content="2026-08-19">
+  <meta name="esf-video" content="r2-freigegeben.mp4">
+  <style>
+    body { font-family: -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+           line-height: 1.55; max-width: 900px; margin: 2rem auto; padding: 0 1.3rem; color: #1c1c1c; }
+    h1 { font-size: 1.7rem; border-bottom: 3px solid #1d4a33; padding-bottom: .4rem; }
+    h2 { font-size: 1.28rem; margin-top: 2.4rem; color: #1d4a33; }
+    h3 { font-size: 1.05rem; margin-top: 1.6rem; }
+    table { border-collapse: collapse; width: 100%; margin: 1rem 0; font-size: .92rem; }
+    th, td { border: 1px solid #ccc; padding: .45rem .6rem; text-align: left; vertical-align: top; }
+    th { background: #eef4ef; }
+    code { background: #f2f2f2; padding: .05rem .3rem; border-radius: 3px; font-size: .9em; }
+    .kern { background: #fffbe6; border-left: 4px solid #c9a227; padding: .8rem 1rem; margin: 1rem 0; }
+    .meta { color: #555; font-size: .92rem; }
+    .src { color: #2f6f4f; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .82rem; }
+    .kw { font-weight: 600; }
+    .nicht { background: #fdecec; border-left: 4px solid #c0392b; padding: .7rem 1rem; margin: .6rem 0; }
+    .entscheid { background: #eaf3ff; border-left: 4px solid #1d4a8f; padding: .8rem 1rem; margin: 1rem 0; }
+    .zitat { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .88rem;
+             background: #f6f8fb; border: 1px solid #d8e0ec; padding: .7rem .9rem; white-space: pre-wrap; }
+    footer { margin-top: 3rem; border-top: 1px solid #ccc; padding-top: 1rem; font-size: .85rem; color: #555; }
+  </style>
+</head>
+<body>
+
+<h1>Neuschnitt R2 — freigegeben (Kaneo)</h1>
+<p class="meta">Freigabe-Gate <code>t_cc17fedf</code> · Entscheidung: <code>modify</code> ·
+Freigabedatum <code>2026-08-19</code> (Systemdatum, AGENTS.md 3.2) · Vorläufer-Entwurf:
+<span class="src">roadmap/r2-neuschnitt.html</span> (bleibt daneben stehen, widerlegt, nicht
+überschrieben) · Messbasis <span class="src">ledger/estimates.jsonl</span> · Kadenz-Limits aus
+<span class="src">cadence.yaml</span></p>
+
+<div class="entscheid">
+  <p><strong>Supervisor-Entscheidung am Gate (2026-08-19): <code>modify</code>.</strong>
+  Der Schnitt R2/R3 ist <strong>freigegeben, wie gelegt</strong>. Bei der gerissenen Auflage b)
+  (Prüfung 3) folgt der Supervisor der Empfehlung des Chief-of-Staff — Option b — aber <em>nicht so,
+  wie sie im Entwurf dasteht</em>: unter drei Bedingungen (2a–2c) und mit einem Ersatz für den Detektor,
+  den Option b abschaltet. Deshalb <code>modify</code> und nicht <code>approve</code>. Die drei
+  Bedingungen sind unten als eigener, benannter Abschnitt eingearbeitet (Abschnitt 5), nicht als
+  Nebensatz; der ursprüngliche Entwurf bleibt daneben stehen.</p>
+  <p>Autonomie-Horizont bleibt <code>release</code> — <strong>kein Quartals-Mandat</strong>. Freigabe
+  wirksam ab diesem Gate; verbindliche Auflagen aus der Entscheidung in Abschnitt 5.</p>
+</div>
+
+<div class="kern">
+  <p><strong>In drei Minuten:</strong> Der Neuschnitt von R2 und R3 stützt sich erstmals auf
+  <strong>gemessene</strong> Intervalle statt auf Referenzklassen „ohne Historie". Das Ledger trägt nach
+  drei Sprints <strong>12 vollständige (Schätzung, Ist)-Paare</strong> in sieben Arbeitsklassen
+  (<span class="src">ledger/estimates.jsonl</span>). Je Feature wird das Intervall als Summe der
+  gemessenen Karten-Kette abgeleitet — keine erfundene Zahl. Der R2-Schnitt bleibt bei fünf Features
+  (F-R1-1b WeKan · F-R2-1 · F-R2-2 · F-R2-4 · F-R2-5), R3 bei fünf (F-R2-3 · F-R3-1 · F-R3-2 ·
+  F-R3-3 · F-R3-4). Splitting-Auflage 8b ist einlösbar: F-R2-2 und F-R2-3 passen beide in 8 Karten
+  (je 4 Bau-Karten).</p>
+  <p><strong>Was die Freigabe ändert:</strong> Auflage b wird per Option b (Schätzung technisch über den
+  Schätzer verankern) gelöst, aber unter drei Bedingungen — 2a Auflösung über die Karten-ID statt den
+  Titel, 2b lautes Scheitern statt stillem null, 2c Detektor ersetzt durch die metadata-Vollständigkeits-
+  quote je Sprint. Der create-release.sh-Posten wird angenommen, die Parametrisierung passiert vor dem
+  ersten R2-Sprint, nachgewiesen durch einen --dry-run. Horizont bleibt release.</p>
+  <p><strong>Was es kostet:</strong> R2 gesamt (Karten-Kette, p50) ≈ <strong>647 min</strong>, R3 ≈
+  <strong>810 min</strong> — gemessen. Größte Unsicherheit trägt F-R2-2 (2FA, Referenzklasse auth leer).</p>
+  <p><strong>Was jetzt passiert:</strong> Erst die Freigabe verteilt Feature-Graphen nach den Auflagen
+  (<span class="src">create-sprint.sh</span>); davor wird lediglich create-release.sh parametrisiert.</p>
+</div>
+
+<h2>1. Die Entscheidung im Wortlaut</h2>
+<p>Wortlaut der Supervisor-Antwort am Gate, Freigabedatum <code>2026-08-19</code> — unverändert
+wiedergegeben, nicht paraphrasiert (AGENTS.md 3.3):</p>
+<div class="zitat">UNBLOCK: modify: Der Schnitt ist freigegeben. Bei Entscheidung 2 folge ich deiner Empfehlung (Option b) — aber nicht so, wie sie dasteht: unter drei Bedingungen und mit einem Ersatz fuer den Detektor, den sie abschaltet. Deshalb modify und nicht approve.
+
+WAS ICH SELBST NACHGEMESSEN HABE, statt es dem Dokument zu glauben:
+ · Die 12 Paare und die 7 Klassen stimmen — ich habe die zwoelf Pruefung-3-Karten aus S1, S2 und S3 einzeln gegen ledger/estimates.jsonl gehalten. Genau zwei tragen keine bezifferte Schaetzung (t_c35344ff, t_de53e678). 2/12 = 17 % ist richtig gerechnet, und die Trennung der S1-Spezifikationskarte aus dieser Grundgesamtheit ist korrekt: Pruefung 3 prueft Umsetzung, Review und Merge, nicht Spezifikationen.
+ · Die "genau 8 Karten" sind Arithmetik, nicht Zurechtbiegen. 8 = 4 Bau-Karten plus den festen Ueberbau aus Spezifikation, Schaetzung, Review und Merge; die Auflage laesst n &amp;lt;= 4 zu, und beide Zerlegungen nennen vier inhaltlich verschiedene Bau-Karten. Deine Zusage, im Zweifel zu TEILEN statt zu quetschen, steht in beiden Abschnitten — das ist der Satz, auf den es ankommt.
+
+TEIL 1 — DER SCHNITT R2/R3 IST FREIGEGEBEN, WIE GELEGT.
+F-R1-1b nehme ich an, und zwar aus einem Grund, den du selbst nennst: Die freigegebene Roadmap fuehrt F-R1-1 woertlich als "Import: CSV + WeKan". WeKan war nie ein zweites Feature, sondern die zweite Haelfte des ersten — der Architekt hat es bewusst als benanntes Folgestueck geschnitten, nicht vergessen. Ein Feature zu Ende zu bauen, das absichtlich halb geschnitten wurde, ist kein neues Feature.
+
+AUFLAGE 1a: Das ist kein Praezedenzfall. Ein Feature in "a" und "b" zu teilen, um unter features_pro_release zu bleiben, waere das Aushoehlen genau des Limits, das den Release klein halten soll. Es traegt hier NUR, weil die Zweiteilung schon in der freigegebenen Roadmap steht. Jede kuenftige "b"-Variante legst du mir als eigenen Feature-Slot vor, oder du laesst sie.
+
+TEIL 2 — AUFLAGE b): OPTION b, UNTER DREI BEDINGUNGEN.
+Ich hatte den Weg zunaechst verworfen, mit deinem eigenen Argument: Fehlerklasse und Detektor verschwinden in derselben Bewegung, unmittelbar nachdem der Detektor zum dritten Mal korrekt angeschlagen hat. Du hast diesen Einwand woertlich vorweggenommen und dagegengehalten, dass der Detektor nur wandert. Auf den Punkt hast du recht, und ich aendere meine Position: Die Fehlerklasse ist SELBSTVERSCHULDET. Nicht das Modell hat versagt — das Verfahren verlangt, dass eine Zahl bis zu viermal von Hand weitergereicht wird, obwohl sie an genau einer Stelle autoritativ vorliegt. Eine selbst erzeugte Fehlerquelle zu entfernen ist nicht dasselbe wie einen Defekt zu verdecken.
+
+BEDINGUNG 2a — AUFLOESUNG UEBER DIE KARTEN-ID, NICHT UEBER DEN TITEL. Das ist die wichtigste, und sie ist keine Vorsichtsmassnahme, sondern ein gemessener Befund. Der Schaetzer schluesselt sein estimates-Objekt heute nach Kartentiteln, und die stimmen nicht:
+    Schluessel des Schaetzers:  "S3 F1 3/5 Umsetzung"
+    Tatsaechlicher Kartentitel: "S3 F1 3/5 — Umsetzung F-R1-1 Import CSV + WeKan"
+Ein Nachschlagen ueber den Titel faende NICHTS und schriebe still estimate: null — dieselbe Luecke wie heute, nur unsichtbar, weil der Detektor auf Kartenebene dann weg ist. Die Schuld liegt bei mir: Meine Estimator-Karte hat eine Tabelle mit verkuerzten Titeln vorgegeben und dazu geschrieben "mit genau den Kartentiteln oben als Schluessel". Der Schaetzer hat meine Tabelle befolgt. Also: Der Schaetzer traegt kuenftig die KARTEN-ID als Schluessel, und ledger-sync.sh loest ueber sie auf.
+
+BEDINGUNG 2b — DIE AUFLOESUNG SCHEITERT LAUT, NIE STILL. Findet ledger-sync.sh fuer eine Arbeitskarte keinen Schaetzer-Elternteil oder dort keine Zahl, schreibt es KEINE Zeile mit estimate: null, sondern bricht mit Befund ab. Grund: Die Estimator-Karte als zweiter Elternteil ist erst am 17.08. nachgeruestet worden; S1 hatte sie nicht. Ein Auffloesungsweg, der bei fehlendem Anker stumm ein null einsetzt, ist schlimmer als die Kopie, die er ersetzt.
+
+BEDINGUNG 2c — DER DETEKTOR WIRD ERSETZT, NICHT GESTRICHEN. Das ist der Teil, den dein Dokument nicht wiegt. Die drei Risse sind Belege ueber die Vollstaendigkeit des Abschluss-metadata INSGESAMT, nicht nur ueber das estimate-Feld: t_de53e678 hat auch changed_files, tests und commit weggelassen — geschrieben wurden genau zwei Schluessel von acht geforderten, waehrend die Review-Karte desselben Sprints aus derselben Kartentext-Form achtzehn schrieb. Pruefung 3 war, unbeabsichtigt, das einzige Instrument, das diese Unvollstaendigkeit sichtbar gemacht hat. Option b behebt das estimate-Feld und laesst den Rest unbeobachtet. Also bekommt check-sprint.sh eine neue Pruefung: die metadata-VOLLSTAENDIGKEITSQUOTE je Sprint — wieviele abschliessende Karten haben die Felder geschrieben, die ihr Kartentext verlangt. Als ZAHL im Controller-Report, nicht als hartes Tor. Das ist Option c, angewandt auf das, was wirklich noch unsicher ist, waehrend Option b das loest, was strukturell loesbar ist.
+
+Und die Erwartung, damit sie ueberpruefbar bleibt: Nach 2a und 2b muss die Zerreissquote im estimate-Feld auf 0 gehen. Tut sie es nicht, ist das ein NEUER Befund und keine Wiederholung — dann war die Diagnose falsch, nicht die Umsetzung.
+
+NICHT AUFGELEGT, BEWUSST: Option d. Sie ist theoretisch sauberer, aber sie traegt einen Schreibvorgang in fremde Karten nach; das ist mehr Maschinerie fuer denselben Ertrag. Wenn 2a bis 2c halten, ist die Selbstauszeichnung je Karte kein Prinzip, das ich verteidige — sie war ein Uebertragungsweg, und sie hat als solcher dreimal nicht getragen.
+
+TEIL 3 — create-release.sh: POSTEN ANGENOMMEN, MIT BEDINGUNG.
+Die Parametrisierung passiert VOR dem ersten R2-Sprint, nicht vor dem Release-Abschluss. Grund: Ein Skript, das erst umgestellt wird, wenn es gebraucht wird, wird unter Zeitdruck umgestellt. Und sie ist erst erledigt, wenn ein --dry-run gegen R2 die richtigen Kartentitel und Report-Pfade NENNT, ohne eine Karte anzulegen. "Umgestellt" ohne Trockenlauf ist eine Behauptung.
+
+HORIZONT BLEIBT release. Kein Quartals-Mandat. Die Organisation hat ein Release abgeschlossen und dabei drei Auflagen erzeugt, von denen eine gerissen ist. Das ist kein Zustand, in dem ich drei Releases am Stueck aus der Hand gebe.</div>
+
+<h2>2. Vom Entwurf übernommen / widerlegt</h2>
+<p>Der Entwurf <span class="src">roadmap/r2-neuschnitt.html</span> bleibt daneben stehen; die folgenden Punkte sind widerlegt. Alle übrigen Punkte des Entwurfs werden unverändert übernommen (Schnitt,
+Reihenfolge, Splitting 8b, Nicht-Feature-Liste, Horizont release).</p>
+<table>
+  <thead><tr><th>Punkt im Entwurf</th><th>Verdikt</th><th>Neuer Stand (Freigabe)</th></tr></thead>
+  <tbody>
+    <tr><td>Fehlerklasse = reine Schätz-Lücke je Karte</td><td class="kw">widerlegt</td>
+        <td>Die drei Risse betreffen das Abschluss-metadata INSGESAMT; neue Vollständigkeitsquote beobachtet
+        es (Bedingung 2c).</td></tr>
+    <tr><td>Schlüssel = Kartentitel</td><td class="kw">widerlegt</td>
+        <td>Titel stimmen nicht; künftig KARTEN-ID als Schlüssel (Bedingung 2a).</td></tr>
+    <tr><td>create-release-Posten "vor dem Release-Abschluss R2"</td><td class="kw">geändert</td>
+        <td>VOR dem ersten R2-Sprint; Nachweis = --dry-run (Teil 3).</td></tr>
+    <tr><td>Option d (Selbstauszeichnung) & option a/c</td><td class="kw">nicht aufgelegt</td>
+        <td>Option b mit drei Bedingungen wird verbindlich; der Ersatzdetektor ist Bedingung 2c.</td></tr>
+  </tbody>
+</table>
+
+<h2>3. Der freigegebene Schnitt R2 / R3 (Entwurf Abschnitt 3, übernommen)</h2>
+<p>Der Supervisor hat den Schnitt im Wortlaut (Abschnitt 1) freigegeben. Die Intervall-Tabellen und die
+Leere-Klassen aus dem Entwurf werden verbindlich übernommen — sie sind Summen gemessener Karten-Werte.</p>
+<h3>3.1 R2 — „Ankommen &amp; Differenzieren" (5 Features)</h3>
+<table>
+  <thead><tr><th>Feature</th><th>Karten-Kette</th><th>p50/p90 (min)</th><th>Referenzklasse</th><th>Beleg / Quelle</th></tr></thead>
+  <tbody>
+    <tr>
+      <td class="kw">F-R1-1b WeKan (Abschluss von F-R1-1)</td>
+      <td>spec + est + 1×impl-M + review-M + merge-S</td>
+      <td>97 / 230</td>
+      <td><code>feature-backend-M</code> (leer) → gemessen über <code>impl-worktree-M</code>, <code>review-repo-M</code>, <code>merge-repo-S</code></td>
+      <td>WeKan-Export JSON, Schwester-Paket auf geteiltem Client (specs/r2-f1 §2, §3.2). Eine Bau-Karte dieser Größe ≈ Import-CSV (49 min Ist, t_de53e678).</td>
+    </tr>
+    <tr>
+      <td class="kw">F-R2-1 MCP-Agentenkanal ausbauen &amp; härten</td>
+      <td>spec + est + 1×impl-M + review-M + merge-S</td>
+      <td>97 / 230</td>
+      <td><code>feature-backend-M</code> (leer) → <code>impl-worktree-M</code> u.&nbsp;a.</td>
+      <td>Kanal existiert (v2.17.2, codebase.html Modul 10); Assertion-Härtung. Größe ≈ eine M-Umsetzung (55 min, t_7c31acd6).</td>
+    </tr>
+    <tr>
+      <td class="kw">F-R2-2 2FA + Enterprise-Anmeldung</td>
+      <td>spec + est + <strong>4×impl</strong> + review-M + merge-S</td>
+      <td>262 / 620</td>
+      <td><code>feature-auth-L</code> (leer, Auth) → nächste gemessene: <code>impl-worktree-M</code></td>
+      <td>Auth = höchste Bruchfläche (codebase.html §6). <strong>4 Bau-Karten</strong>, Auflage 8b (Abschnitt 4). J/K-Erweiterung J-00/J-01.</td>
+    </tr>
+    <tr>
+      <td class="kw">F-R2-4 Quick-Start: erster Board-Zustand nicht leer</td>
+      <td>spec + est + 1×impl-M + 1×e2e-M + review-M + merge-S</td>
+      <td>122 / 280</td>
+      <td><code>feature-fullstack-M</code> (leer) → <code>impl-worktree-M</code>, <code>e2e-repo-M</code></td>
+      <td>Produktbefund K1 (product.html §5). Vollstack-Fläche: Frontend plus Onboarding-E2E.</td>
+    </tr>
+    <tr>
+      <td class="kw">F-R2-5 Einladen erleichtern (ohne Mail-Server)</td>
+      <td>spec + est + 1×impl-S + review-S + merge-S</td>
+      <td>49 / 110</td>
+      <td><code>feature-frontend-S</code> (leer) → <code>impl-worktree-S</code>, <code>review-repo-S</code></td>
+      <td>Produktbefund K5 (product.html; invite-team-member-modal.tsx). Kleine Frontend-Fläche.</td>
+    </tr>
+  </tbody>
+</table>
+<p><strong>R2 gesamt (p50): ≈ 647 min.</strong> Erwartung: nach dem bereits gelaufenen S3 (Import-CSV) in
+drei weiteren Sprints (Plan · Umsetzung · Umsetzung) bei 1–2 Features/Sprint umsetzbar; die
+Härtungs-Annahme folgt unten.</p>
+
+<h3>3.2 R3
+<h3>3.2 R3 — „Automatisieren &amp; Erreichbarkeit" (5 Features)</h3>
+<table>
+  <thead><tr><th>Feature</th><th>Karten-Kette</th><th>p50/p90 (min)</th><th>Referenzklasse</th><th>Beleg / Quelle</th></tr></thead>
+  <tbody>
+    <tr>
+      <td class="kw">F-R2-3 Automatisierung (schlanker Rahmen)</td>
+      <td>spec + est + <strong>4×impl</strong> + review-M + merge-S</td>
+      <td>262 / 620</td>
+      <td><code>feature-backend-L</code> (leer, Backend-L) → nächste gemessene: <code>impl-worktree-M</code></td>
+      <td>Wiederkehrende Verwaltung (market.html H3, Score 19). <strong>4 Bau-Karten</strong>, Auflage 8b (Abschnitt 4).</td>
+    </tr>
+    <tr>
+      <td class="kw">F-R3-1 Mobile-Zugriff (schlank responsiv/PWA)</td>
+      <td>spec + est + 3×impl + review-M + merge-S</td>
+      <td>207 / 490</td>
+      <td><code>feature-frontend-L</code> (leer) → <code>impl-worktree-M</code></td>
+      <td>H6, Score 15,5; Annahme Bedarf unbelegt (market.html §6). PWA-Rahmen, kein natives App.</td>
+    </tr>
+    <tr>
+      <td class="kw">F-R3-2 i18n-Grundlage + Sprache</td>
+      <td>spec + est + 1×impl-M + 1×e2e-M + review-M + merge-S</td>
+      <td>122 / 280</td>
+      <td><code>feature-fullstack-M</code> (leer) → <code>impl-worktree-M</code>, <code>e2e-repo-M</code></td>
+      <td>i18next bereits verdrahtet (codebase.html §3) — Nachrüstkosten unter Normalfall.</td>
+    </tr>
+    <tr>
+      <td class="kw">F-R3-3 Backlog: Spalte + Ansicht zusammenführen</td>
+      <td>spec + est + 1×impl-M + review-M + merge-S</td>
+      <td>97 / 230</td>
+      <td><code>feature-frontend-M</code> (leer) → <code>impl-worktree-M</code></td>
+      <td>Produktbefund K7 (product.html).</td>
+    </tr>
+    <tr>
+      <td class="kw">F-R3-4 GitHub-Integration in den Arbeitsfluss</td>
+      <td>spec + est + 1×impl-M + 1×e2e-M + review-M + merge-S</td>
+      <td>122 / 280</td>
+      <td><code>feature-fullstack-M</code> (leer) → <code>impl-worktree-M</code>, <code>e2e-repo-M</code></td>
+      <td>Baut auf dem Automation-Rahmen F-R2-3 auf (product.html §5).</td>
+    </tr>
+  </tbody>
+</table>
+<p><strong>R3 gesamt (p50): ≈ 810 min.</strong> R3 ist auf dem Papier voll ausgelastet (q1-freigegeben §6);
+der Entwurf belässt es dabei, gibt aber erstmals ein gemessenes Intervall statt der Freigabe-Referenzklasse.</p>
+
+<h3>3.3 Leere
+<h3>3.3 Leere Referenzklassen — benannt</h3>
+<ul>
+  <li><code>feature-auth-L</code> (F-R2-2), <code>feature-backend-L</code> (F-R2-3),
+      <code>feature-frontend-L</code> (F-R3-1): <strong>keine Ledger-Zeile.</strong> Nächste gemessene
+      Klasse: <code>impl-worktree-M</code>. Deshalb die breiten p90-Tails (620/490 min).</li>
+  <li><code>feature-backend-M</code>, <code>feature-fullstack-M</code>, <code>feature-frontend-M/S</code>:
+      ebenfalls leer; die Karten-Kette wird über die gemessenen Karten-Klassen abgedeckt
+      (<code>impl/review/merge/e2e</code>).</li>
+  <li><code>impl-worktree-L</code> existiert nicht — L ist eine Feature-Größenklasse ohne eigenes Karten-Maß;
+      der p50/p90-Wert für 3–4 Bau-Karten ist abgeleitet (Annahme, markiert).</li>
+</ul>
+
+<h2>4. Splitting
+
+<h2>4. Splitting-Auflage 8b — F-R2-2 und F-R2-3 auf genau 8 Karten</h2>
+<p>Verbindlich übernommen aus dem Entwurf (Abschnitt 4): beide Features passen je mit 4 Bau-Karten in
+genau 8 Karten; die Zusage „im Zweifel teilen, nicht quetschen" bleibt gültig.</p>
+
+<h2>5. Verbindliche Auflagen und Bedingungen aus der Entscheidung</h2>
+<p>Diese Auflagen tragen den Wortlaut des Supervisors (Abschnitt 1, Teil 2 und 3); sie sind die einzige
+Durchsetzungs-Form, die einen Prüfpunkt erhält.</p>
+<ol>
+  <li><strong>1a — Zweiteilung kein Präzedenzfall.</strong> Jede künftige „b"-Variante ist ein eigener
+  Feature-Slot oder bleibt weg.</li>
+  <li><strong>Bedingung 2a — Auflösung über die KARTEN-ID.</strong> Der Schätzer trägt die Karten-ID als
+  Schlüssel (nicht den Titel); <code>ledger-sync.sh</code> löst über die ID auf.</li>
+  <li><strong>Bedingung 2c — Detektor ersetzt, nicht gestrichen.</strong> Der <code>check-sprint.sh</code>
+  führt die metadata-Vollständigkeitsquote je Sprint als Zahl im Controller-Report.</li>
+  <li><strong>TEIL 3 — create-release.sh-Posten.</strong> Parametrisierung vor dem ersten R2-Sprint;
+      Nachweis = <code>--dry-run</code> gegen R2 nennt die richtigen Kartentitel und Report-Pfade, ohne
+      eine Karte anzulegen.</li>
+</ol>
+<p class="src">Bedingung 2b ist in obiger Liste Teil von 2: Findet <code>ledger-sync.sh</code> keinen
+Schätzer-Elternteil oder keine Zahl, schreibt es keine <code>estimate: null</code>-Zeile, sondern bricht
+mit Befund ab.</p>
+
+<h2>6. Quellen &amp; Belege</h2>
+<ul>
+  <li><span class="src">roadmap/r2-neuschnitt.html</span> — der Entwurf, der neben diesem Stand stehen
+      bleibt für die Herleitung (Abschnitt 2–3).</li>
+  <li><span class="src">ledger/estimates.jsonl</span> — die 12 vollständigen Paare.</li>
+  <li><span class="src">reports/sprint-s1…s3-report.html</span>, controller-… — Kalibrierung je Sprint.</li>
+  <li><span class="src">scripts/check-sprint.sh</span>, <code>ledger-sync.sh</code>,
+      <code>create-sprint.sh</code> — die Werkzeuge der Bedingungen 2a/2c.</li>
+</ul>
+
+<footer>
+  <p>Freigabe-Stand erstellt von <code>esf-chief-of-staff</code>, Karte <code>t_cc17fedf</code> (Roadmap-Gate), Entscheidung <code>modify</code>, Freigabedatum <code>2026-08-19</code> (Systemdatum; Zeitstempel vom Board, nicht vom Modell, AGENTS.md 3.2). Vorläufer <code>roadmap/r2-neuschnitt.html</code> (bleibt daneben stehen, widerlegt, nicht überschrieben). Jede Behauptung nennt ihren Beleg; Kadenz-Limits und <code>autonomie_horizont: release</code> aus <span class="src">cadence.yaml</span>.</p>
+</footer>
+
+
+<h2>7. Video-Zusammenfassung</h2>
+<section id="video-skript">
+  <p>Der aktuelle Schnitt von Release zwei und drei ruht jetzt auf gemessenen Zahlen. Drei Sprints lang
+  hat das Buch zwölf vollständige Paare aus Schätzung und Istzeit gesammelt, und daraus ergibt jedes
+  Feature-Intervall als Summe seiner gemessenen Karten. Release zwei bleibt bei fünf Funktionen; das
+  WeKan-Folgestück schließt die zweite Hälfte des ersten Features ab. Die Freigabe nimmt die Empfehlung
+  an, aber unter drei Bedingungen. Die Schätzung wird künftig über die Karten-Nummer aufgelöst statt über
+  den Titel, denn Titel stimmen nicht, und wenn die Auflösung scheitert, schlägt das Verfahren Alarm,
+  statt still eine leere Zeile einzusetzen. Den bisherigen Prüfpunkt ersetzen wir durch eine Zahl: der
+  Bericht zählt, wie viele abschließende Karten die geforderten Daten wirklich schreiben. Die Vorarbeit am
+  Freigabeprogramm erledigen wir vor dem ersten Sprint von Release zwei, belegt durch einen Trockenlauf.
+  Danach zeichnen wir die ersten Feature-Graphen nach den Auflagen; der Entwurf bleibt zur Prüfung nebenan
+  stehen.</p>
+</section>
+<figure class="esf-video">
+  <video controls preload="metadata" width="100%" src="r2-freigegeben.mp4">
+    <track kind="subtitles" srclang="de" label="Untertitel" src="r2-freigegeben.vtt">
+  </video>
+  <figcaption>Video-Zusammenfassung; Untertitel zuschaltbar. Rendert von scripts/video-render.sh.</figcaption>
+</figure>
+
+</body>
+</html>

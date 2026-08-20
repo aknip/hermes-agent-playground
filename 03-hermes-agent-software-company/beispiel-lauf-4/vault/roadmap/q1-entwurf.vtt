@@ -1,0 +1,34 @@
+WEBVTT
+
+1
+00:00:00.000 --> 00:00:09.854
+Die erste Roadmap für Kaneo plant ein Quartal in drei Releases mit je bis zu fünf Features, insgesamt fünfzehn.
+
+2
+00:00:09.854 --> 00:00:26.450
+Unser Kern: nicht die Feature-Breite der Konkurrenz kopieren, sondern auf Kaneos eigenen Unterschied bauen — den offenen, selbst gehosteten Agentenkanal — und die zwei größten Lücken zum Kategoriestandard schließen: Importe und Sicherheit.
+
+3
+00:00:26.450 --> 00:00:37.860
+Das erste Release steht fürs Ankommen: Import aus CSV und WeKan, der tägliche Vorgangs-Dialog wird entschlackt, dazu Tastaturbedienung und ein grünes E2E-Regressionsnetz.
+
+4
+00:00:37.860 --> 00:00:44.083
+Das zweite Release bringt den Agentenkanal, die Zwei-Faktor-Anmeldung und einen schlanken Automatisierungsrahmen.
+
+5
+00:00:44.083 --> 00:00:47.714
+Das dritte Mobile, Übersetzungen und die Backlog-Vereinfachung.
+
+6
+00:00:47.714 --> 00:01:00.679
+Genauso wichtig ist, was wir nicht machen: kein Gantt, keine Zeiterfassung, keine native Mobile-App und kein volles Enterprise-Single-Sign-on — all das widerspricht der schlanken Positionierung.
+
+7
+00:01:00.679 --> 00:01:12.608
+Wir schätzen bislang nur mit Referenzklassen ohne Historie und breitem Intervall, weil das Schätzledger noch leer ist; erfundene Zahlen wären der schlimmere Fehler.
+
+8
+00:01:12.608 --> 00:01:19.350
+Nächster Schritt: der Supervisor prüft und gibt den ersten Release-Umfang am Roadmap-Gate frei.
+

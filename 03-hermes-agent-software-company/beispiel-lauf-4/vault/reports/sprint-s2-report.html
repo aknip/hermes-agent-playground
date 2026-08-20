@@ -1,0 +1,380 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <title>Sprint-Report S2 — Abschluss — ESF</title>
+  <meta name="esf-typ" content="report">
+  <meta name="esf-karte" content="t_a5303420">
+  <meta name="esf-datum" content="2026-08-19">
+  <meta name="esf-video" content="sprint-s2-report.mp4">
+  <style>
+    body { font-family: system-ui, -apple-system, sans-serif; max-width: 60rem;
+           margin: 2rem auto; padding: 0 1.5rem; line-height: 1.55; color: #1a1a1a; }
+    h1 { font-size: 1.6rem; border-bottom: 2px solid #333; padding-bottom: .4rem; }
+    h2 { font-size: 1.2rem; margin-top: 2.2rem; }
+    table { border-collapse: collapse; width: 100%; margin: 1rem 0; font-size: .92rem; }
+    th, td { border: 1px solid #ccc; padding: .4rem .55rem; text-align: left; vertical-align: top; }
+    th { background: #f2f2f2; }
+    code { background: #f4f4f4; padding: .05rem .3rem; border-radius: 3px; font-size: .9em; }
+    .src { color: #555; font-style: italic; }
+    .kw { font-weight: 600; }
+    .zusammenfassung { background: #fff8dc; border-left: 4px solid #e0c000; padding: .8rem 1.1rem; }
+    .befund { background: #fdf0f0; border-left: 4px solid #c0392b; padding: .6rem .9rem; }
+    .gruen { color: #2e7d32; }
+    .rot { color: #c0392b; }
+    li { margin: .3rem 0; }
+    pre { background:#f6f6f6; border:1px solid #ddd; padding:.8rem; overflow-x:auto; font-size:.85rem; line-height:1.4; }
+  </style>
+</head>
+<body>
+
+<h1>Sprint-Report Sprint S2 — Abschluss</h1>
+
+<div class="zusammenfassung">
+<h2>Das Wichtigste in drei Minuten</h2>
+<p><strong>Geliefert:</strong> Beide geplanten Features von Sprint&nbsp;S2 sind über
+den Merge-Riegel nach <code>main</code> gekommen
+(Kaneo: <code>faa8a76</code> F-R1-3, <code>b2aea1a</code> F-R1-4).
+F-R1-3 „Tastatur &amp; Command-Palette“ verdrahtet die zuvor toten
+Detail-Kürzel <code>s/p/a/l/d</code> und macht den Board-Wechsel
+mausfrei (Cmd+K → Projektname → Enter). F-R1-4 „E2E-Netz J-05/J-06“ macht
+zwei weitere Journeys e2e-fest: <em>Teammitglied einladen</em> (7 Schritte, zwei
+Browser-Kontexte) und <em>Vorgang bis ins Detail pflegen</em> (5 Schritte).
+Beide Reviewer-Verdikte: <code>approved</code>.</p>
+<p><strong>Was es gekostet hat:</strong> OpenRouter-Delta seit dem S1-Abgleich
+≈ <strong>1,33&nbsp;USD</strong> über alle Rollen (echter Differenzwert zweier
+Schnappschüsse, <code>ledger/kosten-je-rolle.jsonl</code> — siehe Controller-Report).
+Wanduhr je Arbeitskarte: Spezifikationen 6/10&nbsp;min, Schätzungen 3/2&nbsp;min,
+Umsetzungen 55/25&nbsp;min, Reviews 12/11&nbsp;min, Merges 4/8&nbsp;min.</p>
+<p><strong>Der Check entscheidet:</strong> <code>scripts/check-sprint.sh S2</code>
+ist <span class="rot"><strong>rot</strong></span> (Exit&nbsp;1). Fünf der sechs
+Arbeitskarten tragen vollständige (Schätzung,&nbsp;Ist)-Paare, aber der
+<span class="kw">Riegel (Prüfung&nbsp;3)</span> meldet ein <strong>zerrissenes
+Paar</strong>: Die Merge-Karte von F-R1-4 (<code>t_c35344ff</code>) wurde
+abgeschlossen, ohne die Schätzung ihrer Estimator-Karte ins Abschluss-metadata
+zu kopieren. Ihr Istwert (8&nbsp;min) liegt als <code>unklassifiziert</code> ohne
+Paar im Ledger. Derselbe Handoff-Verlust wie in S1
+(<code>t_5db4aefa</code>), erneut an der Merge-Position. Dieser Report bildet
+den Check wörtlich ab — ein Sprint-Report, der grüner aussieht als der Check,
+wäre der teuerste Fehler dieser Rolle.</p>
+<p><strong>Entscheidung / Nächster Schritt:</strong> Der Schätz-Handoff in das
+Abschluss-metadata der Merge-Karte muss maschinell abgesichert werden — er ist
+in S1 und S2 an derselben Kettenposition verloren gegangen. Die freigegebene
+Roadmap bindet den Zuschnitt des nächsten Sprints: Die restlichen R1-Features
+werden erst nach der Kalibrierung neu geschätzt, den Graphen legt
+<code>./create-sprint.sh</code> an. Dieser Report versorgt den Planer mit der
+offenen Liste (unten); er legt selbst keine Karten an.</p>
+</div>
+
+<h2>Der Check — Ergebnis wörtlich übernommen</h2>
+<p>Ausführung <code>scripts/check-sprint.sh S2</code> vom <strong>2026-08-19</strong>
+(ausgeführt für diesen Report). Der Wortlaut ist der Beleg (AGENTS.md&nbsp;5),
+keine Paraphrase; das Ergebnis ist <span class="rot">rot</span> und bleibt rot,
+bis <code>t_c35344ff</code> nachträglich eine Schätzung erhält.</p>
+<pre>Abschluss-Check Sprint S2
+──────────────────────────────────────────────────────────────────────
+
+1. Sprint-Karten
+  ✓ 10 von 10 fertig
+
+2. Abschluss-metadata
+  ✓ alle 10 fertigen Karten tragen Abschluss-metadata
+
+3. (Schätzung, Ist)-Paare — der Riegel dieses Checks
+  ✓ t_7c31acd6     impl-worktree-M      p50=40    Ist=55    Ist/Schätzung=1.38
+  ✓ t_e76c4947     review-repo-M        p50=10    Ist=12    Ist/Schätzung=1.20
+  ✓ t_8cc6d17a     e2e-repo-M           p50=40    Ist=25    Ist/Schätzung=0.62
+  ✓ t_1d5462b9     review-repo-M        p50=20    Ist=11    Ist/Schätzung=0.55
+  ✓ t_90fdf0f6     merge-repo-S         p50=15    Ist=4     Ist/Schätzung=0.27
+  ✗ ohne metadata.estimate.reference_class: t_c35344ff
+    Ohne Klasse landet die Karte als 'unklassifiziert' im Ledger und ist
+    für jede künftige Schätzung wertlos.
+  ✗ Istwert ohne bezifferte Schätzung: t_c35344ff
+    Das ist der zerrissene Handoff: die Schätzung entstand auf der
+    Estimator-Karte und wurde nicht ins metadata dieser Karte kopiert.
+    ledger-sync.sh kann daraus kein Paar bilden — und zwei Sprint-Reports
+    MIT (Schätzung, Ist)-Paaren sind der Phase-2-Nachweis aus Kapitel 12.
+
+4. Ledger
+  ✓ jede fertige Sprint-Karte hat eine Ledger-Zeile
+
+   Referenzklassen mit Paaren (Grundlage der nächsten Schätzung)
+    e2e-repo-M: n=1, Ist/Schätzung im Mittel 0.63
+    estimate-vault-S: n=2, Ist/Schätzung im Mittel 0.7
+    impl-worktree-M: n=1, Ist/Schätzung im Mittel 1.38
+    impl-worktree-S: n=1, Ist/Schätzung im Mittel 0.21
+    merge-repo-S: n=2, Ist/Schätzung im Mittel 0.57
+    review-repo-M: n=2, Ist/Schätzung im Mittel 0.88
+    review-repo-S: n=1, Ist/Schätzung im Mittel 0.09
+
+5. Die Arbeit liegt auf main
+  ✓ feat/esf-r1-f2-create-task-subtraktion ist in main enthalten (5677e0f)
+  ✓ feat/esf-r1-f3-tastatur-command-palette ist in main enthalten (3e61f8e)
+  ✓ feat/esf-r1-f4-e2e-netz-j05-j06 ist in main enthalten (e480390)
+
+6. Berichte im Vault
+  ✓ reports/controller-s2.html (17326 Byte, 9 Schätz-Bezüge)
+  ✗ reports/sprint-s2-report.html fehlt
+
+   Vault-Linter
+  ✓ sauber
+
+──────────────────────────────────────────────────────────────────────
+✗ Sprint S2 noch nicht abgeschlossen — siehe die ✗ oben.
+(Exit-Code 1)</pre>
+<p class="src">Aus der Rohausgabe übernommen. Die einzige verbliebene ✗ sind die
+zwei Meldungen der Prüfung&nbsp;3 für <code>t_c35344ff</code> (fehlende
+Schätzung im Abschluss-metadata). Prüfung&nbsp;6 war im Vorlauf rot (der
+Sprint-Report fehlte), wird durch dieses Dokument grün.</p>
+
+<h2>Die (Schätzung, Ist)-Paare — der Phase-2-Nachweis</h2>
+<p>Die Zahlen kommen aus <code>ledger/estimates.jsonl</code> nach dem
+<code>ledger-sync.sh</code>-Lauf vom 2026-08-19 (Commit <code>a7dc86d</code>) und
+aus <code>reports/controller-s2.html</code> — nicht aus der Erinnerung an den
+Sprint. Je Karte eine Zeile: Karte, Referenzklasse, Schätzung p50/p90,
+Istminuten, Quotient Ist/Schätzung(p50). <strong>Fünf vollständige Paare + ein
+zerrissenes.</strong></p>
+<table>
+  <thead><tr>
+    <th>Karte</th><th>Referenzklasse</th><th>Schätzung p50/p90</th>
+    <th>Ist (min)</th><th>Ist/Schätzung</th><th>Faktor</th>
+  </tr></thead>
+  <tbody>
+    <tr><td>t_7c31acd6 Umsetzung F-R1-3</td><td>impl-worktree-M</td><td>40 / 85</td><td>55</td><td>1,38</td><td class="rot">unterschätzt ≈ 1,4×</td></tr>
+    <tr><td>t_e76c4947 Review F-R1-3</td><td>review-repo-M</td><td>10 / 25</td><td>12</td><td>1,20</td><td>nahe</td></tr>
+    <tr><td>t_8cc6d17a Umsetzung F-R1-4</td><td>e2e-repo-M</td><td>40 / 90</td><td>25</td><td>0,63</td><td class="gruen">gut (leicht überschätzt)</td></tr>
+    <tr><td>t_1d5462b9 Review F-R1-4</td><td>review-repo-M</td><td>20 / 45</td><td>11</td><td>0,55</td><td class="gruen">gut</td></tr>
+    <tr><td>t_90fdf0f6 Merge F-R1-3</td><td>merge-repo-S</td><td>15 / 40</td><td>4</td><td>0,27</td><td class="gruen">überschätzt 3,7×</td></tr>
+    <tr><td class="rot">t_c35344ff Merge F-R1-4</td><td class="rot">merge-repo-S (zerrissen)</td><td class="rot">— (fehlt)</td><td>8</td><td class="rot">torn</td><td class="rot">Handoff verloren</td></tr>
+  </tbody>
+</table>
+<p class="src">Schätzungen aus dem <code>estimate</code>-Block der
+Estimator-Karten t_7b63189b / t_787b4825 und dem Abschluss-metadata der
+Arbeitskarten; Istwerte aus <code>ledger/estimates.jsonl</code>
+(<code>actual.wall_minutes</code>). Referenz der Kalibrierung:
+<code>reports/controller-s2.html</code>.</p>
+<ul>
+  <li>Die <code>-M</code>-Arbeitsklassen sind deutlich besser kalibriert als die
+      <code>-S</code>-Klassen von S1: Die massiven Überschätzungen von S1
+      (Umsetzung ≈&nbsp;4,7×, Review ≈&nbsp;11,7×) sind in S2 nicht
+      reproduziert; im Gegenteil liegt <code>impl-worktree-M</code> leicht
+      <em>unter</em> seiner p50 (q&nbsp;=&nbsp;1,38 bei n=1).</li>
+  <li><code>t_c35344ff</code> ist der zerrissene Handoff: sein Istwert
+      (8&nbsp;min) steht ohne Schätzung da und taucht in der
+      Referenzklassen-Aggregation nicht auf — <code>merge-repo-S</code> zählt
+      so nur ein vollständiges Paar aus S2 (F3), plus das S1-Paar
+      (t_5db4aefa).</li>
+</ul>
+
+<h2>Was geliefert wurde</h2>
+<p>Feature F-R1-3 und Feature F-R1-4 (aus der freigegebenen Roadmap —
+<code>roadmap/q1-freigegeben.html</code>).</p>
+<table>
+  <thead><tr><th>Was</th><th>Commit main (Kaneo)</th><th>Vault-Commit</th></tr></thead>
+  <tbody>
+    <tr><td>Spezifikation F-R1-3 (specs/r1-f3-tastatur-command-palette.html)</td><td>—</td><td>48ea341 (Karte t_da7bbee1)</td></tr>
+    <tr><td>Schätzbericht F-R1-3 (reports/schaetzung-r1-f3.html)</td><td>—</td><td>—</td></tr>
+    <tr><td>Umsetzung F-R1-3 (Branch feat/esf-r1-f3-tastatur-command-palette)</td><td><code>3e61f8e</code></td><td>—</td></tr>
+    <tr><td>Merge F-R1-3 über den Riegel</td><td><code>faa8a76</code></td><td>Riegel-Protokoll reports/riegel-r1-f3.txt</td></tr>
+    <tr><td>Spezifikation F-R1-4 (specs/r1-f4-e2e-netz-j05-j06.html)</td><td>—</td><td>48ea341 (Karte t_ee17923d)</td></tr>
+    <tr><td>Schätzbericht F-R1-4 (reports/schaetzung-r1-f4.html)</td><td>—</td><td>—</td></tr>
+    <tr><td>Umsetzung F-R1-4 (Branch feat/esf-r1-f4-e2e-netz-j05-j06)</td><td><code>e480390</code></td><td>6e99286 (journey-Katalog)</td></tr>
+    <tr><td>Merge F-R1-4 über den Riegel</td><td><code>b2aea1a</code></td><td>Riegel-Protokoll reports/riegel-r1-f4.txt</td></tr>
+  </tbody>
+</table>
+<p><strong>F-R1-3 konkret:</strong> Die Command-Palette (Cmd/Ctrl+K) kann jetzt
+das Board direkt wechseln — Cmd+K → Projektname → Enter, ohne Maus auf eine
+Board-Zwischenseite (Entscheidung A der Spezifikation; vorher brach „Board
+wechseln ohne Maus“ an einem Maus-Zwischenschritt). Die Detail-Kürzel
+<code>s/p/a/l/d</code> (Status/Priorität/Bearbeiter/Labels/Fälligkeit) waren
+jahrlang nur deklariert, aber nirgends registriert (Tot-Code, grep=1
+Deklarations-Treffer) — sie sind jetzt verdrahtet (Entscheidung B). Die
+<code>?</code>-Hilfe speist aus denselben <code>shortcuts</code>-Konstanten
+wie die Registrierung (driftfrei, keine Duplikat-Definition). Kein
+API-/Server-/DB-File angefasst. E2E-Suite 11/11 grün, davon je ein neuer
+Projekt-Suche-Test und ein Shelf-Kürzel-Test (Karte t_7c31acd6 metadata).
+<p><strong>F-R1-4 konkret:</strong> Zwei neue Journeys wurden e2e-fest:
+<em>Teammitglied einladen</em> (J-05, 7 Schritte) und <em>Vorgang bis ins Detail
+pflegen</em> (J-06, 5 Schritte), als reine Playwright-Specs unter
+<code>tests/e2e/journeys/</code> mit einem additiven Helfer
+<code>support/einladung.ts</code>. Kein Produktcode, kein bestehender Spec,
+<code>journey.ts</code> unangetastet. J-05 beweist die Einladung eines zweiten
+Mitglieds über zwei echte Browser-Kontexte, ohne pending-Badge. Suite
+9/9&nbsp;grün in 7 Specs; der Reviewer führte zusätzlich einen
+Kaputtmach-Versuch durch (getByLabel/Aussage bewusst verdreht → Spec fällt
+deterministisch → wieder byte-identisch zurückgesetzt) und belegte damit, dass
+beide Specs echte Journeys sind und kein Deko-Grün (Karte t_1d5462b9 metadata).
+<p class="src">Testbelege: Karten t_7c31acd6 (typecheck Exit 0, 117 Unit-Tests,
+11/11 E2E), t_e76c4947 (Reviewer selbst ausgeführt: 13/13 Tasks, 11 E2E,
+57,8 s), t_8cc6d17a (9/9 E2E, 46,2 s), t_1d5462b9 (9/9 zweimal, 49,2 s und
+44,4 s).</p></p>
+
+<h2>Was NICHT geliefert wurde — und warum</h2>
+<p>Diese Liste ist wertvoller als die Erfolgsliste: aus ihr werden die nächsten
+Karten. Alle Punkte stammen aus den <code>deliberately_not_done</code> /
+<code>gefunden_nicht_gemacht</code>-Feldern und den Befunden der
+Abschluss-karten.</p>
+<table>
+  <thead><tr><th>Offen</th><th>Herkunft</th><th>Grund</th></tr></thead>
+  <tbody>
+    <tr><td>Board-Wechsel-Kürzel und <em>Detail</em>-Kürzel s/p/a/l/d teilen sich die Buchstaben<code>p</code>/<code>t</code> (Kontextabhängigkeit)</td><td>t_7c31acd6 <code>deliberately_not_done</code></td><td>kontextabhängige Kürzel — im Shelf ist <code>p</code> Priorität, außerhalb <code>p c</code> Projekt anlegen; Regel sauber getrennt und per Test (p-Konfliktregel) belegt.</td></tr>
+    <tr><td><code>l</code> (Labels)-Shelf-Kürzel klickt den „+ Labels“-Trigger, der nur im Desktop-Shelf-Layout (lg+) gerendert wird</td><td>t_7c31acd6 <code>deliberately_not_done</code> / Review-Befund t_e76c4947 #2 (minor)</td><td>Detail-Shelf ist eine rechte Desktop-Shelf; kein Funktionsverlust der Kernaufgabe, bewusst leichteste Interpretation (AK).</td></tr>
+    <tr><td>Präexistenter Inline-Keydown-Sequenz-Handler der Palette (command-palette/index.tsx:244) prüft das event.target NICHT — bei offener Palette und fokussiertem CommandInput kann getipptes „pc“/„tc“ ein Modal öffnen und die Palette schließen</td><td>Review-Befund t_e76c4947 #1 (minor)</td><td>NICHT durch F-R1-3 eingeführt (diff ändert die shortcutHandlers-Schleife nicht); kein Test tippt diese Sequenz; Folgekarte empfohlen.</td></tr>
+    <tr><td>Detail-Shelf schließt per Escape/X, nicht per Karten-/Backdrop-Klick</td><td>t_8cc6d17a <code>gefunden_nicht_gemacht</code></td><td>kein Bug, nur Beobachtung; Spec nutzt Escape als sichtbaren Schließ-Schritt.</td></tr>
+    <tr><td>J-03-Zähler in analysis/journeys.html steht auf 6, der Code hat 5</td><td>Widerspruch controller-s2.html Z.217/224–232</td><td>Katalog nicht von der Feature-Arbeit fortgeschrieben; Code/Board gewinnt (J-03 real 5, Spec Zeile 17).</td></tr>
+    <tr><td>Merge-Karte t_c35344ff im Ledger ohne <code>reference_class</code> / Schätzung</td><td>check-sprint Prüfung 3 / Ledger</td><td>Istwert 8 min als unklassifiziert ohne Paar — Schätzbasis-Lücke, derselbe Handoff-Verlust wie S1 t_5db4aefa.</td></tr>
+  </tbody>
+</table>
+<p class="src">Quellen: Karte t_7c31acd6 (<code>deliberately_not_done</code>,
+<code>findings</code>); Karte t_e76c4947 (<code>findings</code>[0..1]); Karte
+t_8cc6d17a (<code>gefunden_nicht_gemacht</code>); Widerspruch aus
+<code>reports/controller-s2.html</code>; Ledger <code>t_c35344ff</code>.</p>
+
+<h2>Befunde des Reviewers — und ihr Ausgang</h2>
+<p>Beide Reviews fielen mit <code>verdict: approved</code> aus
+(Karten t_e76c4947 und t_1d5462b9). Kein blockierender Befund.</p>
+<h3>F-R1-3 — Review t_e76c4947 (2 minor, nicht blockierend)</h3>
+<div class="befund"><strong>Befund&nbsp;1 (minor):</strong>
+<code>command-palette/index.tsx:244</code> — ein präexistenter,
+paletteneigener Inline-Keydown-Sequenz-Handler auf <code>document</code> prüft
+das <code>event.target</code> nicht. Bei offener Palette und fokussiertem
+CommandInput kann getipptes „pc“/„tc“/„wc“/„pl“ ein Modal öffnen und die
+Palette schließen. Nicht durch F-R1-3 eingeführt; kein Blocker; Hinweis für
+eine Folgekarte.</div>
+<div class="befund"><strong>Befund&nbsp;2 (minor):</strong>
+<code>task-properties-sidebar.tsx:759</code> — das Detail-Kürzel <code>l</code>
+(Labels) klickt den „+ Labels“-Trigger, der nur im Desktop-Shelf-Layout (lg+)
+gerendert wird. Vom Entwickler als <code>deliberately_not_done</code>
+anerkannt; kein Funktionsverlust der Kernaufgabe.</div>
+<h3>F-R1-4 — Review t_1d5462b9 (0 Befunde, Kaputtmach-Versuch grün)</h3>
+<p>Der Reviewer führte zusätzlich zum Acception-Prun einen aktiven
+Kaputtmach-Versuch durch: Er verdrehte in jedem der beiden Specs eine
+Aussage („Invitation link“ → „Invitation linkX“ in
+<code>teammitglied-einladen.spec.ts:61</code>; „No date“ → „No dateX“ in
+<code>vorgang-ins-detail-pflegen.spec.ts:53</code>), der Spec fiel
+deterministisch, anschließend setzte er beide Dateien byte-identisch zurück.
+Fazit der Karte: <em>„Beide Specs sind echte Journeys und kein Deko-Grün.“</em>
+</p>
+<p class="src">Beleg: Karten t_e76c4947 / t_1d5462b9 metadata →
+<code>verdict</code>, <code>findings</code>, <code>kaputtmach_versuch</code>.</p>
+
+<h2>Betriebsbefunde — Hänger, Retries, Riegel-Verweigerungen</h2>
+<ul>
+  <li><strong>Kein Retry, kein timed_out, kein Standby — alle zehn S2-Karten
+      liefen exakt einmal</strong> (<code>runs=1</code> im Ledger für jede).
+      Anders als in S1 (Schätzkarte mit 2 Läufen, Merge über 3 Riegel-Versuche)
+      war der Betrieb in S2 auffällig sauber. Kein
+      <code>standby_overlap:true</code>; die längste Wanduhr (Umsetzung F-R1-3,
+      55&nbsp;min) bleibt weit unter der 240-Minuten-Standby-Heuristik.</li>
+  <li><strong>t_c35344ff (Merge F4):</strong> ein einziger Board-Lauf, aber
+      inhaltlich unvollständig — das Abschluss-metadata trägt keinen
+      <code>estimate</code>-Block. Das ist kein Rechen-Retry, sondern ein
+      Handoff-Verlust (siehe Riegel-Befund). <code>ledger-sync.sh</code> legte
+      die Karte als <code>unklassifiziert</code> mit <code>estimate:null</code>
+      ab.</li>
+  <li><strong>Riegel-Verläufe:</strong> beide Merges (F3
+      <code>faa8a76</code>, F4 <code>b2aea1a</code>) liefen alle sechs
+      Prüfungen grün (Branch-Basis, Konfliktfreiheit, Linter, Typecheck, Unit,
+      E2E); F4 verifizierte die Gesamtzahl 13 passed auf main exakt wie
+      erwartet. Ein Riegel-Retry war in S2 nicht nötig (anders als der
+      Commit-Epilog-Crash und die 5/6-Verweigerung in S1). Zwei
+      F3/F4-Kollisionstatbestände: leere Schnittmenge der berührten
+      Test-Dateien, kein Konflikt (t_c35344ff metadata).</li>
+  <li><strong>Postgres auf 5432 war belegt</strong> (gemeinsame DB der Lanes);
+      Playwright reuseExistingServer startete API/Web selbst (Ports
+      1337/5173&nbsp;frei) — kein staler fremder Dev-Server, kein Befund
+      (t_7c31acd6 <code>e2e_env_note</code>, t_e76c4947
+      <code>e2e_env</code>).</li>
+</ul>
+<p class="src">Belege: Board-Ereignisse und Abschluss-metadata der zehn
+S2-Karten; <code>reports/controller-s2.html</code> (Kontaminationen,
+Standby); Riegel-Protokolle <code>reports/riegel-r1-f3.txt</code> /
+<code>riegel-r1-f4.txt</code>.</p>
+
+<h2>Widerspruch, nebeneinandergestellt (AGENTS.md 3.3)</h2>
+<p><code>analysis/journeys.html</code> trägt J-03 weiterhin mit
+<strong>6</strong> Schritten — unverändert seit S1. Der gemergte E2E-Spec
+(Kaneo <code>tests/e2e/journeys/vorgang-anlegen-zuweisen.spec.ts:17</code>)
+zählt „Schritte: 5“. Board und Code gewinnen: J-03 ist real <strong>5</strong>.
+Der Katalog ist damit in einer Spalte hinter dem Stand; dieser Widerspruch
+wurde in S2 nicht behoben und bleibt eine offene Liste (unten). Kein
+Code-Fehler, sondern eine nicht fortgeschriebene Dokumentation.</p>
+
+<h2>Was für den nächsten Sprint folgt</h2>
+<p>Konkret, nicht als Vorsatz. <span class="kw">Keine neuen Karten aus dieser
+Karte:</span> die freigegebene Roadmap bindet den Sprint-Zuschnitt, und
+<code>./create-sprint.sh</code> legt den Graphen an und prüft die Auflage
+(restliche R1-Features werden erst nach der Kalibrierung neu geschätzt). Diese
+Liste ist die Vorlage dafür:</p>
+<ol>
+  <li><strong>Schätz-Handoff maschinell absichern.</strong> Der Übertrag von der
+      Estimator-Karte in das Abschluss-metadata der Merge-Karte ist in S1
+      (t_5db4aefa) und S2 (t_c35344ff) an derselben Kettenposition verloren
+      gegangen. Die Schätzung liegt bereits als ZWEITER Elternteil der
+      Abschluss-Karten an (seit 17.08.2026); fehlt es trotzdem, muss der
+      Check den Merges sperren können. Das ist die teuerste Lücke des Sprints.</li>
+  <li>Restliche R1-Features nach der Kalibrierung neu schätzen — mit den
+      jetzt gemessenen Quotienten der <code>-M</code>-Arbeitsklassen
+      (impl ≈ 1,4×, review ≈ 0,9×, e2e ≈ 0,6×, merge ≈ 0,3× der p50), mit
+      breiten Intervallen bei n=1.</li>
+  <li>J-03 im Journey-Katalog von 6 auf 5 setzen
+      (<code>analysis/journeys.html</code>) — seit S1 offen.</li>
+  <li>Präexistenter Palette-Keydown-Handler
+      (<code>command-palette/index.tsx:244</code>): event.target-Guard für die
+      Inline-Sequenz-Handler als eigene Folgekarte (Review-Befund #1).</li>
+  <li>Labels-Shelf-Kürzel <code>l</code> und der <code>?</code>-Hilfe-Ansatz
+      (Laufzeit-Registry statt Konstante) bleiben beobachtet; reproduziert sich
+      ein Problem, folgt eine eigene Karte (deliberately_not_done F-R1-3).</li>
+</ol>
+<p class="src">Reihenfolge-Bindung: <code>roadmap/q1-freigegeben.html</code>,
+Auflage „restliche R1-Features werden erst nach der Kalibrierung neu
+geschätzt“; <code>cadence.yaml</code>.</p>
+
+<h2>Quellen &amp; Belege</h2>
+<ul>
+  <li><code>scripts/check-sprint.sh S2</code> — Lauf 2026-08-19 (Ausgabe oben,
+      Prüfung 3 ROT auf t_c35344ff).</li>
+  <li><code>ledger/estimates.jsonl</code> — nach ledger-sync-Lauf vom
+      2026-08-19, Commit a7dc86d; t_c35344ff als unklassifiziert mit
+      estimate:null.</li>
+  <li><code>reports/controller-s2.html</code> — Kalibrierung, Kosten
+      (≈ 1,33 USD Delta), Kontaminationen, Commit 0c7a797.</li>
+  <li>Karten t_da7bbee1…t_c35344ff — Abschluss-metadata &amp; Board-Läufe;
+      insbesondere t_7c31acd6, t_e76c4947, t_8cc6d17a, t_1d5462b9, t_90fdf0f6,
+      t_c35344ff (BEFUND ohne estimate).</li>
+  <li>Riegel-Protokolle <code>reports/riegel-r1-f3.txt</code>,
+      <code>riegel-r1-f4.txt</code>.</li>
+  <li>Kaneo main: 3e61f8e + faa8a76 (F-R1-3), e480390 + b2aea1a (F-R1-4);
+      Vault main: 48ea341 (Specs), 6e99286 (Katalog), a7dc86d (Ledger),
+      0c7a797 (Controller).</li>
+  <li><code>analysis/journeys.html</code> — J-03-Zähler-Widerspruch (6 vs 5).</li>
+</ul>
+
+<h2>Video-Zusammenfassung</h2>
+<section id="video-skript">
+<p>Der zweite Sprint ist inhaltlich fertig, und beide geplanten Features sind
+ausgeliefert: die Tastatur-Bedienung samt Command-Palette macht den
+Board-Wechsel mausfrei, und zwei weitere Reisewege — Teammitglied einladen und
+Vorgang bis ins Detail pflegen — sind jetzt automatisch geprüft. Beide Reviews
+haben die Arbeit freigegeben. Aber der Sprint ist nicht vollständig
+kalibrierbar: Die Merge-Karte des Netz-Features wurde abgeschlossen, ohne ihre
+Schätzung mitzunehmen, und ihr Zeitwert steht nun ohne Gegenstück da. Das ist
+dieselbe Stelle, an der schon der erste Sprint einen Handoff verlor — es ist
+die teuerste Lücke und zuerst zu schließen. Was sonst gut lief: Alle Karten
+liefen genau einmal, ohne Wartezeit, ohne Standby — und die Kalibrierung hat
+sich gedreht. Die Arbeit ist nicht mehr vielfach überschätzt wie im ersten
+Sprint; eine Umsetzung liegt nun leicht über, ein Review etwa bei, ein E2E-Ausbau
+unter seiner Schätzung. Der Geldverbrauch seit dem letzten Abgleich liegt bei
+knapp eineinhalb Dollar. Entscheidung: Die Schätzungskette beim Merge
+maschinell absichern und den Journey-Katalog nachziehen — dann ist der zweite
+Sprint sauber abgeschlossen.</p>
+</section>
+<figure class="esf-video">
+  <video controls preload="metadata" width="100%" src="sprint-s2-report.mp4">
+    <track kind="subtitles" srclang="de" label="Untertitel" src="sprint-s2-report.vtt">
+  </video>
+  <figcaption>Video-Zusammenfassung; Untertitel zuschaltbar. Gerendert von scripts/video-render.sh.</figcaption>
+</figure>
+
+</body>
+</html>

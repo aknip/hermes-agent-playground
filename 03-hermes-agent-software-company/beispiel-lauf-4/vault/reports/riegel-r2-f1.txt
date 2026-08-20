@@ -1,0 +1,65 @@
+ESF Merge-Riegel — 2026-08-19 11:56:21
+Repo:   /Users/aknipschild/github/hermes-agent-playground/04-hermes-agent-software-company-test-kaneo
+Branch: feat/esf-r2-f1-import-csv-wekan
+
+── 1/6  Branch und Ausgangslage ──────────────────────────────────────────
+  Basis:            780e9825c5462067378eb7e6dc9d661bb6f468ad
+  Geänderte Dateien: 31
+    packages/csv-import/LICENSE
+    packages/csv-import/README.md
+    packages/csv-import/package.json
+    packages/csv-import/src/args.test.ts
+    packages/csv-import/src/args.ts
+    packages/csv-import/src/csv.test.ts
+    packages/csv-import/src/csv.ts
+    packages/csv-import/src/index.test.ts
+    packages/csv-import/src/index.ts
+    packages/csv-import/src/mapping.test.ts
+    packages/csv-import/src/mapping.ts
+    packages/csv-import/src/migrate.test.ts
+    packages/csv-import/src/migrate.ts
+    packages/csv-import/tsconfig.json
+    packages/csv-import/vitest.config.ts
+    packages/kaneo-client/LICENSE
+    packages/kaneo-client/README.md
+    packages/kaneo-client/package.json
+    packages/kaneo-client/src/index.ts
+    packages/kaneo-client/src/kaneo.test.ts
+    packages/kaneo-client/src/kaneo.ts
+    packages/kaneo-client/src/keys.test.ts
+    packages/kaneo-client/src/keys.ts
+    packages/kaneo-client/tsconfig.json
+    packages/kaneo-client/vitest.config.ts
+    packages/planka-import/package.json
+    packages/planka-import/src/index.ts
+    packages/planka-import/src/mapping.ts
+    packages/planka-import/src/migrate.test.ts
+    packages/planka-import/src/migrate.ts
+    pnpm-lock.yaml
+
+── 2/6  Konfliktfreiheit ──────────────────────────────────────────
+  konfliktfrei — der Merge bleibt jetzt stehen und wird geprüft
+
+── 3/6  Linter auf den geänderten Dateien ──────────────────────────────────────────
+  sauber (26 Dateien)
+
+── 4/6  Typecheck ──────────────────────────────────────────
+  Befehl: pnpm exec turbo typecheck --concurrency=1 --force
+  grün
+
+── 5/6  Unit-Tests ──────────────────────────────────────────
+  Befehl: pnpm exec turbo test --concurrency=1 --force
+  grün
+
+── 6/6  Volle E2E-Suite ──────────────────────────────────────────
+  Vorbedingung: docker compose -f compose.yml up -d postgres
+    14 passed (1.3m)
+  grün
+  (kein geänderter Journey-Spec im Branch — kein Feature-Video)
+
+── Ergebnis ──────────────────────────────────────────
+✓ Gemerged: c11647e
+  (Die Video-Akte liegt bereits — aufgezeichnet wurde nach dem grünen Lauf.)
+
+Der Worktree des Branches bleibt bestehen — der Reviewer braucht ihn
+noch. Aufgeräumt wird beim Sprint-Abschluss.

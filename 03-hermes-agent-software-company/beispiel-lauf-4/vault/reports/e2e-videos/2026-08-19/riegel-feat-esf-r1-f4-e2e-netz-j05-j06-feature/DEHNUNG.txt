@@ -1,0 +1,11 @@
+Diese Akte wurde am 2026-08-19 15:36 nachgezogen.
+
+  Quelle:   Playwright .webm (VP8), aufgezeichnet in Maschinen-Geschwindigkeit
+  Umsetzung: ffmpeg -filter:v "setpts=2.5*PTS" -c:v libx264 -r 25
+
+WAS DAS HEISST: Die Videos laufen um den Faktor 2.5 langsamer als der
+Test. Die im Video sichtbare Dauer ist NICHT die Dauer des Laufs.
+Wer echte Zeiten braucht, nimmt lauf.txt.
+
+Neue Akten brauchen das nicht: Sie werden mit launchOptions.slowMo
+aufgezeichnet und zeigen ihre echte Dauer.

@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <title>ADR-001 Import-Architektur CSV + WeKan — ESF</title>
+  <meta name="esf-typ" content="adr">
+  <meta name="esf-karte" content="t_eb272a28">
+  <meta name="esf-datum" content="2026-08-19">
+  <style>
+    body { font-family: -apple-system, "Segoe UI", Roboto, sans-serif; max-width: 68rem;
+           margin: 2rem auto; padding: 0 1.5rem; line-height: 1.55; color: #1a1a1a; }
+    h1 { font-size: 1.55rem; border-bottom: 3px solid #111; padding-bottom: .4rem; }
+    h2 { margin-top: 2.2rem; border-bottom: 1px solid #ccc; padding-bottom: .3rem; }
+    code { background: #f2f2f2; padding: .05rem .3rem; border-radius: 3px; font-size: .92em; }
+    table { border-collapse: collapse; width: 100%; margin: 1rem 0; font-size: .95em; }
+    th, td { border: 1px solid #ddd; padding: .45rem .6rem; text-align: left; vertical-align: top; }
+    th { background: #f6f6f6; }
+    .kern { background: #fffbe6; border-left: 4px solid #f5c518; padding: .8rem 1rem; margin: 1rem 0; }
+    .entscheid { background: #eaf3ff; border-left: 4px solid #1d4a8f; padding: .8rem 1rem; margin: 1rem 0; }
+    .fig { color: #555; font-size: .9em; }
+  </style>
+</head>
+<body>
+  <h1>ADR-001 — Import-Architektur: CSV + WeKan</h1>
+  <p class="fig">Karte <code>t_eb272a28</code> · datum <code>2026-08-19</code> · Status: angenommen · Feature F-R1-1 (roadmap/q1-freigegeben.html §5)</p>
+
+  <div class="kern">
+    <p><strong>In drei Minuten:</strong> Der Import aus CSV und WeKan wird <em>nicht</em> als API-Route,
+    <em>nicht</em> als Erweiterung von <code>@kaneo/planka-import</code> gebaut, sondern als eigenständiges
+    CLI-Paket neben dem bestehenden Importer, das denselben bewährten Schreibweg über die öffentliche
+    Kaneo-API nutzt. Damit gibt es weder eine Schema-Änderung, noch eine Migration, noch eine Änderung der
+    öffentlichen API-Oberfläche. Der gemeinsame Schreib-Client <code>KaneoClient</code> wird aus
+    <code>planka-import</code> in ein geteiltes Paket extrahiert, damit kein zweiter, untypisierter
+    Request-Layer entsteht.</p>
+  </div>
+
+  <h2>1. Kontext</h2>
+  <p>Es gibt bereits einen fertigen Importer: <code>packages/planka-import</code> (<code>@kaneo/planka-import</code>,
+  bin <code>kaneo-planka-import</code>) mit eigenen Unit-Tests (args, colors, keys, mapping, migrate, planka,
+  je eine <code>.test.ts</code> daneben). Zwei Tatsachen daran sind für diese Entscheidung maßgeblich, beide am
+  Code verifiziert:</p>
+  <ul>
+    <li><strong>Er schreibt über die API, nicht in die Datenbank.</strong>
+    <code>src/kaneo.ts:22</code> führt eine <code>KaneoClient</code>-Klasse mit <code>baseUrl</code> und
+    <code>apiKey</code>; <code>src/kaneo.ts:139</code> (<code>request()</code>) spricht die öffentliche API über
+    <code>fetch</code> mit <code>Authorization: Bearer &lt;apiKey&gt;</code> an. Alle Schreiboperationen
+    (createProject, createTask, createLabel, createComment, …) laufen durch diesen Client
+    (<code>src/kaneo.ts:47–137</code>). Ein neuer Importer nach demselben Muster braucht deshalb <strong>keine
+    Schema-Änderung und keine Migration</strong>.</li>
+    <li><strong>Die Übersetzung Fremdmodell → Kaneo ist paket-lokal und Planka-spezifisch.</strong>
+    <code>src/mapping.ts</code> und <code>src/migrate.ts</code> enthalten die Abbildung (Spalten, Prioritäten,
+    Termine, Labels, Kommentare, Zuweisungen). Sie ist eng an die Planka-Modelle in
+    <code>src/planka.ts</code> gebunden (planka.ts:1–92). Genau diese Übersetzung muss für CSV und für WeKan
+    <em>jeweils neu</em> geschrieben werden.</li>
+  </ul>
+  <p>Die Roadmap setzt F-R1-1 „Import CSV + WeKan“ als größtes und riskantestes Stück des Quartals an den Anfang
+  von R2, Referenzklasse <code>feature-backend-M</code> (roadmap/q1-freigegeben.html §5; market.html H2, Score 20).
+  Der Feature-Schnitt umfasst fünf Karten mit <em>einer</em> Bau-Karte; „CSV + WeKan“ passt nicht in eine
+  Bau-Karte, daher wird CSV vollständig gebaut und WeKan benannt auf eine Folgekarte gelegt
+  (specs/r2-f1-import-csv-wekan.html §4).</p>
+
+  <h2>2. Optionen</h2>
+  <table>
+    <thead><tr><th>Option</th><th>Was sie kostet</th><th>Konsequenz</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><strong>A — Route in <code>apps/api</code> (Server-Import/Upload)</strong></td>
+        <td>Neuer öffentlicher Endpunkt: muss Valibot-Validierung, OpenAPI-Metadaten und den getypten Client
+        (<code>@kaneo/libs</code>, AGENTS.md „keine untypenisierte HTTP-Schicht“; codebase.html §1.3, §6) mitziehen.
+        Verlässliche Wiederaufsetzbarkeit eines halb gelaufenen Imports braucht einen Import-Status im
+        Datenmodell → <em>Schema-Änderung + Migration</em>. Server-seitige Datei-Verarbeitung.</td>
+        <td>Ändert genau die öffentliche API-Oberfläche, die die Spezifikation verbietet. Widerspricht dem
+        etablierten Muster (Import läuft über die API, nicht über die DB). Schwer und riskant; Migration für
+        Bestandsinstallationen (codebase.html §5.4).</td>
+      </tr>
+      <tr>
+        <td><strong>B — Erweiterung von <code>@kaneo/planka-import</code></strong></td>
+        <td>Der bestehende Importer ist als fertiges, publizierbares Paket freigegeben (<code>package.json</code>
+        <code>publishConfig.access=public</code>, bin <code>kaneo-planka-import</code>). Sein Quell-Teil
+        (<code>src/planka.ts</code>) und seine Mapping-Logik (<code>src/mapping.ts</code>) sind eng Planka-formig;
+        der CLI-Fluss in <code>src/index.ts</code> liest Boards aus einer Remote-API (<code>index.ts:69</code>),
+        nicht aus einer Datei.</td>
+        <td>Verändert Identität und publizierte Oberfläche eines laufenden Pakets; CSV/WeKan müssten den
+        Planka-spezifischen Arg- und Quell-Fluss teilen. Risiko für den grünen Planka-Pfad. Verworfen.</td>
+      </tr>
+      <tr>
+        <td><strong>C — Zweites CLI-Paket + geteilter Schreib-Client (gewählt)</strong></td>
+        <td>Ein neues Paket <code>@kaneo/csv-import</code> (bin <code>kaneo-csv-import</code>) nach dem
+        Planka-Muster; WeKan später als Schwester-Paket <code>@kaneo/wekan-import</code>. Der selbst-enthaltene
+        <code>KaneoClient</code> (kaneo.ts:22, keine Intra-Paket-Abhängigkeiten) wird in ein geteiltes Paket
+        <code>@kaneo/kaneo-client</code> extrahiert; <code>planka-import</code> importiert ihn von dort (reiner
+        Move, Tests bleiben grün). Neue Pakete fallen unter den bestehenden <code>packages/**</code>-Glob in
+        <code>pnpm-workspace.yaml</code>.</td>
+        <td>Keine Schema-Änderung, keine Migration, keine öffentliche API-Änderung. Souveräne Trennung der
+        Quell-/Parsing- und Mapping-Schicht je Format; kein zweiter untypisierter Request-Layer. Kosten: ein
+        kleiner, testbewehrter Refactor im geteilten Paket.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="entscheid">
+    <h2>3. Entscheidung</h2>
+    <p><strong>Option C.</strong> F-R1-1 wird als eigenständiges CLI-Paket <code>@kaneo/csv-import</code> gebaut,
+    das über die öffentliche Kaneo-API schreibt (Muster aus <code>packages/planka-import/src/kaneo.ts</code>).
+    Der <code>KaneoClient</code> und die import-domain-generischen Helfer (<code>normalizeBaseUrl</code>,
+    <code>toProjectKey</code>/<code>uniqueKey</code> aus keys.ts) wandern in das geteilte Paket
+    <code>@kaneo/kaneo-client</code>; <code>planka-import</code> wird darauf umgestellt, ohne Verhaltensänderung.
+    WeKan kommt in einem späteren Schwester-Paket <code>@kaneo/wekan-import</code> (Folgekarte, siehe Spezifikation §4).</p>
+    <p>Keine API-Route, kein neues Datenmodell, keine Migration. Die öffentliche API-Oberfläche und
+    <code>@kaneo/libs</code> bleiben unberührt — eine Import-Route in <code>apps/api</code> wäre genau die
+    API-Änderung, die die Spezifikation ausschließt (specs/r2-f1-import-csv-wekan.html §7).</p>
+  </div>
+
+  <h2>4. Konsequenzen</h2>
+  <ul>
+    <li><strong>Positiv:</strong> Additive Architektur; die bestehende Import-Infrastruktur (codebase.html Modul 15)
+    wächst um das Muster, nicht darum herum. Kein Migrations- oder Schema-Risiko für Bestandsinstallationen.
+    Jeder Importer behält seine eigene, testbare Abbildungslogik; der geteilte Teil ist klein und beweist
+    sich über die bestehenden Planka-Tests.</li>
+    <li><strong>Kosten:</strong> Ein Refactor im bereits publizierten <code>planka-import</code> (Move des Clients
+ in ein geteiltes Paket) — muss mit grünen Tests nachgewiesen werden, bevor das neue Paket darauf aufbaut.
+ <code>packages/**</code> ist bereits Workspace-Glob, keine pnpm-workspace.yaml-Änderung nötig.</li>
+    <li><strong>Nicht geliefert hier:</strong> WeKan-Import (Folgekarte, benannt), Attachments, Kommentar-Autor
+    (CSV hat keine Autor-Spalte).</li>
+  </ul>
+
+  <h2>5. Revision</h2>
+  <p>Neu bewertet wird diese Entscheidung, wenn: (a) ein Import über die API nicht mehr trägt und eine
+  Server-Seite (Idempotenz/Status, Rechte an Projekten aus dem Kontext einer UI) den <code>apps/api</code>-Weg
+  erzwingt — dann ist zuerst der Verzicht auf die öffentliche API-Änderung formal zu prüfen; oder (b) aus den
+  drei Import-Paketen (Planka, CSV, WeKan) messbar ein vierter geteilter Baustein erwächst, der die
+  Paketgrenze <code>@kaneo/kaneo-client</code> neu ziehen sollte (etwa ein gemeinsamer Abbildungs-Kern für
+  „Board-artige“ Quell-Pakete). Ein reines Wachstum um weitere Einzelformate rechtfertigt keine Neubewertung.</p>
+
+</body>
+</html>

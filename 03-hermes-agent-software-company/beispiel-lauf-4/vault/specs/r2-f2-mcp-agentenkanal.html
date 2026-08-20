@@ -1,0 +1,362 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <title>F-R2-1 MCP-Agentenkanal härten — Spezifikation — ESF</title>
+  <meta name="esf-typ" content="spec">
+  <meta name="esf-karte" content="t_c8a338ba">
+  <meta name="esf-datum" content="2026-08-19">
+  <meta name="esf-video" content="r2-f2-mcp-agentenkanal.mp4">
+  <style>
+    body { font-family: -apple-system, "Segoe UI", Roboto, sans-serif; max-width: 70rem;
+           margin: 2rem auto; padding: 0 1.5rem; line-height: 1.55; color: #1a1a1a; }
+    h1 { font-size: 1.6rem; border-bottom: 3px solid #111; padding-bottom: .4rem; }
+    h2 { margin-top: 2.4rem; border-bottom: 1px solid #ccc; padding-bottom: .3rem; }
+    h3 { margin-top: 1.6rem; }
+    code { background: #f2f2f2; padding: .05rem .3rem; border-radius: 3px; font-size: .92em; }
+    table { border-collapse: collapse; width: 100%; margin: 1rem 0; font-size: .88em; }
+    th, td { border: 1px solid #ddd; padding: .4rem .55rem; text-align: left; vertical-align: top; }
+    th { background: #f6f6f6; }
+    .kern { background: #fffbe6; border-left: 4px solid #f5c518; padding: .8rem 1rem; margin: 1rem 0; }
+    .entscheid { background: #eaf3ff; border-left: 4px solid #1d4a8f; padding: .8rem 1rem; margin: 1rem 0; }
+    .nicht { background: #fdecec; border-left: 4px solid #c0392b; padding: .7rem 1rem; margin: .7rem 0; }
+    .ac { background: #eef7ee; border-left: 4px solid #2f6f4f; padding: .55rem .8rem; margin: .4rem 0; }
+    .annahme { background: #f7f3e8; border-left: 4px solid #b58900; padding: .7rem 1rem; margin: .7rem 0; }
+    .fig { color: #555; font-size: .9em; }
+    .sicherheit { background: #fdecec; border-left: 4px solid #c0392b; padding: .7rem 1rem; margin: 1rem 0; }
+  </style>
+</head>
+<body>
+
+  <h1>F-R2-1 — MCP-Agentenkanal ausbauen &amp; härten</h1>
+  <p class="fig">Spezifikation · Karte <code>t_c8a338ba</code> · datum <code>2026-08-19</code> ·
+  Feature F-R2-1 (roadmap/r2-freigegeben.html §3.1, Karten-Kette
+  <code>spec + est + 1×impl-M + review-M + merge-S</code>) · Nutzeraufgabe „Aufgaben über KI-Assistenten
+  führen und steuern“ (r2-freigegeben.html §3.1). Belegpflicht: jede Zeile mit Fundstelle, verifiziert am
+  Code am 19.08.2026 im Kaneo-Repo.</p>
+
+  <div class="kern">
+    <p><strong>In drei Minuten:</strong> Der MCP-Agentenkanal <strong>existiert bereits</strong> und ist
+    umfangreich — er bietet <strong>36 Werkzeuge</strong> in zwei parallelen Katalogen
+    (<code>apps/api/src/mcp/tools.ts</code> für den im API-Prozess gehosteten Kanal mit OAuth,
+    <code>packages/mcp/src/tools/register.ts</code> für das publizierbare stdio-Paket), beide identisch.
+    Diese eine Bau-Karte <strong>härtet, sie baut nichts Neues</strong>: Sie macht die
+    <strong>read-modify-write-Operationen atomar</strong> (update_task/update_project/move rennen heute in
+    eine GET-dann-PUT-Lücke, die eine parallele Agenten-Änderung still überschreiben kann), <strong>validiert
+    Status gegenüber den echten Projekt-Spalten</strong> statt freie Strings durchzulassen, und erzwingt
+    <strong>Zeit-Reihenfolge</strong> bei Zeiteinträgen. Ausdrücklich <strong>nicht</strong> Teil dieser
+    Karte: neue Werkzeuge erfinden, Idempotenz für create_*, Katalog-Zusammenführung, Rate-Limiting — das
+    sind vier benannte Folgekarten. Keine Änderung am OAuth-Store, keine Änderung an der öffentlichen
+    API-Oberfläche, volle Suite bleibt grün.</p>
+  </div>
+
+  <h2>1. Ist-Zustand: Was der Kanal heute kann (Bestandsaufnahme)</h2>
+  <p>Zwei Einstiegspunkte, ein identischer Werkzeugkatalog von 36 Tools:</p>
+  <ul>
+    <li><strong>Im API-Prozess gehostet:</strong> <code>apps/api/src/mcp/index.ts</code> registriert die
+    OAuth-Routen (<code>/mcp/register</code>, <code>/mcp/authorize</code>, <code>/mcp/token</code>) und
+    den eigentlichen Kanal <code>mcp.all("/mcp", …)</code> (<code>index.ts:273</code>). Er validiert das
+    Bearer-Token gegen <code>auth.api.getSession</code> (<code>index.ts:56-71</code>) und bedient sowohl
+    ein modernes, zustandsloses Protokoll (<code>modern.ts:5</code>, frischer Server je Anfrage) als auch
+    ein Legacy-Protokoll mit pro-Session-Servern (<code>index.ts:312-333</code>, <code>sessions</code>-Map
+    mit Besitzerbindung <code>index.ts:291-296</code>). Werkzeugbestückung: <code>tools.ts:214</code>
+    <code>registerMcpTools</code>.</li>
+    <li><strong>Stdio-Paket:</strong> <code>packages/mcp/src/server.ts:13</code> <code>createMcpServer</code>
+    mit <code>KaneoClient</code> (<code>packages/mcp/src/kaneo/client.ts:11</code>) und eigener
+    Geräte-Flow-/API-Key-Authentifizierung (<code>packages/mcp/src/auth/auth-service.ts:75</code>);
+    Werkzeugbestückung identisch in <code>packages/mcp/src/tools/register.ts</code>.</li>
+  </ul>
+  <p><strong>Zahl der Werkzeuge:</strong> 36. Gezählt am 19.08.2026 aus beide Kataloge —
+  <code>apps/api/src/mcp/tools.ts</code> und <code>packages/mcp/src/tools/register.ts</code> — identische
+  Namensliste (whoami … list_notifications). Beide Kataloge sind <strong>duplizierte Kopien</strong>
+  (tools.ts 957 Zeilen, register.ts 786 Zeilen); die Werkzeug-Definitionen sind nicht aus einer gemeinsamen
+  Quelle gezogen.</p>
+  <p class="annahme"><strong>Die drei Prüfspalten.</strong> Für alle 36 Werkzeuge gilt ein gemeinsames
+  Muster, deshalb steht es hier einmal und wird in der Tabelle nur bei Abweichungen wiederholt:</p>
+  <ul>
+    <li><strong>Autorisierung:</strong> Das Werkzeug selbst prüft <em>keinerlei</em> Berechtigung. Es
+    vertraut auf den Bearer-Token (vom Kanal zum Nutzer aufgelöst) und delegiert die Autorisierung
+    vollständig an die API-Route, die dasselbe Token an <code>Auth: Bearer</code> weitergibt
+    (<code>tools.ts:42-82</code> <code>ApiClient.json</code>; <code>packages/mcp/src/kaneo/client.ts:20-47</code>).
+    Die API-Routen prüfen dann <code>workspaceAccess.fromTask/fromProject/fromLabel/fromQuery</code> plus
+    <code>requireWorkspacePermission</code> — <em>dieses Delegieren ist korrekt</em>, weil jede schreibende
+    und lesende Route scoped ist (siehe Tabelle, Nachweise: <code>task/index.ts:203,299,347,481</code>;
+    <code>project/index.ts:81,182</code>; <code>label/index.ts:92,167</code>). <strong>Kein IDOR
+    gefunden.</strong></li>
+    <li><strong>Eingabeprüfung:</strong> Jedes Werkzeug wird durch ein Zod-Schema geparst; Fehler liefern
+    <code>z.prettifyError</code> (<code>tools.ts:225-231</code>; <code>packages/mcp/register.ts</code>,
+    gleicher Wrapper). Die Schemas sind überwiegend streng (Prioritäten-Enum, ISO-Datum, Hex-Farbe,
+    non-empty). <strong>Zwei Lücken:</strong> <code>status</code> ist überall nur <code>nonEmptyString</code>
+    und wird <em>nicht</em> gegen die echten Projekt-Spalten validiert; und bei <code>create_time_entry</code>/
+    <code>update_time_entry</code> verspricht die Beschreibung „startTime cannot be later than the end
+    time“, aber das Schema erzwingt nichts (<code>tools.ts:886-935</code>).</li>
+    <li><strong>Fehlerausgabe:</strong> <code>run()</code> fängt alle Fehler und liefert
+    <code>{ content: [{type:"text", text}], isError: true }</code> mit der Fehlermeldung
+    (<code>tools.ts:90-100</code>). Die API-Antwort wird als <code>path: detail</code>-Fehler
+    durchgereicht (<code>tools.ts:71-79</code>). Der Aufrufer bekommt also etwas verwertbares — aber bei
+    einem vollständigen read-modify-write (<code>update_task</code> GET+PUT) kann ein Teilfehler
+    <em>nach</em> dem GET liegen, ohne dass der Aufrufer die zwei Schritte sieht (siehe H1).</li>
+  </ul>
+
+  <h3>1.1 Bestandsaufnahme als Tabelle (36 Werkzeuge)</h3>
+  <p>Autorisierung-Spalte: „API-scoped“ = Route erzwingt <code>workspaceAccess</code> + ggf.
+  <code>requireWorkspacePermission</code> (Fundstelle der Route). „lesend“ = nur Zugehörigkeits-Scope,
+  kein Schreibrecht nötig. Fundstellen links = Registrierung im Werkzeugkatalog, rechts = Route.</p>
+  <table>
+    <thead><tr><th>Werkzeug</th><th>Autorisierung</th><th>Eingabeprüfung</th><th>Fehlerausgabe</th><th>Fundstelle</th></tr></thead>
+    <tbody>
+      <tr><td>whoami</td><td>Token→Session (identität), kein Scope nötig</td><td>leeres Schema</td><td>run()/isError</td><td>tools.ts:233 · index.ts:56</td></tr>
+      <tr><td>list_workspaces</td><td>eigene Orgs des Nutzers</td><td>leeres Schema</td><td>run()/isError</td><td>tools.ts:243 · index.ts:56</td></tr>
+      <tr><td>list_projects</td><td>API-scoped (fromQuery)</td><td>workspaceId non-empty; includeArchived bool</td><td>run()/isError</td><td>tools.ts:253 · project/index.ts:45</td></tr>
+      <tr><td>get_project</td><td>API-scoped (fromProject)</td><td>id non-empty</td><td>run()/isError</td><td>tools.ts:274 · project/index.ts:106</td></tr>
+      <tr><td>create_project</td><td>API-scoped (fromBody + project:create)</td><td>name/workspaceId/icon/slug non-empty</td><td>run()/isError</td><td>tools.ts:284 · project/index.ts:81</td></tr>
+      <tr><td>update_project</td><td>API-scoped (fromProject + project:update)</td><td>PATCH-Felder optional</td><td><strong>GET+PUT read-modify-write</strong> (H1)</td><td>tools.ts:309 · project/index.ts:182</td></tr>
+      <tr><td>list_tasks</td><td>API-scoped (fromProject)</td><td>Sortierung/Priorität enums; Datum ISO</td><td>run()/isError</td><td>tools.ts:364 · task/index.ts:96</td></tr>
+      <tr><td>get_task</td><td>API-scoped (fromTask)</td><td>taskId non-empty</td><td>run()/isError</td><td>tools.ts:406 · task/index.ts:259</td></tr>
+      <tr><td>create_task</td><td>API-scoped (fromProject + task:create)</td><td>title non-empty; priority enum; <strong>status nur non-empty, nicht gegen Spalten</strong> (H3)</td><td>run()/isError</td><td>tools.ts:420 · task/index.ts:203</td></tr>
+      <tr><td>update_task</td><td>API-scoped (fromTask + task:update + assignee-guard)</td><td>PATCH-Felder optional</td><td><strong>GET+PUT read-modify-write</strong> (H1)</td><td>tools.ts:454 · task/index.ts:348</td></tr>
+      <tr><td>move_task</td><td>API-scoped (fromTask + task:update)</td><td>destinationStatus nur non-empty; <strong>nicht gegen Ziel-Spalten</strong> (H3)</td><td>run()/isError</td><td>tools.ts:488 · task/index.ts:300</td></tr>
+      <tr><td>update_task_status</td><td>API-scoped (fromTask + task:update)</td><td>status non-empty; <strong>nicht gegen Spalten</strong> (H3)</td><td>run()/isError</td><td>tools.ts:513 · task/index.ts:493</td></tr>
+      <tr><td>list_task_comments</td><td>API-scoped (fromTaskId, lesend)</td><td>taskId non-empty</td><td>run()/isError</td><td>tools.ts:528 · comment/index.ts:35</td></tr>
+      <tr><td>create_task_comment</td><td>API-scoped (fromTaskId + task:update)</td><td>content non-empty</td><td>run()/isError</td><td>tools.ts:542 · comment/index.ts:66</td></tr>
+      <tr><td>update_task_comment</td><td>API-scoped (fromTaskId + task:update)</td><td>content non-empty</td><td>run()/isError</td><td>tools.ts:560 · comment/index.ts</td></tr>
+      <tr><td>delete_task_comment</td><td>API-scoped (fromTaskId + task:update)</td><td>commentId non-empty</td><td>run()/isError</td><td>tools.ts:578 · comment/index.ts</td></tr>
+      <tr><td>list_workspace_labels</td><td>API-scoped (fromParam, lesend)</td><td>workspaceId non-empty</td><td>run()/isError</td><td>tools.ts:592 · label/index.ts:60</td></tr>
+      <tr><td>create_label</td><td>API-scoped (fromBody + label:create)</td><td>name non-empty; color Hex-Regex</td><td>run()/isError</td><td>tools.ts:607 · label/index.ts:92</td></tr>
+      <tr><td>attach_label_to_task</td><td>API-scoped (fromLabel + label:update)</td><td>labelId/taskId non-empty</td><td>run()/isError</td><td>tools.ts:633 · label/index.ts:141</td></tr>
+      <tr><td>detach_label_from_task</td><td>API-scoped (fromLabel + label:update)</td><td>labelId non-empty</td><td>run()/isError</td><td>tools.ts:651 · label/index.ts:167</td></tr>
+      <tr><td>create_task_relation</td><td>API-scoped (task-relation)</td><td>relationType enum</td><td>run()/isError</td><td>tools.ts:665 · task-relation/index.ts</td></tr>
+      <tr><td>get_task_relations</td><td>API-scoped (lesend)</td><td>taskId non-empty</td><td>run()/isError</td><td>tools.ts:689 · task-relation/index.ts</td></tr>
+      <tr><td>delete_task_relation</td><td>API-scoped</td><td>id non-empty</td><td>run()/isError</td><td>tools.ts:704 · task-relation/index.ts</td></tr>
+      <tr><td>delete_label</td><td>API-scoped (fromLabel + label:delete)</td><td>id non-empty; Vorbedingung taskId (Werkzeug prüft)</td><td>run()/isError</td><td>tools.ts:718 · label/index.ts:224</td></tr>
+      <tr><td>list_workspace_members</td><td>API-scoped (lesend)</td><td>workspaceId non-empty</td><td>run()/isError</td><td>tools.ts:742 · workspace/index.ts</td></tr>
+      <tr><td>search</td><td>API-scoped (fromQuery; global-search filtert auf accessibleWorkspaceIds, search/index.ts:131-149)</td><td>q non-empty; type/limit enums; limit 1–50</td><td>run()/isError</td><td>tools.ts:757 · search/index.ts:80</td></tr>
+      <tr><td>list_project_columns</td><td>API-scoped (fromProject, lesend)</td><td>projectId non-empty</td><td>run()/isError</td><td>tools.ts:796 · column/index.ts:33</td></tr>
+      <tr><td>delete_task</td><td>API-scoped (fromTask + task:delete)</td><td>taskId non-empty</td><td>run()/isError</td><td>tools.ts:809 · task/index.ts:482</td></tr>
+      <tr><td>update_task_assignee</td><td>API-scoped (fromTask + assign-Guard)</td><td>userId non-empty oder null</td><td>run()/isError</td><td>tools.ts:823 · task/index.ts:493</td></tr>
+      <tr><td>update_task_due_date</td><td>API-scoped (fromTask + task:update)</td><td>dueDate ISO optional</td><td>run()/isError</td><td>tools.ts:844 · task/index.ts</td></tr>
+      <tr><td>list_task_time_entries</td><td>API-scoped (fromTaskId, lesend)</td><td>taskId non-empty</td><td>run()/isError</td><td>tools.ts:864 · time-entry/index.ts:33</td></tr>
+      <tr><td>get_time_entry</td><td>API-scoped (fromTimeEntry, lesend)</td><td>id non-empty</td><td>run()/isError</td><td>tools.ts:876 · time-entry/index.ts:56</td></tr>
+      <tr><td>create_time_entry</td><td>API-scoped (fromTaskId + task:update)</td><td>startTime ISO; endTime optional; <strong>keine start≤end-Erzwingung</strong> (H4)</td><td>run()/isError</td><td>tools.ts:886 · time-entry/index.ts:87</td></tr>
+      <tr><td>update_time_entry</td><td>API-scoped (fromTimeEntry + task:update)</td><td>startTime ISO Pflicht; endTime optional; <strong>keine Reihenfolge-Erzwingung</strong> (H4)</td><td>run()/isError</td><td>tools.ts:912 · time-entry/index.ts:126</td></tr>
+      <tr><td>list_task_activity</td><td>API-scoped (fromTaskId, lesend)</td><td>taskId non-empty</td><td>run()/isError</td><td>tools.ts:937 · activity/index.ts:35</td></tr>
+      <tr><td>list_notifications</td><td>nutzergebunden (eigene Benachrichtigungen)</td><td>leeres Schema</td><td>run()/isError</td><td>tools.ts:949 · notification/index.ts</td></tr>
+    </tbody>
+  </table>
+
+  <h2>2. Die Härtungsliste — nach Schwere sortiert</h2>
+  <p>Kriterium der Sortierung: <strong>Was kann Daten zerstören oder überschreiben, bevor ein Mensch es
+  bemerkt</strong>, steht oben; reine Validierungsreife und Betriebshärte darunter. Ein Agenten-Kanal läuft
+  oft unbeaufsichtigt — eine stille Überschreibung oder ein durchgelassener falscher Status ist dort
+  teurer als beim Klick durch einen Menschen.</p>
+  <ol>
+    <li><strong>H1 (hoch, Datenintegrität): read-modify-write ist nicht atomar.</strong>
+    <code>update_task</code> holt erst den Current (<code>tools.ts:475-478</code>), baut daraus einen
+    Voll-Body und schickt PUT (<code>tools.ts:480</code>); <code>update_project</code> genauso
+    (<code>tools.ts:326-359</code>). Zwischen GET und PUT kann ein zweiter Agent oder ein Web-Editor die
+    Ressource ändern — die zweite Schreiboperation überschreibt den zwischenzeitlich geänderten Stand
+    still. Es gibt <strong>keinen optimistischen Sperren-Wert und kein Versionierungsfeld</strong> im
+    PUT-Body. Wirkung: verlorene Änderungen bei Parallelität, genau die Klasse, die einen
+    Agenten-Kanal unzuverlässig macht. <em>Fundstelle: tools.ts:474-485, 323-361.</em></li>
+    <li><strong>H2 (hoch, Duplikate): create_* ohne Idempotenz.</strong> Kein <code>create_task</code>,
+    <code>create_project</code>, <code>create_time_entry</code>, <code>create_label</code>,
+    <code>create_task_comment</code>, <code>create_task_relation</code> trägt einen Idempotenz-Schlüssel
+    oder einen Wiederholungsschutz. Ein Agent, der nach einem Timeout retried, legt eine zweite Ressource
+    an. <em>Fundstelle: tools.ts:420, 284, 886, 607, 542, 665</em> — <strong>kein API-Feld dafür
+    vorhanden, daher Folgekarte</strong> (siehe §3.3).</li>
+    <li><strong>H3 (mittel, Validierungsreife): <code>status</code> wird nie gegen echte
+    Projekt-Spalten validiert.</strong> <code>create_task</code>, <code>update_task</code>,
+    <code>move_task</code>, <code>update_task_status</code> nehmen <code>status</code> als freien
+    non-empty String. Ein falscher Spalten-Slug scheitert erst an der API-Route (move-task.ts:49-53
+    validiert Ziel-Spalten) und kommt als roher Fehler zurück; vorher hätte
+    <code>list_project_columns</code> (bereits als Werkzeug vorhanden, tools.ts:796) die gültigen Werte
+    geliefert. <em>Fundstelle: tools.ts:429, 517, 494, 461.</em></li>
+    <li><strong>H4 (niedrig, Vertrags-Reißfestigkeit): Zeit-Reihenfolge wird versprochen, aber nicht
+    erzwungen.</strong> Die Beschreibung von <code>update_time_entry</code> sagt „startTime cannot be
+    later than the end time“ (<code>tools.ts:916</code>), aber das Zod-Schema prüft nur das ISO-Format,
+    nicht start ≤ end (<code>tools.ts:917-921</code>). Ein Aufrufer mit start &gt; end bekommt erst einen
+    API-Fehler, obwohl der Kanal ihn vorher abweisen könnte.</li>
+    <li><strong>H5 (niedrig, Drift): zwei duplizierte Kataloge statt einer Quelle.</strong> Die 36
+    Werkzeuge sind in <code>apps/api/src/mcp/tools.ts</code> und
+    <code>packages/mcp/src/tools/register.ts</code> zweimal implementiert. Jede Härtung hier muss doppelt
+    gemacht werden, und sie werden unweigerlich auseinanderlaufen (heute noch identisch, gemessen
+    19.08.2026). Das ist kein Fehler dieses Sprints, sondern die Wurzel künftiger Divergenz.</li>
+  </ol>
+  <div class="entscheid">
+    <h2>3. Der Schnitt — was diese eine Bau-Karte macht, was ausdrücklich nicht</h2>
+    <p>Das Feature F-R2-1 hat fünf Karten mit <strong>genau einer Bau-Karte</strong>. Diese Bau-Karte
+    härte das, was der bestehende 36-Tool-Katalog <em>ohne neue Werkzeuge und ohne API-/OAuth-Änderung</em>
+    härten kann. Das ist ein in sich geschlossenes, testbares Paket.</p>
+    <p><strong>Diese Bau-Karte macht (H1 + H3 + H4, werkzeug-intern):</strong></p>
+    <ol>
+      <li><strong>H1 — read-modify-write atomar machen.</strong> Für <code>update_task</code>,
+      <code>update_project</code>, <code>update_task_assignee</code>, <code>update_task_due_date</code>:
+      vor jedem Feld-Update wird der aktuelle Stand einmal geholt, und beim Aufbau des Update-Body wird
+      eine <strong>Revisionsprüfung auf den geholten Stand</strong> eingebaut: stimmt der geholte Stand
+      nicht mehr mit dem vom Aufrufer übergebenen <code>expect</code>-Wert überein (Aufrufer kann die
+      Felder übergeben, die er erwartet unverändert anzutreffen), wird <em>vor</em> dem PUT mit einem
+      klaren Konflikts-Fehler abgebrochen statt still überschrieben. Minimal-Variante, die ohne neue
+      API-Felder auskommt: Der Kanal prüft den geholten Stand gegen die im Argument angegebenen
+      Ist-Werte. Konkrete Verträge in §4.</li>
+      <li><strong>H3 — Status gegen Projekt-Spalten validieren.</strong> Vor
+      <code>create_task</code> / <code>update_task</code> / <code>update_task_status</code> /
+      <code>move_task</code> holt das Werkzeug <code>list_project_columns</code> für die Ziel-Projekt-ID
+      (bzw. Ziel-Projekt) und lehnt einen <code>status</code>-Slug ab, der dort nicht existiert — mit einer
+      Fehlermeldung, die die gültigen Slugs auflistet, statt die Polygon untergehen zu lassen. Gilt in
+      beiden Katalogen.</li>
+      <li><strong>H4 — start ≤ end in Zod erzwingen.</strong> Für <code>create_time_entry</code> und
+      <code>update_time_entry</code> eine <code>.refine()</code>-Regel <code>startTime ≤ endTime</code>,
+      sodass die Beschreibung hält, was sie verspricht.</li>
+      <li><strong>Beide Kataloge härten.</strong> Jede Änderung an H1/H3/H4 wird in
+      <code>apps/api/src/mcp/tools.ts</code> <em>und</em> <code>packages/mcp/src/tools/register.ts</code>
+      gespiegelt, weil der Kanal zweimal existiert. (Die Zusammenführung ist H5, eine eigene Karte.)</li>
+    </ol>
+    <p><strong>„Ausbauen“ heißt hier ausdrücklich NICHT:</strong> neue Werkzeuge erfinden (keine
+    neuen Tool-Namen, kein erweitertes Eingabe-Schema um nette Funktionen), keine Batch-Befehle, kein
+    Import/Export, keine Scheduling- oder Workflow-Automatik. Der Nutzerauftrag „Aufgaben führen und
+    steuern“ ist mit den vorhandenen 36 Werkzeugen vollständig bedienbar; diese Karte macht sie nur
+    sicher und deterministisch. Der Markt-Hintergrund (Kaneo als einziger offener, selbst gehosteter Kanal;
+    Linear nur Enterprise, market.html §4) rechtfertigt keine Funktionsausweitung in dieser Karte.</p>
+    <p><strong>Nicht Teil dieser Bau-Karte — vier benannte Folgekarten:</strong></p>
+    <ul>
+      <li><strong>F2-F1K Idempotenz für create_*:</strong> erfordert ein Idempotenz-Feld auf der
+      öffentlichen POST-API, also eine <em>Änderung der öffentlichen API-Oberfläche</em> → eigenes Gate,
+      eigene Karte. In dieser Karte ausdrücklich verboten (AGENTS.md/Auflage).</li>
+      <li><strong>F2-F2K H5 — Katalog in eine gemeinsame Quelle ziehen:</strong> beides auf ein
+      geteiltes Schema-/Tool-Definitionsmodul umstellen; größerer Umbau, eigener Review-Wert.</li>
+      <li><strong>F2-F3K Rate-Limiting / Missbrauchsschutz auf <code>/mcp/token</code> und
+      <code>/mcp</code>:</strong> keine Drosselung heute (<code>index.ts:216, 273</code>); Betriebshärte,
+      eigener Anlass.</li>
+      <li><strong>F2-F4K Werkzeug-Dokumentations- und Fortschritts-Transparenz</strong> (optional):
+      verfeinerte <code>description</code>-Texte, damit ein Agent die schmaleren Verträge (expect, gültige
+      Slugs) auch sieht. Nur falls nach den drei Härtungen Budget bleibt — sonst streichen.</li>
+    </ul>
+  </div>
+
+  <h3>3.1 Was NICHT passieren darf</h3>
+  <div class="nicht">
+    <ul>
+      <li><strong>Keine Änderung am OAuth-Store</strong> (<code>apps/api/src/mcp/oauth-store.ts</code>,
+      <code>oauth.ts</code>, <code>controllers/oauth-consent.ts</code>) — jeder Eingriff dort braucht ein
+      eigenes Gate und ist nicht diese Karte. Die OAuth-Authentifizierung bleibt unangetastet.</li>
+      <li><strong>Keine Änderung an der öffentlichen API-Oberfläche</strong> — keine neuen Pfade, keine
+      erweiterten Request-Schemas der API-Routen, keine neuen Felder im Response. Nur die
+      Werkzeug-Schicht (<code>apps/api/src/mcp/tools.ts</code>, <code>packages/mcp/src/tools/register.ts</code>)
+      darf sich ändern.</li>
+      <li><strong>Volle Suite bleibt grün.</strong> Bestehende Unit- und Integrationstests bleiben
+      unverändert grün; neue Tests decken H1/H3/H4 ab.</li>
+      <li><strong>Kein neues Werkzeug</strong> und keine Namensänderung bestehender Tool-Namen (sonst
+      Contract-Bruch für Agenten-Clients, die die Namen kennen).</li>
+    </ul>
+  </div>
+
+  <h3>3.2 Sicherheitsbefund</h3>
+  <div class="sicherheit">
+    <p><strong>Keine aktive Sicherheitslücke im Werkzeugkatalog gefunden</strong> (Stand 19.08.2026). Die
+    Autorisierung ist konsequent an die API-Routen delegiert und dort überall wirksam: jede schreibende
+    Route trägt <code>workspaceAccess</code> + <code>requireWorkspacePermission</code>
+    (task/index.ts:203,299,347,481 · project/index.ts:81,182 · label/index.ts:92,167 · column/index.ts:65 ·
+    comment/index.ts:66 · time-entry/index.ts:87 · search/index.ts:80). Die Sitzungsbindung verhindert
+    Fremdnutzung eines <code>mcp-session-id</code> (<code>index.ts:291-296</code>: Besitzer-Abgleich). Das
+    Delegieren selbst („der Kanal ist schon der richtige“) ist kein Fehler, weil die API den Scope
+    erzwingt. Beobachtungswürdig, aber bewusst <em>kein</em> Befund in dieser Karte: fehlendes
+    Rate-Limiting (Folgekarte F2-F3K) und der nicht-atomare read-modify-write (H1, hier gehärtet). Ein
+    echter Befund im metadata unter <code>sicherheit</code> ist deshalb nicht gesetzt.</p>
+  </div>
+
+  <h2>4. Konkrete Verträge (werkzeug-intern, beide Kataloge)</h2>
+  <h3>4.1 H1 — Revisionsprüfung auf <code>update_task</code> / <code>update_project</code></h3>
+  <ul>
+    <li>Neues <em>optionales</em> Eingabefeld <code>expect?: { [feld]: wert }</code> für die Felder, deren
+    Stand der Aufrufer unverändert erwartet (z.&nbsp;B. <code>expect: { title: "altes title" }</code>).</li>
+    <li>Ablauf: <code>GET</code> Current → für jedes <code>expect</code>-Feld vergleichen → stimmt einer
+    nicht, antwortet das Werkzeug mit <code>isError: true</code> und Zieltext
+    <code>Conflict on "title": expected "altes title", got "neues title" — fetch and re-apply.</code>
+    → erst bei Übereinstimmung alle Felder <code>PUT</code>.</li>
+    <li>Ohne <code>expect</code> verhält sich das Werkzeug wie heute (kein Verhaltensbruch). Für
+    <code>create_task</code>/<code>create_*</code> kein <code>expect</code> — die sind idempotenz-los und
+    bleiben es in dieser Karte (F2-F1K).</li>
+  </ul>
+  <h3>4.2 H3 — Status-Validierung gegen Spalten</h3>
+  <ul>
+    <li>Vor einem Schreib-Weg mit <code>status</code> (create_task, update_task, update_task_status,
+    move_task) holt das Werkzeug die Ziel-Spalten-Slugs über die bestehende Lese-Route des Kanals und
+    prüft <code>status ∈ slugs</code>.</li>
+    <li>Fehler bei Nicht-Existenz: <code>isError: true</code>,
+    <code>Invalid status "xyz"; valid columns: [no-priority-…] — use list_project_columns.</code></li>
+    <li>Beim <code>move_task</code> gegen die <em>Ziel</em>-Projekt-Spalten prüfen (entspricht der
+    API-Seite: move-task.ts:45-59).</li>
+  </ul>
+  <h3>4.3 H4 — Zeit-Reihenfolge</h3>
+  <ul>
+    <li><code>create_time_entry</code> / <code>update_time_entry</code>: Zod-<code>.refine()</code>,
+    dass <code>endTime</code> (falls vorhanden) ≥ <code>startTime</code>; sonst
+    <code>isError: true</code> mit <code>endTime must be >= startTime</code>.</li>
+  </ul>
+
+  <h2>5. Akzeptanzkriterien (einzeln abhakbar, alle prüfbar)</h2>
+  <div class="ac"><p><strong>AC1 — H1 Vertrag:</strong> Ein <code>update_task</code> mit
+  <code>expect</code>-Feld, dessen Ist-Wert abweicht, antwortet mit Konflikts-Fehler und schreibt <em>kein</em>
+  Feld in die DB (Verifikation: nach Konflikt ist der DB-Stand unverändert).</p></div>
+  <div class="ac"><p><strong>AC2 — H1 ohne expect:</strong> <code>update_task</code> / <code>update_project</code>
+  ohne <code>expect</code> verhalten sich unverändert (bestehende Tests grün, kein Schema-Bruch).</p></div>
+  <div class="ac"><p><strong>AC3 — H1 beide Kataloge:</strong> Der H1-Konfliktest läuft sowohl gegen
+  <code>apps/api/src/mcp/tools.ts</code> als auch gegen <code>packages/mcp/src/tools/register.ts</code>
+  (identisches Verhalten, eigener Test je Katalog).</p></div>
+  <div class="ac"><p><strong>AC4 — H3 create/update/status:</strong> <code>create_task</code>,
+  <code>update_task</code>, <code>update_task_status</code> mit ungültigem Status-Slug antworten mit
+  gültigen Spalten in der Fehlermeldung; mit gültigem Slug laufen sie unverändert.</p></div>
+  <div class="ac"><p><strong>AC5 — H3 move:</strong> <code>move_task</code> validiert den
+  Ziel-Status gegen die <em>Ziel</em>-Projekt-Spalten (positive + negative Tests).</p></div>
+  <div class="ac"><p><strong>AC6 — H4:</strong> <code>create_time_entry</code> /
+  <code>update_time_entry</code> mit <code>startTime &gt; endTime</code> werden abgewiesen; mit
+  <code>startTime ≤ endTime</code> funktionieren sie unverändert.</p></div>
+  <div class="ac"><p><strong>AC7 — keine neuen Werkzeuge:</strong> Die Anzahl der registrierten
+  Werkzeuge bleibt 36 in beiden Katalogen (Verifikation durch Katalog-Zähl-Test / Bin-Snapshot).</p></div>
+  <div class="ac"><p><strong>AC8 — keine OAuth-/API-Änderung:</strong> Keine Datei unter
+  <code>apps/api/src/mcp/oauth*.ts</code>, <code>controllers/oauth-consent.ts</code> und keine
+  API-Routen-/Schema-Datei (<code>apps/api/src/**/index.ts</code> außerhalb mcp/tools.ts) ändert sich —
+  überprüfbar am Diff dieser Karte.</p></div>
+  <div class="ac"><p><strong>AC9 — Suite grün:</strong> Die bestehende Test-Suite (Mindestumfang:
+  MCP-OAuth-Store- und Werkzeug-Tests, plus die API-Unit/Integrationstests der berührten Routen) bleibt
+  grün; Befund aus scripts/check-sprint.sh sauber.</p></div>
+  <div class="ac"><p><strong>AC10 — Lint:</strong> <code>scripts/vault-lint.py</code> meldet für diese
+  Spezifikation 0 ERROR (vorhandene WARNs dieser Zeile sind praeexistent, nicht von dieser Karte).</p></div>
+
+  <h2>6. Verweise</h2>
+  <ul>
+    <li>Feature/Schnitt: <code>roadmap/r2-freigegeben.html</code> §3.1 (F-R2-1, Karten-Kette), §3
+    (Intervall 97/230 = Summe gemessener Werte).</li>
+    <li>Vorläufer-Analyse: <code>analysis/codebase.html</code> Modul 10 (MCP-HTTP-Routen + stdio-Paket),
+    §6 Testfläche (MCP-OAuth-Store getestet).</li>
+    <li>Marktbeleg: <code>sources/…/market.html</code> §4 (Linear MCP nur Enterprise; Kaneo einziger
+    offener, selbst gehosteter Kanal).</li>
+    <li>Code: <code>apps/api/src/mcp/tools.ts</code> (§1-Fundstellen), <code>apps/api/src/mcp/index.ts</code>,
+    <code>packages/mcp/src/tools/register.ts</code>, <code>packages/mcp/src/kaneo/client.ts</code>.</li>
+  </ul>
+
+  <section id="video-skript">
+    <p>Der MCP-Agentenkanal von Kaneo ist lange schon gebaut: sechsunddreißig Werkzeuge, in zwei parallelen
+    Katalogen, mit OAuth im API-Prozess und einem mitgelieferten Paket für lokale Assistenten. Diese
+    Baukarte härtet, sie erfindet nichts Neues. Die größte Gefahr ist ein stiller Datenverlust: Wer eine
+    Aufgabe ändert, liest sie erst, dann schreibt er sie zurück — und dazwischen kann ein zweiter
+    Assistent oder ein Kollege dieselbe Karte ändern, deren Arbeit dann überschrieben wird. Genau das wird
+    hier behoben, mit einer Erwartungsprüfung vor jedem Zurückschreiben. Außerdem werden Statuswerte gegen
+    die wirklich vorhandenen Spalten eines Projekts geprüft, statt freie Texte durchzulassen, und bei
+    Zeiteinträgen wird die Reihenfolge von Beginn und Ende jetzt im Schema erzwungen. Vier Dinge bleiben
+    bewusst außen vor: neue Werkzeuge, ein Idempotenzschutz für Neuanlagen, eine Zusammenführung der zwei
+    Kataloge und ein Ratenlimit — das sind eigene Folgekarten, weil zwei davon die öffentliche
+    Schnittstelle oder den OAuth-Speicher anfassen würden. Der OAuth-Speicher und die öffentliche API
+    bleiben unangetastet, die Test-Suite bleibt grün. Als Nächstes wird diese Baukarte geschätzt und
+    umgesetzt.</p>
+  </section>
+
+  <figure class="esf-video">
+    <video controls preload="metadata" width="100%" src="r2-f2-mcp-agentenkanal.mp4">
+      <track kind="subtitles" srclang="de" label="Untertitel" src="r2-f2-mcp-agentenkanal.vtt">
+    </video>
+    <figcaption>Video-Zusammenfassung; Untertitel zuschaltbar. Gerendert von scripts/video-render.sh.</figcaption>
+  </figure>
+
+</body>
+</html>

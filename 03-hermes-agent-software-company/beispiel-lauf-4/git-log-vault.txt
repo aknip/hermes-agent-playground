@@ -1,0 +1,200 @@
+69b70a9 Ledger: 2 (Schätzung, Ist)-Paar(e) vom 2026-08-19
+ ledger/estimates.jsonl | 2 ++
+ 1 file changed, 2 insertions(+)
+9d79325 Ledger: 3 (Schätzung, Ist)-Paar(e) vom 2026-08-19
+ ledger/estimates.jsonl | 3 +++
+ 1 file changed, 3 insertions(+)
+0cf63e6 report: Sprint-Report S4 (Karte t_1e586edb) — sprint-s4-report.html; Check wörtlich übernommen (Paar-Riegel grün mit 6 Paaren, restlich rot auf F2-Nacharbeit + F2-nicht-auf-main); Lieferliste F-R1-1b Merge 37cbdb6 auf main, F-R2-1 nicht auf main; Faktoren review-repo-M 1,8x / impl-worktree-M 1,6x; offene Liste für nächsten Sprint
+ reports/sprint-s4-report.html | 324 ++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 324 insertions(+)
+20f63fc report: Controller-Report S4 (Karte t_a37e2da8) — controller-s4.html; Pruefung 3 (Paare) gruen mit 6 Paaren, check-sprint S4 rot auf F2-nicht-auf-main (Nacharbeit) + fehlender Sprint-Report; Faktor review-repo-M 1,8x, impl-worktree-M 1,6x; Kontaminationen: kein Standby, Gate-Trennung gehalten
+ ledger/kosten-je-rolle.jsonl |  13 +++
+ reports/controller-s4.html   | 255 +++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 268 insertions(+)
+5283032 Ledger: 13 (Schätzung, Ist)-Paar(e) vom 2026-08-19
+ ledger/estimates.jsonl | 13 +++++++++++++
+ 1 file changed, 13 insertions(+)
+9979862 spec: F-R2-1 MCP-Agentenkanal haerten (Karte t_c8a338ba) — 36 Tools in zwei Katalogen verifiziert (API-hosted + stdio); kein IDOR (AuthZ delegiert an API-Routen, jede Route gescoped); Haertung H1 read-modify-write atomar via expect-Pruefung, H3 Status gegen Projekt-Spalten, H4 start<=end; 4 Folgekarten (Idempotenz, Katalog-Quelle, Rate-Limit, Doku); OAuth-Store + oeffentliche API unangetastet
+ specs/r2-f2-mcp-agentenkanal.html | 362 ++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 362 insertions(+)
+ef2ddc2 spec: F-R1-1b Import aus WeKan (Karte t_954918ae) — Schwester-Paket @kaneo/wekan-import auf geteiltem kaneo-client ohne Client-Erweiterung; eigene Abbildung; Kommentar-Autor im Text statt externalUserName (API-Kanon hat kein wekan)
+ specs/r2-f1b-import-wekan.html | 354 +++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 354 insertions(+)
+601e05e roadmap: R2-Freigabe nach Supervisor-Entscheidung modify (Karte t_cc17fedf) — r2-freigegeben.html; Schnitt wie gelegt freigegeben, Auflage b per Option b unter 3 Bedingungen (2a KARTEN-ID, 2b laut scheitern, 2c Vollstaendigkeitsquote als Detektor-Ersatz), create-release.sh-Posten vor erstem R2-Sprint, Horizont release
+ roadmap/r2-freigegeben.html | 292 ++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 292 insertions(+)
+26a9127 roadmap: Neuschnitt R2 gegen gemessene Intervalle (Karte t_66f18d66) — r2-neuschnitt.html; 12 Paare, R2/R3-Schnitt, Splitting 8b, drei Gate-Entscheidungen
+ roadmap/r2-neuschnitt.html | 482 +++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 482 insertions(+)
+bbec737 report: Sprint-Abschluss S3 (Karte t_88a4c431) — sprint-s3-report.html; restliche S3-Artefakte (Schaetzung r2-f1, Riegel-Protokoll r2-f1, Ledger ceo/eskalation)
+ ledger/ceo-entscheidungen.jsonl |   0
+ ledger/eskalationen.jsonl       |   0
+ reports/riegel-r2-f1.txt        |  65 +++++++
+ reports/schaetzung-r2-f1.html   | 217 +++++++++++++++++++++
+ reports/sprint-s3-report.html   | 409 ++++++++++++++++++++++++++++++++++++++++
+ 5 files changed, 691 insertions(+)
+698328b report: S3 Kalibrierung (Karte t_16af6589) — Ledger 47 Zeilen, Pruefung 3 ROT auf t_de53e678 (Umsetzung F-R1-1 ohne Schätzung)
+ ledger/kosten-je-rolle.jsonl |  13 ++
+ reports/controller-s3.html   | 279 +++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 292 insertions(+)
+84322e0 Ledger: 13 (Schätzung, Ist)-Paar(e) vom 2026-08-19
+ ledger/estimates.jsonl | 13 +++++++++++++
+ 1 file changed, 13 insertions(+)
+35dd2b9 spec: F-R1-1 Import CSV + WeKan (Karte t_eb272a28, ADR-001: zweites CLI-Paket + geteilter Schreib-Client)
+ decisions/ADR-001-import-architektur.html | 136 ++++++++++++++
+ specs/r2-f1-import-csv-wekan.html         | 298 ++++++++++++++++++++++++++++++
+ 2 files changed, 434 insertions(+)
+c61ddc5 agents: abschnitt 2.4 — der journey-katalog kennt nur die spec (supervisor, auflage r1-a)
+ AGENTS.md | 20 ++++++++++++++++++++
+ 1 file changed, 20 insertions(+)
+9085761 journeys: J-03 auf 5 Schritte nachgezogen (Karte t_28c5032d, Auflage R1-a)
+ analysis/journeys.html | 17 ++++++++++-------
+ 1 file changed, 10 insertions(+), 7 deletions(-)
+7823d43 report: R2 Controller-Report Auflage b (karte t_c735aff4) — die zwei Ledger-Luecken benannt (spec-vault-S n=1 statt 2, merge-repo-S n=2 statt 3), Ursachen behoben (5aae703, 2aab474) verifiziert, check-sprint S1/S2 Pruefung 3 Stand ehrlich
+ reports/controller-r2-auflage-b.html | 298 +++++++++++++++++++++++++++++++++++
+ 1 file changed, 298 insertions(+)
+0cab275 report: Befund praeexistenter Palette-Keydown-Handler (karte t_2616e83d) — echter Defekt
+ reports/befund-palette-keydown.html | 177 ++++++++++++++++++++++++++++++++++++
+ 1 file changed, 177 insertions(+)
+c7019ea Release-Freigabe R1 (approve t_d85e4216): Freigabebeschluss im release-r1.html (Wortlaut CEO), roadmap/q1-fortschritt.html (R1 fertig, Kalibrierung->R2, Auflagen a/b/c)
+ reports/release-r1.html     |  82 +++++++++++++-----
+ roadmap/q1-fortschritt.html | 201 ++++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 263 insertions(+), 20 deletions(-)
+3cc5165 Release-Abschluss R1: reports/release-r1.html (f-R1-2/3/4, Puefstand, Selbst-Hoster)
+ reports/release-r1.html | 245 ++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 245 insertions(+)
+b41f143 report: sprint-abschnitt S2 (karte t_a5303420, pruefung 6 gruen, riegel rot auf t_c35344ff — torn paar am merge F4)
+ reports/sprint-s2-report.html | 380 ++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 380 insertions(+)
+0c7a797 controller: Report S2 Kalibrierung (karte t_94142e50, Prüfung 3 rot auf t_c35344ff — Handoff-Verlust am Merge F4)
+ ledger/kosten-je-rolle.jsonl              |  13 ++
+ reports/controller-s2.html                | 280 ++++++++++++++++++++++++
+ reports/riegel-r1-f3.txt                  |  47 ++++
+ reports/riegel-r1-f4.txt                  |  36 ++++
+ reports/schaetzung-r1-f3.html             | 190 +++++++++++++++++
+ reports/schaetzung-r1-f4.html             | 180 ++++++++++++++++
+ specs/r1-f3-tastatur-command-palette.html | 343 ++++++++++++++++++++++++++++++
+ 7 files changed, 1089 insertions(+)
+a7dc86d Ledger: 12 (Schätzung, Ist)-Paar(e) vom 2026-08-19
+ ledger/estimates.jsonl | 12 ++++++++++++
+ 1 file changed, 12 insertions(+)
+6e99286 docs(journeys): j-05 und j-06 mit spec-datei im katalog
+ analysis/journeys.html | 24 +++++++++++++-----------
+ 1 file changed, 13 insertions(+), 11 deletions(-)
+48ea341 spec: F-R1-4 E2E-Netz J-05+J-06 (karte t_ee17923d, zwei neue Journeys spezifiziert)
+ specs/r1-f4-e2e-netz-j05-j06.html | 353 ++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 353 insertions(+)
+45f2406 report: sprint-abscluss S1 (karte t_46063013, alle pruefungen ausser klassifikation t_e70f40ff gruen)
+ reports/sprint-s1-report.html | 323 ++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 323 insertions(+)
+c3a4a54 ledger: Rollenkosten-Schnappschuss 2026-08-19 (kumulativ je Profil-Key)
+ ledger/kosten-je-rolle.jsonl | 13 +++++++++++++
+ 1 file changed, 13 insertions(+)
+924de18 controller: Report S1 Kalibrierung (karte t_25ea8331, zusammen mit Riegel-Rohbelegen)
+ reports/controller-s1.html                | 232 ++++++++++++++++++++++++++++++
+ reports/riegel-r1-f2-run1-crash-beleg.txt |  29 ++++
+ reports/riegel-r1-f2.txt                  |  36 +++++
+ 3 files changed, 297 insertions(+)
+d74e8a1 Ledger: 6 (Schätzung, Ist)-Paar(e) vom 2026-08-19
+ ledger/estimates.jsonl | 6 ++++++
+ 1 file changed, 6 insertions(+)
+41618fc report: schaetzung F-R1-2 (drei folgekarten, karte t_1b5d47a2)
+ reports/schaetzung-r1-f2.html | 138 ++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 138 insertions(+)
+1eb2f37 specs: F-R1-2 Create-Task-Dialog entschlacken (Karte t_e70f40ff)
+ specs/r1-f2-create-task-subtraktion.html | 262 +++++++++++++++++++++++++++++++
+ 1 file changed, 262 insertions(+)
+833778a ledger: probelauf-zeiten nachgebucht (supervisor)
+ ledger/estimates.jsonl       | 16 ++++++++++++++++
+ reports/riegel-merge.txt     | 35 +++++++++++++++++++++++++++++++++++
+ reports/riegel-probelauf.txt | 32 ++++++++++++++++++++++++++++++++
+ 3 files changed, 83 insertions(+)
+ab641e5 video: fuenf individuelle kompositionen mit der neuen sprecherstimme
+ analysis/codebase.komposition/audio.tts-weg        |   1 +
+ analysis/codebase.komposition/auftrag.json         |  49 +++
+ analysis/codebase.komposition/hyperframes.json     |   5 +
+ analysis/codebase.komposition/index.html           | 399 +++++++++++++++++
+ analysis/codebase.vtt                              |  16 +-
+ analysis/market.komposition/audio.tts-weg          |   1 +
+ analysis/market.komposition/auftrag.json           |  49 +++
+ analysis/market.komposition/hyperframes.json       |   5 +
+ analysis/market.komposition/index.html             | 412 ++++++++++++++++++
+ analysis/market.vtt                                |  16 +-
+ analysis/product.komposition/audio.tts-weg         |   1 +
+ analysis/product.komposition/auftrag.json          |  39 ++
+ analysis/product.komposition/hyperframes.json      |   5 +
+ analysis/product.komposition/index.html            | 351 +++++++++++++++
+ analysis/product.vtt                               |  12 +-
+ roadmap/q1-entwurf.komposition/audio.tts-weg       |   1 +
+ roadmap/q1-entwurf.komposition/auftrag.json        |  49 +++
+ roadmap/q1-entwurf.komposition/hyperframes.json    |   5 +
+ roadmap/q1-entwurf.komposition/index.html          | 481 +++++++++++++++++++++
+ roadmap/q1-entwurf.vtt                             |  16 +-
+ roadmap/q1-freigegeben.komposition/audio.tts-weg   |   1 +
+ roadmap/q1-freigegeben.komposition/auftrag.json    |  54 +++
+ .../q1-freigegeben.komposition/hyperframes.json    |   5 +
+ roadmap/q1-freigegeben.komposition/index.html      | 368 ++++++++++++++++
+ roadmap/q1-freigegeben.vtt                         |  18 +-
+ 25 files changed, 2320 insertions(+), 39 deletions(-)
+43f3a7c video: alle kompositionen und videos verworfen — neue sprecherstimme
+ AGENTS.md                                    |  45 ++-
+ analysis/market.komposition/auftrag.json     |  49 ----
+ analysis/market.komposition/hyperframes.json |   5 -
+ analysis/market.komposition/index.html       | 414 ---------------------------
+ cadence.yaml                                 |  19 +-
+ 5 files changed, 59 insertions(+), 473 deletions(-)
+ccda718 video(komposition): erste MODELL-gestaltete komposition fuer market
+ analysis/market.komposition/auftrag.json     |  49 ++++
+ analysis/market.komposition/hyperframes.json |   5 +
+ analysis/market.komposition/index.html       | 414 +++++++++++++++++++++++++++
+ 3 files changed, 468 insertions(+)
+8b57a55 video: attrappe entfernt — der esf-video-designer gestaltet market selbst
+ analysis/market.komposition/auftrag.json     |  49 ------------
+ analysis/market.komposition/hyperframes.json |   5 --
+ analysis/market.komposition/index.html       | 108 ---------------------------
+ 3 files changed, 162 deletions(-)
+92fa344 video(komposition): individuelle komposition fuer market, AGENTS.md 8.1
+ .gitignore                                   |   8 ++
+ AGENTS.md                                    |  47 ++++++++++++
+ analysis/market.komposition/auftrag.json     |  49 ++++++++++++
+ analysis/market.komposition/hyperframes.json |   5 ++
+ analysis/market.komposition/index.html       | 108 +++++++++++++++++++++++++++
+ 5 files changed, 217 insertions(+)
+a426ee1 video(zusammenfassung): untertitel der fuenf phase-1-dokumente
+ analysis/codebase.vtt      | 34 ++++++++++++++++++++++++++++++++++
+ analysis/market.vtt        | 34 ++++++++++++++++++++++++++++++++++
+ analysis/product.vtt       | 26 ++++++++++++++++++++++++++
+ roadmap/q1-entwurf.vtt     | 34 ++++++++++++++++++++++++++++++++++
+ roadmap/q1-freigegeben.vtt | 38 ++++++++++++++++++++++++++++++++++++++
+ 5 files changed, 166 insertions(+)
+8e33331 roadmap: Q1-Freigabe nach CEO-Entscheidung modify (karte t_95b30a23)
+ analysis/market.html        | 370 +++++++++++++++++++++++++++++++++++++++
+ analysis/product.html       | 246 ++++++++++++++++++++++++++
+ roadmap/q1-freigegeben.html | 415 ++++++++++++++++++++++++++++++++++++++++++++
+ 3 files changed, 1031 insertions(+)
+a19e535 roadmap: erste Q1-Roadmap mit Schätzintervallen (karte t_583218e7)
+ roadmap/q1-entwurf.html | 300 ++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 300 insertions(+)
+5c75470 analyze(esf-qa-release): journey-katalog kaneo (karte t_74d35a8f)
+ analysis/journeys.html | 67 ++++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 67 insertions(+)
+bdc4795 analyse(esf-architect): codebasis-analyse kaneo (karte t_d44eafe8)
+ analysis/codebase.html | 169 +++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 169 insertions(+)
+bb34e4a Vault-Gerüst: AGENTS.md, cadence.yaml, Ordnerstruktur
+ .gitignore                                  |    9 +
+ AGENTS.md                                   |  222 ++++++
+ cadence.yaml                                |  109 +++
+ ledger/estimates.jsonl                      |    0
+ sources/2026-08-17/focalboard-releases.md   |  261 +++++++
+ sources/2026-08-17/height-startseite.fehler |    6 +
+ sources/2026-08-17/huly-releases.md         |  282 ++++++++
+ sources/2026-08-17/kanboard-releases.md     |  229 ++++++
+ sources/2026-08-17/kaneo-releases.md        |  108 +++
+ sources/2026-08-17/linear-changelog.md      | 1029 +++++++++++++++++++++++++++
+ sources/2026-08-17/openproject-releases.md  |  304 ++++++++
+ sources/2026-08-17/plane-releases.md        |  209 ++++++
+ sources/2026-08-17/taiga-releases.md        |    8 +
+ sources/2026-08-17/vikunja-releases.md      |  130 ++++
+ sources/2026-08-17/wekan-releases.md        |  294 ++++++++
+ 15 files changed, 3200 insertions(+)

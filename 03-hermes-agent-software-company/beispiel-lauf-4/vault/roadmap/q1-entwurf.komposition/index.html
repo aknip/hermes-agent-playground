@@ -1,0 +1,481 @@
+<!doctype html>
+<html lang="de" data-resolution="landscape">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1920, height=1080">
+<title>Roadmap Q1 (Entwurf) — ESF</title>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    width: 1920px; height: 1080px; overflow: hidden;
+    background: #0c1216; color: #edf2ee;
+    font-family: "Avenir Next", Avenir, "Segoe UI", system-ui, sans-serif;
+  }
+
+  #root {
+    position: relative; width: 100%; height: 100%; overflow: hidden;
+    background: #0c1216;
+  }
+
+  /* ---- persistent background layer (full-bleed child, never the root) ---- */
+  #grad {
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(1200px 700px at 82% -8%, rgba(39,131,84,.20), transparent 62%),
+      radial-gradient(900px 620px at 8% 108%, rgba(16,64,46,.30), transparent 60%),
+      #0c1216;
+  }
+  #grid {
+    position: absolute; inset: 0; opacity: .5;
+    background-image:
+      linear-gradient(rgba(120,160,138,.06) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(120,160,138,.06) 1px, transparent 1px);
+    background-size: 96px 96px;
+  }
+  #glow1 {
+    position: absolute; left: 60%; top: -140px; width: 620px; height: 620px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(52,192,125,.22), transparent 62%);
+    transform-origin: center;
+  }
+  #kicker {
+    position: absolute; left: 96px; top: 64px;
+    font-family: ui-monospace, Menlo, monospace;
+    font-size: 22px; letter-spacing: .22em; text-transform: uppercase;
+    color: #96a59c;
+  }
+  #kicker b { color: #4fd08f; font-weight: 700; }
+  .frame-note {
+    position: absolute; right: 96px; bottom: 52px;
+    font-family: ui-monospace, Menlo, monospace;
+    font-size: 17px; letter-spacing: .14em; color: #9aa8a3; text-align: right;
+  }
+
+  /* ---- persistent roadmap rail ---- */
+  .rail {
+    position: absolute; left: 96px; right: 96px; top: 156px; height: 84px;
+    display: flex; flex-direction: row; justify-content: space-between;
+  }
+  .rail-line {
+    position: absolute; left: 8.5%; right: 8.5%; top: 22px; height: 2px;
+    background: rgba(140,180,158,.22);
+  }
+  .node { width: 320px; display: flex; flex-direction: column; align-items: center; z-index: 2; }
+  .ndot {
+    width: 46px; height: 46px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    background: #16262f; border: 2px solid rgba(120,165,140,.34); color: #b9c6cf;
+    font-family: ui-monospace, Menlo, monospace; font-size: 19px; font-weight: 700;
+  }
+  .lbl { margin-top: 12px; font-size: 20px; font-weight: 700; color: #cdd8d2; text-align: center; }
+  .sub { margin-top: 3px; font-size: 13px; color: #a9b6b0; text-align: center; }
+
+  /* ---- scene shell ---- */
+  .scene { position: absolute; left: 96px; right: 96px; top: 276px; bottom: 76px; }
+  .inner { position: absolute; inset: 0; }
+
+  .k {
+    font-family: ui-monospace, Menlo, monospace;
+    font-size: 20px; letter-spacing: .24em; text-transform: uppercase; color: #6f9c83;
+  }
+  .k.grn { color: #4fd08f; }
+  .k.amb { color: #e2b25a; }
+  .k.red { color: #ff7b6b; }
+
+  h1.big { margin-top: 16px; font-size: 66px; line-height: 1.08; font-weight: 800;
+           color: #edf2ee; max-width: 15em; }
+  .lede { margin-top: 20px; font-size: 28px; line-height: 1.5; color: #b9c6c6; max-width: 26em; }
+  .ln2 { display: block; }
+  .ln2b { display: block; margin-top: 8px; color: #8dc3a5; font-weight: 600; }
+
+  /* scene shell separators (persistent vertical hairline under each scene top) not needed */
+
+  /* entrance-hidden elements — every hidden id below has a matching to( opacity:1 ) */
+  .k, h1.big, .lede, .stat, .core-card, .cc-t, .gaph, .pill,
+  .fcard, .ncard, .ichip, .actor, .arrow, .gate-card, .interval-box,
+  #s2-gaps, #s6-why, #s7-claim { opacity: 0; }
+
+  /* scene 1 stats */
+  #s1-o { margin-bottom: 30px; }
+  .stats { display: flex; gap: 26px; margin-top: 40px; }
+  .stat {
+    flex: 1; padding: 22px 26px 20px; background: rgba(255,255,255,.03);
+    border: 2px solid rgba(140,180,158,.22); border-top: 3px solid #34c07d;
+  }
+  .stat .n { font-size: 92px; font-weight: 800; line-height: 1; color: #edf2ee; }
+  .stat .n small { font-size: 38px; font-weight: 200; color: #34c07d; }
+  .stat .t { margin-top: 10px; font-size: 21px; color: #a8b5b0; }
+
+  /* scene 2: strategic core */
+  .core-card {
+    margin-top: 30px; padding: 28px 34px; max-width: 940px;
+    background: linear-gradient(90deg, rgba(30,124,79,.28), rgba(19,36,34,.10));
+    border-left: 6px solid #34c07c; border-radius: 4px;
+  }
+  .cc-k { font-family: ui-monospace, Menlo, monospace; font-size: 15px; letter-spacing:.2em;
+          color:#5bd694; text-transform:uppercase; }
+  .cc-t { margin-top: 8px; font-size: 38px; font-weight: 800; color: #eaf5ef; line-height: 1.2; }
+  .gaph { font-size: 22px; color: #8fa69b; margin-bottom: 14px; }
+  .pills { display: flex; gap: 20px; }
+  .pill { padding: 13px 30px; font-size: 29px; font-weight: 700; color: #17130a;
+          background: #e2b25a; border-radius: 6px; }
+  .pill.sec { background: #ff8f7f; color: #170b08; }
+
+  /* release grids */
+  .rhead { display: block; }
+  .cards { display: grid; gap: 20px; }
+  .cards.c4 { grid-template-columns: repeat(4, 1fr); }
+  .cards.c3 { grid-template-columns: repeat(3, 1fr); }
+  .fcard {
+    padding: 18px 20px 16px; background: rgba(255,255,255,.035);
+    border: 2px solid rgba(140,180,158,.22); border-radius: 4px;
+  }
+  .fc-id { font-family: ui-monospace, Menlo, monospace; font-size: 14px; letter-spacing:.12em; color:#5bd694; }
+  .fc-t { margin-top: 9px; font-size: 23px; font-weight: 700; color: #dce7e0; line-height: 1.22; }
+  .fc-s { margin-top: 8px; font-size: 15px; color: #96a49d; line-height: 1.4; }
+
+  /* scene 6: nicht machen */
+  .nicht-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin-top: 22px; }
+  .ncard {
+    display: flex; align-items: center; gap: 18px; padding: 18px 22px;
+    background: rgba(255,255,255,.02); border: 2px solid rgba(220,90,90,.4);
+    border-left: 5px solid #e25c53; border-radius: 4px;
+  }
+  .ncard .x { font-size: 40px; font-weight: 800; color: #e25c53; line-height: 1; }
+  .ncard .nt { font-size: 26px; font-weight: 700; color: #f0dcd9; }
+
+  /* scene 7: estimate interval */
+  .interval-box { margin-top: 30px; max-width: 1080px; }
+  .ilabel { display:flex; justify-content:space-between; font-family: ui-monospace, Menlo, monospace;
+            font-size:16px; letter-spacing:.1em; color:#6f9b7e; text-transform:uppercase; }
+  .interval-track { margin-top: 12px; height: 54px; background: rgba(255,255,255,.04);
+                    border:2px solid rgba(226,178,90,.4); border-radius:6px; position: relative; }
+  .interval-band { position: absolute; top: 0; bottom: 0; left: 22%; right: 22%;
+                   background: rgba(226,178,90,.85); border-radius: 3px;
+                   transform: scaleX(0); transform-origin: left center; }
+  .interval-band::after { content:""; position:absolute; top:0; bottom:0; left:50%; width:2px; background:#6b551f; }
+  .ichips { display: flex; gap: 14px; margin-top: 20px; flex-wrap: wrap; }
+  .ichip { padding: 10px 18px; border:2px solid rgba(226,178,90,.45); color:#e9d3a3; font-size: 19px; border-radius: 6px; }
+  .ichip.solid { background:#e2b25a; color:#17130a; font-weight:700; border-color:#e2b25a; }
+  #s7-claim { margin-top: 24px; font-size: 25px; color: #e8cfa0; }
+
+  /* scene 8: gate */
+  .gate-wrap { display: flex; align-items: center; gap: 34px; margin-top: 40px; }
+  .gate-actor { flex: 0 0 340px; }
+  .actor { display:flex; flex-direction:column; align-items:center; text-align:center; }
+  .actor .awho { font-family: ui-monospace, Menlo, monospace; font-size:15px; letter-spacing:.2em; color:#96a59e; text-transform:uppercase; }
+  .actor .av { margin-top:12px; width:92px; height:92px; border-radius:50%; background:#1a2c24;
+               border:3px solid #34c07c; display:flex; align-items:center; justify-content:center;
+               font-size:17px; font-weight:700; color:#7fe0ab; }
+  .actor .al { margin-top: 12px; font-size: 26px; font-weight: 700; color:#e6efe9; }
+  .arrow { font-size: 54px; color:#4fd08f; font-weight: 200; }
+  .gate-card { flex: 1; padding: 26px 32px; background: rgba(255,255,255,.04);
+               border: 3px solid #34c07c; border-radius: 6px; }
+  .g-k { font-family: ui-monospace, Menlo, monospace; letter-spacing:.2em; font-size:17px; color:#5bd694; text-transform:uppercase; }
+  .g-t { margin-top: 12px; font-size: 40px; font-weight: 800; color:#eaf5ef; }
+  .g-s { margin-top: 10px; font-size: 21px; color:#a9b9b1; }
+  .check { display:flex; gap: 16px; margin-top: 20px; flex-wrap: wrap; }
+  .ck { padding: 9px 16px; border:2px dashed rgba(140,190,158,.5); color:#bfd2c7; font-size: 17px; border-radius:6px; }
+
+  /* progress bar */
+  .progress { position: absolute; left: 96px; right: 96px; bottom: 34px; height: 4px; background: rgba(140,180,158,.16); }
+  #fortschritt { height: 100%; width: 0; background: #34c07c; }
+</style>
+</head>
+<body>
+
+<div id="root"
+     data-composition-id="roadmap-q1-entwurf"
+     data-start="0"
+     data-duration="79.35"
+     data-width="1920"
+     data-height="1080">
+
+  <!-- persistent background -->
+  <div id="bg">
+    <div id="grad"></div>
+    <div id="grid"></div>
+    <div id="glow1"></div>
+  </div>
+
+  <!-- persistent roadmap rail -->
+  <div id="kicker">Kaneo&nbsp; <b>&middot;</b> Roadmap Q1 <b>&middot;</b> Entwurf</div>
+  <div class="rail">
+    <div class="rail-line"></div>
+    <div class="node">
+      <span class="ndot" id="nd1">R1</span>
+      <span class="lbl">Ankommen</span>
+      <span class="sub">Migration &amp; der t&auml;gliche Kern</span>
+    </div>
+    <div class="node">
+      <span class="ndot" id="nd2">R2</span>
+      <span class="lbl">Differenzieren &amp; Absichern</span>
+      <span class="sub">Agentenkanal, Sicherheit, Automatisierung</span>
+    </div>
+    <div class="node">
+      <span class="ndot" id="nd3">R3</span>
+      <span class="lbl">Erreichbarkeit &amp; i18n</span>
+      <span class="sub">Mobile, Sprachen, Backlog</span>
+    </div>
+  </div>
+
+  <!-- ================= S1  0.0 – 9.854  overview ================= -->
+  <section id="s1" class="clip scene" data-start="0" data-duration="9.854" data-track-index="1" style="z-index:2;">
+    <div class="inner">
+      <div id="s1-o">
+        <div class="k" id="s1-k">Das Quartal</div>
+        <h1 class="big" id="s1-title">Ein Quartal,<span class="ln2">drei Releases.</span></h1>
+        <div class="lede" id="s1-sub">Je Release bis zu f&uuml;nf Features &nbsp;&middot;&nbsp; insgesamt f&uuml;nfzehn.</div>
+      </div>
+      <div class="stats">
+        <div class="stat s1-stat">
+          <div class="n">3</div>
+          <div class="t">Releases</div>
+        </div>
+        <div class="stat s1-stat">
+          <div class="n"><small>bis zu</small> 5</div>
+          <div class="t">Features je Release</div>
+        </div>
+        <div class="stat s1-stat">
+          <div class="n">15</div>
+          <div class="t">Features insgesamt</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================ S2  9.854 – 26.45  strategy ================ -->
+  <section id="s2" class="clip scene" data-start="9.854" data-duration="16.596" data-track-index="1" style="z-index:2;">
+    <div class="inner">
+      <div class="k grn" id="s2-k">Unser Kern</div>
+      <div class="lede" id="s2-lead">Nicht die Feature-Breite der Konkurrenz kopieren:<span class="ln2b">auf Kaneos eigenen Unterschied bauen.</span></div>
+      <div class="core-card" id="s2-card">
+        <div class="cc-k">Offener &middot; selbst gehostet</div>
+        <div class="cc-t" id="s2-card-t">Der Agentenkanal</div>
+      </div>
+      <div id="s2-gaps">
+        <div class="gaph" id="s2-gaph">Die zwei gr&ouml;&szlig;ten L&uuml;cken schlie&szlig;en:</div>
+        <div class="pills">
+          <span class="pill" id="p1">Importe</span>
+          <span class="pill sec" id="p2">Sicherheit</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================== S3  26.45 – 37.86  R1 ================== -->
+  <section id="s3" class="clip scene" data-start="26.45" data-duration="11.41" data-track-index="1" style="z-index:2;">
+    <div class="inner">
+      <div class="rhead">
+        <div class="k grn" id="s3-k">Release 1 &middot; Ankommen</div>
+        <h1 class="big" id="s3-t">Migration<span class="ln2">und der t&auml;gliche Kern.</span></h1>
+      </div>
+      <div class="cards c4" id="s3-cards">
+        <div class="fcard rc">
+          <div class="fc-id">Import</div>
+          <div class="fc-t">CSV + WeKan</div>
+          <div class="fc-s">&Uuml;bernehmen statt neu abtippen.</div>
+        </div>
+        <div class="fcard rc">
+          <div class="fc-id">Vorgangs-Dialog</div>
+          <div class="fc-t">Entschluckt</div>
+          <div class="fc-s">Subtraktion: der t&auml;gliche Kern wird k&uuml;rzer.</div>
+        </div>
+        <div class="fcard rc">
+          <div class="fc-id">Tastatur</div>
+          <div class="fc-t">Tastaturbedienung &amp; Command-Palette</div>
+          <div class="fc-s">Ohne Maus: Aufgabe anlegen, Board wechseln.</div>
+        </div>
+        <div class="fcard rc">
+          <div class="fc-id">Qualit&auml;t</div>
+          <div class="fc-t">Gr&uuml;nes E2E-Regressionsnetz</div>
+          <div class="fc-s">J-05 und J-06 werden abgedeckt.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================ S4  37.86 – 44.083  R2 ================ -->
+  <section id="s4" class="clip scene" data-start="37.86" data-duration="6.223" data-track-index="1" style="z-index:2;">
+    <div class="inner">
+      <div class="rhead">
+        <div class="k grn" id="s4-k">Release 2 &middot; Differenzieren &amp; Absichern</div>
+        <h1 class="big" id="s4-t" style="font-size:50px;">Den Unterschied ausbauen, Sicherheit schlie&szlig;en.</h1>
+      </div>
+      <div class="cards c3" id="s4-cards">
+        <div class="fcard rc">
+          <div class="fc-id">F-R2-1</div>
+          <div class="fc-t">Agentenkanal (MCP)</div>
+          <div class="fc-s">ausbauen &amp; h&auml;rten</div>
+        </div>
+        <div class="fcard rc">
+          <div class="fc-id">F-R2-2</div>
+          <div class="fc-t">Zwei-Faktor-Anmeldung</div>
+          <div class="fc-s">2FA &middot; Sicherheit</div>
+        </div>
+        <div class="fcard rc">
+          <div class="fc-id">F-R2-3</div>
+          <div class="fc-t">Automatisierung</div>
+          <div class="fc-s">schlanker, selbst gehosteter Rahmen</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================ S5  44.083 – 47.714  R3 ================ -->
+  <section id="s5" class="clip scene" data-start="44.083" data-duration="3.631" data-track-index="1" style="z-index:2;">
+    <div class="inner">
+      <div class="rhead">
+        <div class="k grn" id="s5-k">Release 3 &middot; Erreichbarkeit &amp; i18n</div>
+        <h1 class="big" id="s5-t" style="font-size:50px;">Reichweite &amp; letzte Kernaufgaben.</h1>
+      </div>
+      <div class="cards c3" id="s5-cards">
+        <div class="fcard rc"><div class="fc-t">Mobile</div><div class="fc-s">schlank responsiv / PWA</div></div>
+        <div class="fcard rc"><div class="fc-t">&Uuml;bersetzungen</div><div class="fc-s">i18n-Grundlage &amp; erste Sprache</div></div>
+        <div class="fcard rc"><div class="fc-t">Backlog-Vereinfachung</div><div class="fc-s">Spalte und Ansicht zusammenf&uuml;hren</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- =========== S6  47.714 – 60.679  NOT machen =========== -->
+  <section id="s6" class="clip scene" data-start="47.714" data-duration="12.965" data-track-index="1" style="z-index:2;">
+    <div class="inner">
+      <div class="k red" id="s6-k">Genauso wichtig &middot; was wir nicht machen</div>
+      <h1 class="big" id="s6-t" style="font-size:58px;">Kein Ausdruck der Feature-Breite.<span class="ln2" style="font-size:34px;color:#d9a2a2;">Das widerspricht der schlanken Positionierung.</span></h1>
+      <div class="nicht-row">
+        <div class="ncard nc"><span class="x">&#10007;</span><span class="nt">Gantt / Timeline</span></div>
+        <div class="ncard nc"><span class="x">&#10007;</span><span class="nt">Zeiterfassung</span></div>
+        <div class="ncard nc"><span class="x">&#10007;</span><span class="nt">native Mobile-App</span></div>
+        <div class="ncard nc"><span class="x">&#10007;</span><span class="nt">Enterprise-SSO</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- =========== S7  60.679 – 72.608  Schätzung =========== -->
+  <section id="s7" class="clip scene" data-start="60.679" data-duration="11.929" data-track-index="1" style="z-index:2;">
+    <div class="inner">
+      <div class="k amb" id="s7-k">Sch&auml;tzen, ohne zu erfinden</div>
+      <h1 class="big" id="s7-t" style="font-size:54px;">Ein ehrliches, breites Intervall.</h1>
+      <div class="interval-box" id="ibox">
+        <div class="ilabel"><span>breites Intervall</span><span>heute &middot; Sch&auml;tzledger leer</span></div>
+        <div class="interval-track">
+          <div class="interval-band" id="band"></div>
+        </div>
+      </div>
+      <div class="ichips">
+        <span class="ichip solid" id="ic1">Referenzklassen</span>
+        <span class="ichip" id="ic2">ohne Historie</span>
+        <span class="ichip" id="ic3">Konfidenz &lt; 0.3</span>
+      </div>
+      <div id="s7-claim">Erfundene Zahlen w&auml;ren der schlimmere Fehler.</div>
+    </div>
+  </section>
+
+  <!-- ============ S8  72.608 – 79.35  Gate ============ -->
+  <section id="s8" class="clip scene" data-start="72.608" data-duration="6.742" data-track-index="1" style="z-index:2;">
+    <div class="inner">
+      <div class="k grn" id="s8-k">N&auml;chster Schritt</div>
+      <h1 class="big" id="s8-t" style="font-size:54px;">Das Roadmap-Gate wartet.</h1>
+      <div class="gate-wrap">
+        <div class="gate-actor actor" id="act">
+          <div class="chwho">Antwortet</div>
+          <div class="av">SVM</div>
+          <div class="al">Supervisor</div>
+        </div>
+        <div class="arrow" id="arr">&#10230;</div>
+        <div class="gate-card" id="gc">
+          <div class="g-k">Roadmap-Gate</div>
+          <div class="g-t">Freigabe R1 &ndash; R3</div>
+          <div class="g-s">Pr&uuml;fen und freigeben.</div>
+          <div class="check">
+            <span class="ck">Reihenfolge</span>
+            <span class="ck">Nicht-Features</span>
+            <span class="ck">Sch&auml;tzansatz</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="progress"><div id="fortschritt"></div></div>
+  <div class="frame-note">ENTWURF &middot; bis zur Freigabe</div>
+</div>
+
+<audio id="audio" src="audio.m4a" data-start="0" data-track-index="20" data-volume="1"></audio>
+
+<script>
+  // Eine pausierte GSAP-Timeline: Hyperframes setzt sie je Frame auf die
+  // Zielzeit, statt sie laufen zu lassen. Deterministisch zwischen Preview
+  // und Render.
+  window.__timelines = window.__timelines || {};
+  const tl = gsap.timeline({ paused: true });
+  const D = 79.35;
+
+  // --- persistent decorative ambient ---
+  tl.to("#glow1", { x: 26, duration: 14, ease: "sine.inOut", yoyo: true, repeat: 2 }, 0);
+  tl.to("#glow1", { opacity: 0.9, duration: 7, ease: "sine.inOut", yoyo: true, repeat: 4 }, 0);
+  tl.to("#fortschritt", { width: "100%", duration: D, ease: "none" }, 0);
+
+  // --- persistent rail highlight per release window ---
+  tl.to("#nd1", { backgroundColor: "#1f9e5b", color: "#0b170f", scale: 1.06, duration: 0.4 }, 26.45);
+  tl.to("#nd1", { backgroundColor: "#16262f", color: "#b9c6cf", scale: 1, duration: 0.4 }, 37.86);
+  tl.to("#nd2", { backgroundColor: "#1f9e5b", color: "#0b170f", scale: 1.06, duration: 0.4 }, 37.86);
+  tl.to("#nd2", { backgroundColor: "#16262f", color: "#b9c6cf", scale: 1, duration: 0.4 }, 44.083);
+  tl.to("#nd3", { backgroundColor: "#1f9e5b", color: "#0b170f", scale: 1.06, duration: 0.4 }, 44.083);
+  tl.to("#nd3", { backgroundColor: "#16262f", color: "#b9c6cf", scale: 1, duration: 0.4 }, 47.714);
+
+  // --- scene entrances ---
+  // S1
+  tl.to("#s1-k", { opacity: 1, duration: 0.5, ease: "power2.out" }, 0.15);
+  tl.to("#s1-title", { opacity: 1, y: 0, duration: 0.6, ease: "power3.out" }, 0.3);
+  tl.to("#s1-sub", { opacity: 1, duration: 0.5, ease: "power2.out" }, 0.6);
+  tl.to(".s1-stat", { opacity: 1, duration: 0.55, ease: "power3.out", stagger: 0.14 }, 1.1);
+
+  // S2
+  tl.to("#s2-k", { opacity: 1, duration: 0.45, ease: "power2.out" }, 9.95);
+  tl.to("#s2-lead", { opacity: 1, duration: 0.5, ease: "power3.out" }, 10.25);
+  tl.to("#s2-card", { opacity: 1, duration: 0.6, ease: "power3.out" }, 12.2);
+  tl.to("#s2-card-t", { opacity: 1, duration: 0.6, ease: "power2.out" }, 12.8);
+  tl.to("#s2-gaps", { opacity: 1, duration: 0.6, ease: "power3.out" }, 15.6);
+  tl.to("#p1, #p2", { opacity: 1, duration: 0.5, ease: "power2.out", stagger: 0.12 }, 16.6);
+
+  // S3
+  tl.to("#s3-k", { opacity: 1, duration: 0.4, ease: "power2.out" }, 26.6);
+  tl.to("#s3-t", { opacity: 1, duration: 0.5, ease: "power3.out" }, 26.9);
+  tl.to("#s3 .rc", { opacity: 1, duration: 0.5, ease: "power3.out", stagger: 0.11 }, 28.4);
+
+  // S4
+  tl.to("#s4-k", { opacity: 1, duration: 0.4, ease: "power2.out" }, 38.0);
+  tl.to("#s4-t", { opacity: 1, duration: 0.5, ease: "power3.out" }, 38.3);
+  tl.to("#s4 .rc", { opacity: 1, duration: 0.5, ease: "power3.out", stagger: 0.1 }, 39.4);
+
+  // S5
+  tl.to("#s5-k", { opacity: 1, duration: 0.35, ease: "power2.out" }, 44.2);
+  tl.to("#s5-t", { opacity: 1, duration: 0.45, ease: "power3.out" }, 44.45);
+  tl.to("#s5 .rc", { opacity: 1, duration: 0.45, ease: "power2.out", stagger: 0.12 }, 45.1);
+
+  // S6
+  tl.to("#s6-k", { opacity: 1, duration: 0.4, ease: "power2.out" }, 48.0);
+  tl.to("#s6-t", { opacity: 1, duration: 0.5, ease: "power3.out" }, 48.3);
+  tl.to("#s6 .nc", { opacity: 1, duration: 0.45, ease: "power3.out", stagger: 0.13 }, 50.3);
+
+  // S7
+  tl.to("#s7-k", { opacity: 1, duration: 0.45, ease: "power2.out" }, 60.85);
+  tl.to("#s7-t", { opacity: 1, duration: 0.55, ease: "power3.out" }, 61.1);
+  tl.to("#ibox", { opacity: 1, duration: 0.5, ease: "power2.out" }, 62.2);
+  tl.to("#band", { scaleX: 1, duration: 0.8, ease: "power3.inOut" }, 62.6);
+  tl.to("#ic1,#ic2,#ic3", { opacity: 1, duration: 0.45, ease: "power2.out", stagger: 0.12 }, 64.2);
+  tl.to("#s7-claim", { opacity: 1, duration: 0.5, ease: "power2.out" }, 67.0);
+
+  // S8
+  tl.to("#s8-k", { opacity: 1, duration: 0.4, ease: "power2.out" }, 72.75);
+  tl.to("#s8-t", { opacity: 1, duration: 0.5, ease: "power3.out" }, 72.95);
+  tl.to("#act", { opacity: 1, duration: 0.5, ease: "power3.out" }, 73.7);
+  tl.to("#arr", { opacity: 1, duration: 0.4, ease: "power2.out" }, 74.3);
+  tl.to("#gc", { opacity: 1, duration: 0.55, ease: "power3.out" }, 74.7);
+
+  window.__timelines["roadmap-q1-entwurf"] = tl;
+</script>
+</body>
+</html>
