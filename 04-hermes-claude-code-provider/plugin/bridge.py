@@ -25,6 +25,22 @@ ENV_DEBUG = "HERMES_CC_DEBUG"
 # weiter, wenn der Hermes-Prozess weg ist (der Wachhund im Client stirbt mit ihm).
 ENV_CALL_DEADLINE = "HERMES_CC_CALL_DEADLINE"
 
+# Claude Codes ``--effort`` kennt genau diese Stufen (empirisch: ein unbekannter Wert
+# meldet „Valid values: low, medium, high, xhigh, max" und faellt auf die Vorgabe zurueck).
+CC_EFFORTS = ("low", "medium", "high", "xhigh", "max")
+
+# Hermes kennt sieben Stufen (hermes_constants.py:927, VALID_REASONING_EFFORTS), Claude
+# Code fuenf. Die beiden Enden werden zusammengefaltet, die Mitte deckt sich.
+EFFORT_MAP = {
+    "minimal": "low",   # Claude Code hat keine Stufe unter "low"
+    "low": "low",
+    "medium": "medium",
+    "high": "high",
+    "xhigh": "xhigh",
+    "max": "max",
+    "ultra": "max",     # Hermes' Spitze ueber Claude Codes Spitze
+}
+
 _ROLE_LABELS = {
     "system": "System",
     "user": "User",
@@ -98,6 +114,39 @@ def tools_fingerprint(snapshot: list[dict[str, Any]]) -> str:
 def allowed_tools_args(snapshot: list[dict[str, Any]]) -> list[str]:
     """``--allowedTools``-Werte, damit in ``-p`` nichts still verweigert wird."""
     return [mcp_name(t["name"]) for t in snapshot]
+
+
+def map_effort(level: Any) -> str:
+    """Hermes-Reasoning-Stufe -> Claude Codes ``--effort``; "" wenn nichts passt.
+
+    ``reasoning_effort: none`` (bzw. ``{"enabled": False}``) landet auf ``low``: Claude
+    Code kennt kein Abschalten, ``low`` ist der Boden.
+    """
+    if isinstance(level, dict):
+        if level.get("enabled") is False:
+            return "low"
+        level = level.get("effort")
+    name = str(level or "").strip().lower()
+    if not name:
+        return ""
+    if name in {"none", "false", "disabled"}:
+        return "low"
+    return EFFORT_MAP.get(name, name if name in CC_EFFORTS else "")
+
+
+def map_model(model: Any) -> str:
+    """Hermes-Modellname -> Claude Codes ``--model``; "" wenn nichts angegeben ist.
+
+    Ein vorangestelltes ``<provider>/`` faellt weg (Hermes schreibt Aggregator-Modelle
+    als ``anbieter/modell``), ein angehaengtes ``[1m]`` bleibt — das ist fuer Claude Code
+    bedeutungstragend (1M-Kontextfenster).
+    """
+    name = str(model or "").strip()
+    if not name:
+        return ""
+    if "/" in name:
+        name = name.rsplit("/", 1)[-1]
+    return name
 
 
 # ── Nachrichtenrendering ───────────────────────────────────────────────────────

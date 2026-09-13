@@ -27,6 +27,22 @@ class ClaudeCodeMCPProfile(ProviderProfile):
 
         return ClaudeCodeClient(**client_kwargs)
 
+    def build_api_kwargs_extras(
+        self, *, reasoning_config: dict | None = None, **context: Any
+    ) -> tuple[dict[str, Any], dict[str, Any]]:
+        """Hermes' Reasoning-Stufe als ``reasoning_effort`` an den Client durchreichen.
+
+        Der dokumentierte Weg (``providers/base.py``): was hier im zweiten Element
+        landet, kommt als kwarg bei ``chat.completions.create`` an. Der Client bildet es
+        auf Claude Codes ``--effort`` ab. Ohne diesen Haken bliebe ``agent.reasoning_effort``
+        wirkungslos, weil dieser Client die Transport-Schicht ueberspringt
+        (``HERMES_SKIP_TRANSPORT_WRAP``).
+        """
+        from .bridge import map_effort
+
+        effort = map_effort(reasoning_config)
+        return {}, ({"reasoning_effort": effort} if effort else {})
+
     def fetch_models(
         self, *, api_key: str | None = None, base_url: str | None = None, timeout: float = 8.0
     ) -> list[str] | None:
@@ -46,6 +62,9 @@ claude_code_mcp = ClaudeCodeMCPProfile(
     base_url="claude-code://cli",
     auth_type="external_process",
     supports_health_check=False,  # es gibt keinen /models-Endpunkt zum Anpingen
+    # Fuer den /model-Picker: die oeffentlichen Aliase der CLI. Voll qualifizierte Namen
+    # (claude-opus-5, …) und das [1m]-Suffix fuer 1M-Kontext funktionieren ebenso.
+    fallback_models=("sonnet", "opus", "fable", "haiku"),
     process_command="claude",
     # Leer: die Argumentliste hängt am einzelnen Aufruf (Sitzung, Werkzeuge, Modell)
     # und wird in client.py gebaut. Was hier landet, wird angehängt.

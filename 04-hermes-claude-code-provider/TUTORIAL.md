@@ -108,6 +108,45 @@ hermes -p claude-dev config get model
 hermes kanban --board <slug> assignees      # claude-dev muss ON DISK = yes zeigen
 ```
 
+## 3a. Modell und Denktiefe umstellen
+
+Beides kommt aus Hermes, nicht aus dem Plugin:
+
+```bash
+hermes -p claude-dev config set model.default opus            # sonnet | opus | fable | haiku
+hermes -p claude-dev config set agent.reasoning_effort xhigh  # s. Tabelle unten
+```
+
+**Modell.** Alles, was `claude --model` frisst: die öffentlichen Aliase `sonnet`,
+`opus`, `fable`, `haiku` oder ein voll qualifizierter Name (`claude-opus-5`,
+`claude-fable-5-1`, `claude-haiku-4-5-20251001`). Ein angehängtes `[1m]`
+(`opus[1m]`) bleibt erhalten — das ist Claude Codes Schalter für das
+1M-Kontextfenster. Ein vorangestelltes `anbieter/` schneidet das Plugin ab.
+
+Wirksam sind damit auch `/model` in der Sitzung und die Karten-Übersteuerung
+`hermes kanban set-model <task> --model fable`.
+
+**Denktiefe.** Hermes kennt sieben Stufen, Claude Codes `--effort` fünf; die Enden
+werden zusammengefaltet:
+
+| `agent.reasoning_effort` | `--effort` |
+|---|---|
+| `minimal`, `low` | `low` |
+| `medium` *(Vorgabe des Profils)* | `medium` |
+| `high` | `high` |
+| `xhigh` | `xhigh` |
+| `max`, `ultra` | `max` |
+| `none` / `false` | `low` — Claude Code kennt kein Abschalten |
+
+Belegt mit echten Läufen: `--model opus --effort xhigh` → die CLI fuhr
+`claude-opus-5`; `--model fable --effort max` → `claude-fable-5-1`.
+
+Reihenfolge, wenn mehrere Quellen etwas sagen: **Hermes gewinnt**, dann
+`HERMES_CLAUDE_CODE_MODEL` bzw. `HERMES_CLAUDE_CODE_EFFORT`, dann die Vorgaben
+(`sonnet`, `medium`). Die Umgebungsvariablen sind der Notausgang zum Ausprobieren —
+umgekehrte Reihenfolge hieße, dass ein vergessenes `export` jede Profiländerung
+still schluckt.
+
 ## 4. Für den Kanban-Betrieb: Gateway neu starten
 
 `kanban.dispatch_in_gateway: true` — die Worker laufen im langlebigen
@@ -167,7 +206,8 @@ Alle optional, alle als Umgebungsvariablen.
 | Variable | Vorgabe | Wirkung |
 |---|---|---|
 | `HERMES_CLAUDE_CODE_COMMAND` · `CLAUDE_CLI_PATH` | `claude` (aus `PATH`) | Binärpfad |
-| `HERMES_CLAUDE_CODE_MODEL` | `sonnet` | `--model` |
+| `HERMES_CLAUDE_CODE_MODEL` | *leer* | `--model`, **nur** wenn Hermes nichts übergibt |
+| `HERMES_CLAUDE_CODE_EFFORT` | *leer* | `--effort`, **nur** wenn Hermes nichts übergibt |
 | `HERMES_CLAUDE_CODE_MODE` | `resident` | `resident` \| `stateless` |
 | `HERMES_CLAUDE_CODE_BUDGET_USD` | *leer* | setzt `--max-budget-usd`, wenn belegt |
 | `HERMES_CLAUDE_CODE_MCP_TIMEOUT_MS` | `600000` | hartes Zeitlimit je Werkzeugaufruf |

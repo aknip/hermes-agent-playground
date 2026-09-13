@@ -17,6 +17,18 @@ einen Schema-only-MCP-Server statt als Text im Prompt mit Regex-Rückparsing.
 | [`plugin/`](plugin/) | Der Master. `install.sh` leitet die Kopien nach `~/.hermes/` ab |
 | [`probes/`](probes/) | Gesäuberte Protokolle der Läufe |
 
+## Modell und Denktiefe
+
+Beides kommt aus Hermes, nicht aus dem Plugin:
+
+```bash
+hermes -p claude-dev config set model.default opus            # sonnet | opus | fable | haiku
+hermes -p claude-dev config set agent.reasoning_effort xhigh  # minimal…ultra -> low…max
+```
+
+`/model` und `hermes kanban set-model` wirken damit ebenso. Details und die
+Stufen-Abbildung in [TUTORIAL.md](TUTORIAL.md#3a-modell-und-denktiefe-umstellen).
+
 ## Schnellstart
 
 ```bash

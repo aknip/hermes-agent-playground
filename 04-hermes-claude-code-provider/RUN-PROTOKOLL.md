@@ -171,6 +171,40 @@ gelesen, Ergebnisdatei geschrieben, Karte auf `done`. Board danach gelöscht.
 
 ---
 
+## Lauf 7 — Modell und Denktiefe sind konfigurierbar
+
+Vorher war das Modell **fest verdrahtet**: der Client las `HERMES_CLAUDE_CODE_MODEL`
+und ignorierte das `model`-Argument, das Hermes übergibt. `model.default`, `/model` und
+`hermes kanban set-model` hatten damit keine Wirkung. `--effort` wurde gar nicht gesetzt.
+
+`--effort` mit ungültigem Wert zeigt die erlaubten Stufen:
+
+```
+Warning: Unknown --effort value 'quatsch' — ignoring it and using the default effort.
+Valid values: low, medium, high, xhigh, max.
+```
+
+Nach dem Umbau, je ein echter Lauf mit der Frage nach dem eigenen Modellnamen:
+
+| Hermes übergibt | argv | Modell laut CLI | Antwort |
+|---|---|---|---|
+| `model=opus`, `reasoning_effort=xhigh` | `--model opus --effort xhigh` | `claude-opus-5` | „Ich bin Opus 5 (genaue Modell-ID: claude-opus-5)." |
+| `model=fable`, `reasoning_effort=max` | `--model fable --effort max` | `claude-fable-5-1` | „…Fable 5.1 … mit der genauen Modell-ID `claude-fable-5-1`." |
+
+Der Weg für die Denktiefe ist der dokumentierte Provider-Haken
+`build_api_kwargs_extras` (`providers/base.py`) — nötig, weil dieser Client die
+Transport-Schicht überspringt (`HERMES_SKIP_TRANSPORT_WRAP`). Geprüft:
+
+```
+reasoning_config={'enabled': True, 'effort': 'xhigh'}  -> {'reasoning_effort': 'xhigh'}
+reasoning_config={'enabled': True, 'effort': 'ultra'}  -> {'reasoning_effort': 'max'}
+reasoning_config={'enabled': False}                    -> {'reasoning_effort': 'low'}
+reasoning_config=None                                  -> {}
+```
+
+Fällt Hermes aus, greift `agent.reasoning_effort` aus der `config.yaml` des Profils —
+im Test `medium`, was zu `--effort medium` führt.
+
 ## Kosten
 
 Die Einzelläufe lagen zwischen 0,02 und 0,06 USD; die gesamte Prüfleiter inklusive

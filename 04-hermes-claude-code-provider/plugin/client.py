@@ -59,6 +59,8 @@ _DEFAULT_ORPHAN_TIMEOUT_S = 300.0
 # tool_use-Blöcke ausgespielt hat.
 _RENDEZVOUS_ARRIVAL_TIMEOUT_S = 60.0
 
+_PROFILE_EFFORT_CACHE: str | None = None
+
 _PREAMBLE = (
     "Du bist das Modell hinter einem Hermes-Agent-Profil.",
     "Du hast keine eigenen Werkzeuge — alles, was du tun willst, läuft über die "
@@ -93,6 +95,52 @@ def _socket_dir() -> str:
         if candidate and os.path.isdir(candidate) and os.access(candidate, os.W_OK):
             return candidate
     return tempfile.gettempdir()
+
+
+def _profile_reasoning_effort() -> str:
+    """``agent.reasoning_effort`` aus der config.yaml des aktiven Profils.
+
+    Rueckfall fuer den Fall, dass Hermes den Wert nicht als ``reasoning_effort``-kwarg
+    durchreicht (der Weg ueber ``build_api_kwargs_extras`` haengt am Aufrufpfad). Einmal
+    gelesen und gemerkt — das hier liegt auf dem heissen Pfad.
+    """
+    global _PROFILE_EFFORT_CACHE
+    if _PROFILE_EFFORT_CACHE is not None:
+        return _PROFILE_EFFORT_CACHE
+    value = ""
+    try:
+        import yaml
+
+        from hermes_constants import get_hermes_home
+
+        cfg = yaml.safe_load((get_hermes_home() / "config.yaml").read_text(encoding="utf-8")) or {}
+        value = str((cfg.get("agent") or {}).get("reasoning_effort") or "")
+    except Exception as exc:
+        logger.debug("claude-code: reasoning_effort nicht aus der config.yaml lesbar: %s", exc)
+    _PROFILE_EFFORT_CACHE = value
+    return value
+
+
+def _resolve_model(requested: Any) -> str:
+    """Welches Modell die CLI fahren soll.
+
+    Vorrang hat, was **Hermes** uebergibt (``model.default`` des Profils, ``/model``,
+    und die Karten-Uebersteuerung ``hermes kanban set-model``). Die Umgebungsvariable
+    ist nur der Rueckfall — sonst wuerde ein gesetztes ``HERMES_CLAUDE_CODE_MODEL``
+    jede Profilaenderung still schlucken.
+    """
+    return bridge.map_model(requested) or _env("HERMES_CLAUDE_CODE_MODEL") or _DEFAULT_MODEL
+
+
+def _resolve_effort(requested: Any) -> str:
+    """Welche Denktiefe die CLI fahren soll (``--effort``), oder "" fuer ihre Vorgabe.
+
+    Reihenfolge wie beim Modell: Hermes zuerst (``agent.reasoning_effort``, per-Modell
+    uebersteuerbar), dann die Umgebungsvariable, dann die config.yaml als Rueckfall.
+    """
+    return (bridge.map_effort(requested)
+            or bridge.map_effort(_env("HERMES_CLAUDE_CODE_EFFORT"))
+            or bridge.map_effort(_profile_reasoning_effort()))
 
 
 def _resolve_command() -> str:
@@ -229,6 +277,7 @@ class _Session:
         self.prefix_sig = ""
         self.parked: list[str] = []
         self.turn_started = False
+        self.logged_model = ""
         self._closed = False
         self._watchdog: threading.Timer | None = None
 
@@ -416,7 +465,7 @@ class ClaudeCodeClient:
     # -- Argumentliste ---------------------------------------------------------
 
     def _build_argv(self, session: _Session, *, model: str, snapshot: list[dict[str, Any]],
-                    system_prompt: str, resume: str | None) -> list[str]:
+                    system_prompt: str, resume: str | None, effort: str = "") -> list[str]:
         mcp_config = os.path.join(session.tmpdir, "mcp.json")
         tools_file = os.path.join(session.tmpdir, "tools.json")
         Path(tools_file).write_text(json.dumps(snapshot, ensure_ascii=False), encoding="utf-8")
@@ -446,6 +495,7 @@ class ClaudeCodeClient:
         argv = [self._command, "-p",
                 "--output-format", "stream-json", "--verbose",
                 "--model", model,
+                *(["--effort", effort] if effort else []),
                 # Claude Code bekommt KEINE eigenen Werkzeuge: alles läuft über Hermes.
                 # Das löst die Werkzeugkollision, vor der agent/acp_openai_bridge.py
                 # warnt, an der Wurzel — ohne die dort nötige allowlist.
@@ -532,7 +582,11 @@ class ClaudeCodeClient:
                 continue
 
             if kind == "assistant":
-                content = (event.get("message") or {}).get("content") or []
+                message = event.get("message") or {}
+                if not session.logged_model and (used := message.get("model")):
+                    session.logged_model = str(used)
+                    bridge.debug_log(f"[client] Modell laut CLI: {used}")
+                content = message.get("content") or []
                 calls = []
                 for block in content:
                     if not isinstance(block, dict):
@@ -569,11 +623,15 @@ class ClaudeCodeClient:
     def _create_chat_completion(
         self, *, model: str | None = None, messages: list[dict[str, Any]] | None = None,
         timeout: float | None = None, tools: list[dict[str, Any]] | None = None,
-        tool_choice: Any = None, stream: bool = False, **_: Any,
+        tool_choice: Any = None, stream: bool = False,
+        reasoning_effort: Any = None, reasoning: Any = None, **_: Any,
     ) -> Any:
         messages = list(messages or [])
         snapshot = bridge.tool_snapshot(tools)
-        model_name = _env("HERMES_CLAUDE_CODE_MODEL", _DEFAULT_MODEL)
+        # Was Hermes uebergibt, gewinnt: model.default des Profils, /model, und die
+        # Karten-Uebersteuerung `hermes kanban set-model`.
+        model_name = _resolve_model(model)
+        effort = _resolve_effort(reasoning_effort if reasoning_effort is not None else reasoning)
         wall = float(timeout) if isinstance(timeout, (int, float)) else 1800.0
 
         # Hilfsaufrufe (Kompression, Titel, Kanban-Zerlegung) sind einmalig und
@@ -583,10 +641,10 @@ class ClaudeCodeClient:
         mode = _env("HERMES_CLAUDE_CODE_MODE", "resident")
         if mode != "resident" or not snapshot:
             completion = self._run_stateless(
-                messages, snapshot=snapshot, model=model_name, timeout=wall)
+                messages, snapshot=snapshot, model=model_name, timeout=wall, effort=effort)
         else:
             completion = self._run_resident(
-                messages, snapshot=snapshot, model=model_name, timeout=wall)
+                messages, snapshot=snapshot, model=model_name, timeout=wall, effort=effort)
 
         if stream and completion_to_stream_chunks is not None:
             return completion_to_stream_chunks(completion)
@@ -595,12 +653,13 @@ class ClaudeCodeClient:
     # -- Betriebsart „stateless" ----------------------------------------------
 
     def _run_stateless(self, messages: list[dict[str, Any]], *, snapshot: list[dict[str, Any]],
-                       model: str, timeout: float) -> Any:
+                       model: str, timeout: float, effort: str = "") -> Any:
         system_prompt, rest = bridge.split_system(messages)
         session = _Session(tools_fp=bridge.tools_fingerprint(snapshot), workdir=self._workdir)
         try:
             argv = self._build_argv(session, model=model, snapshot=snapshot,
-                                    system_prompt=self._system_text(system_prompt), resume=None)
+                                    system_prompt=self._system_text(system_prompt), resume=None,
+                                    effort=effort)
             session.spawn(argv, self._prompt_text(rest))
             outcome = self._read_turn(session, timeout=timeout)
             if outcome["stop"] == "tool_calls":
@@ -619,7 +678,7 @@ class ClaudeCodeClient:
     # -- Betriebsart „resident" ------------------------------------------------
 
     def _run_resident(self, messages: list[dict[str, Any]], *, snapshot: list[dict[str, Any]],
-                      model: str, timeout: float) -> Any:
+                      model: str, timeout: float, effort: str = "") -> Any:
         tools_fp = bridge.tools_fingerprint(snapshot)
         session = self._match_session(messages, tools_fp)
 
@@ -634,7 +693,8 @@ class ClaudeCodeClient:
             system_prompt, rest = bridge.split_system(messages)
             session = _Session(tools_fp=tools_fp, workdir=self._workdir)
             argv = self._build_argv(session, model=model, snapshot=snapshot,
-                                    system_prompt=self._system_text(system_prompt), resume=None)
+                                    system_prompt=self._system_text(system_prompt), resume=None,
+                                    effort=effort)
             session.spawn(argv, self._prompt_text(rest))
 
         session.cancel_watchdog()

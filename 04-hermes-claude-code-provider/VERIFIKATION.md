@@ -73,6 +73,8 @@ Alle Läufe stehen mit Rohdaten in [RUN-PROTOKOLL.md](RUN-PROTOKOLL.md).
 | `--setting-sources ""` hält die globalen Hooks des Nutzers draußen (20 Hook-Ereignisse → 0) | 5 |
 | `--system-prompt-file` und `--append-system-prompt-file` existieren (in `--help` nicht gelistet) | geprüft mit nicht existentem Pfad: `Error: System prompt file not found` statt `unknown option` |
 | Ein Kanban-Worker läuft Ende zu Ende über die CLI | 6 |
+| `--effort` nimmt `low, medium, high, xhigh, max`; Unbekanntes wird verworfen statt zu scheitern | 7 (CLI: *„Unknown --effort value … Valid values: low, medium, high, xhigh, max"*) |
+| Modell und Denktiefe aus Hermes schlagen auf die CLI durch | 7 — `--model opus --effort xhigh` → `claude-opus-5`; `--model fable --effort max` → `claude-fable-5-1` |
 
 ---
 
