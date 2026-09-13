@@ -124,7 +124,8 @@ hermes -p claude-dev config set agent.reasoning_effort xhigh  # s. Tabelle unten
 1M-Kontextfenster. Ein vorangestelltes `anbieter/` schneidet das Plugin ab.
 
 Wirksam sind damit auch `/model` in der Sitzung und die Karten-Übersteuerung
-`hermes kanban set-model <task> --model fable`.
+`hermes kanban set-model <task-id> fable` (das Modell ist positional; `none` löscht
+die Übersteuerung wieder).
 
 **Denktiefe.** Hermes kennt sieben Stufen, Claude Codes `--effort` fünf; die Enden
 werden zusammengefaltet:

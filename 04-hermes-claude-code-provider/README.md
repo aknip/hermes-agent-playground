@@ -19,15 +19,76 @@ einen Schema-only-MCP-Server statt als Text im Prompt mit Regex-Rückparsing.
 
 ## Modell und Denktiefe
 
-Beides kommt aus Hermes, nicht aus dem Plugin:
+Beides steuert **Hermes**, nicht das Plugin. Das Plugin reicht nur durch und bildet
+auf Claude Codes Flags ab.
 
 ```bash
-hermes -p claude-dev config set model.default opus            # sonnet | opus | fable | haiku
-hermes -p claude-dev config set agent.reasoning_effort xhigh  # minimal…ultra -> low…max
+hermes -p claude-dev config set model.default opus            # -> claude --model opus
+hermes -p claude-dev config set agent.reasoning_effort xhigh  # -> claude --effort xhigh
 ```
 
-`/model` und `hermes kanban set-model` wirken damit ebenso. Details und die
-Stufen-Abbildung in [TUTORIAL.md](TUTORIAL.md#3a-modell-und-denktiefe-umstellen).
+### Modelle
+
+Alles, was `claude --model` annimmt:
+
+| Schreibweise | Beispiele |
+|---|---|
+| Öffentliche Aliase | `sonnet`, `opus`, `fable`, `haiku` |
+| Voll qualifiziert | `claude-opus-5`, `claude-sonnet-5`, `claude-fable-5-1`, `claude-haiku-4-5-20251001` |
+| Mit 1M-Kontextfenster | `opus[1m]` — das Suffix bleibt erhalten, es ist für Claude Code bedeutungstragend |
+
+Ein vorangestelltes `anbieter/` (Hermes' Aggregator-Schreibweise) schneidet das Plugin
+ab, `claude-code-mcp/opus` wird also zu `opus`. Ein Name, den die CLI nicht kennt,
+scheitert dort mit `unrecognized_model` — das Plugin prüft ihn nicht vorab.
+
+### Denktiefe
+
+Hermes kennt sieben Stufen (`hermes_constants.py:927`), Claude Codes `--effort` fünf.
+Die Enden werden zusammengefaltet:
+
+| `agent.reasoning_effort` | `--effort` |
+|---|---|
+| `minimal`, `low` | `low` |
+| `medium` *(Vorgabe des Profils)* | `medium` |
+| `high` | `high` |
+| `xhigh` | `xhigh` |
+| `max`, `ultra` | `max` |
+| `none`, `false` | `low` — Claude Code kennt kein Abschalten |
+
+Die gültigen Stufen stammen aus der CLI selbst: ein unbekannter Wert meldet
+*„Valid values: low, medium, high, xhigh, max"* und fällt auf die Vorgabe zurück.
+
+### Drei Reichweiten
+
+| Was | Wie | Gilt für |
+|---|---|---|
+| Profil | `hermes -p claude-dev config set model.default opus` | alles auf diesem Profil |
+| Sitzung | `/model` in der laufenden Sitzung | nur diese Sitzung |
+| Einzelne Karte | `hermes kanban set-model <task-id> fable` | diesen einen Worker (`none` löscht es) |
+
+### Vorrang
+
+**Hermes → Umgebungsvariable → Vorgabe** (`sonnet`, `medium`).
+
+`HERMES_CLAUDE_CODE_MODEL` und `HERMES_CLAUDE_CODE_EFFORT` greifen also nur, wenn
+Hermes nichts übergibt. Bewusst so herum: liefe die Umgebung vor, würde ein vergessenes
+`export` jede Profiländerung still schlucken — genau der Fehler, den dieses Plugin bis
+Lauf 7 selbst hatte.
+
+Reasoning erreicht den Client über den dokumentierten Provider-Haken
+`build_api_kwargs_extras` (`providers/base.py`). Der ist nötig, weil dieser Client die
+Transport-Schicht überspringt (`HERMES_SKIP_TRANSPORT_WRAP`) und `reasoning_config`
+sonst nirgends ankäme; als Rückfall liest der Client `agent.reasoning_effort` direkt
+aus der `config.yaml` des Profils.
+
+### Wann es greift
+
+Beim **Prozessstart**. Eine Änderung wirkt ab dem nächsten `hermes -p … -z …`; für
+Kanban-Worker braucht es `hermes gateway restart`, für eine offene Desktop-Sitzung
+deren Neustart.
+
+Gemessen (Lauf 7): `--model opus --effort xhigh` → die CLI fuhr `claude-opus-5`;
+`--model fable --effort max` → `claude-fable-5-1`. Beide Modelle nannten ihre ID selbst.
 
 ## Schnellstart
 
