@@ -1,0 +1,236 @@
+# Claude Code als Modell eines Hermes-Profils
+
+Einbau, Betrieb und Rückbau des Provider-Plugins `claude-code-mcp`.
+
+Voraussetzungen: Hermes Agent v0.20.0, Claude Code CLI ≥ 2.1 (`claude --version`),
+einmal `claude` interaktiv gestartet und angemeldet, `python3` im `PATH`.
+
+---
+
+## 1. Was hier passiert
+
+Ein Hermes-Profil bekommt die lokale `claude`-CLI als **Modell**. Nicht als Werkzeug,
+das ein anderes Modell bei Bedarf ruft (das ist der mitgelieferte
+`autonomous-ai-agents/claude-code`-Skill), sondern als das Gehirn des Profils: die
+Orchestrierungsschleife läuft mit in der CLI.
+
+```
+Hermes AIAgent (Profil claude-dev)
+   │  create(messages, tools=[read_file, terminal, …])
+   ▼
+ClaudeCodeClient              client.py — baut argv, hält die Sitzung, liest stream-json
+   │  claude -p --tools "" --mcp-config … --session-id …
+   ▼
+claude (CLI, werkzeuglos)     das Modell + Hermes' System-Prompt
+   │  MCP-Aufruf: mcp__hermes__read_file({...})
+   ▼
+mcp_server.py                 meldet Hermes' Werkzeuge an, führt keines aus
+   │  Unix-Socket, Schlüssel = toolUseId
+   ▼
+Rendezvous  ──►  Client gibt den Aufruf an Hermes zurück
+                 Hermes führt aus — mit seinen Approvals, seinem Logging, seinem Kanban
+            ◄──  der nächste create() liefert das Ergebnis
+   │
+   ▼
+mcp_server.py kehrt zurück  ──►  claude macht im selben Prozess weiter
+```
+
+Zwei Entscheidungen tragen das Ganze:
+
+**`--tools ""` — Claude Code bekommt keine eigenen Werkzeuge.** Kein `Read`, kein
+`Edit`, kein `Bash`. Alles läuft über Hermes zurück. Das löst die Werkzeugkollision,
+vor der `agent/acp_openai_bridge.py` warnt, an der Wurzel — die dort nötige `allowlist`
+entfällt, und Hermes' Approval-Gate bleibt für jede Dateiänderung zuständig.
+
+**Der MCP-Aufruf blockiert, statt abzubrechen.** `pi-claude-cli` bricht die CLI nach
+dem Werkzeugvorschlag ab und baut die Sitzung später neu auf; `pi-claude-bridge` misst
+dafür ~58 % Cache-Verlust. Hier wartet der MCP-Server einfach, bis Hermes geliefert hat.
+Gemessener Unterschied: 1259 gelesene Cache-Token im residenten Betrieb gegen 0 im
+stateless (siehe [RUN-PROTOKOLL.md](RUN-PROTOKOLL.md), Lauf 3).
+
+---
+
+## 2. Einbau
+
+```bash
+cd 04-hermes-claude-code-provider
+./install.sh claude-dev
+```
+
+Erwartete Ausgabe:
+
+```
+==> Plugin ausrollen
+    /Users/…/.hermes/plugins/model-providers/claude-code-mcp
+    /Users/…/.hermes/profiles/claude-dev/plugins/model-providers/claude-code-mcp
+==> Registrierung prüfen
+    root-home              Profil+Registry=ja CLI=/Users/…/.local/bin/claude
+    profil:claude-dev      Profil+Registry=ja CLI=/Users/…/.local/bin/claude
+```
+
+> **Zwei Ziele, kein Versehen.** Ein Profil ist sein eigenes `HERMES_HOME`
+> (`hermes_cli/main.py:435`, `hermes_constants.py:102`). Ein nur nach
+> `~/.hermes/plugins/` gelegtes Provider-Plugin ist für `hermes -p claude-dev`
+> **unsichtbar** und endet in `Unknown provider` (`hermes_cli/auth.py:1471`).
+> Die FAQ nennt nur den Root-Pfad; das gilt nur für das Standardprofil.
+
+## 3. Profil umstellen
+
+```bash
+./switch-profile.sh claude-dev
+```
+
+Das Skript sichert zuerst (`config.yaml.pre-claude-code-<zeitstempel>.bak`), setzt dann
+**alle vier** Modell-Schlüssel — ein Profil ist nur dispatchbar, wenn sie in
+`~/.hermes/profiles/<name>/config.yaml` stehen:
+
+```yaml
+model:
+  default: sonnet
+  provider: claude-code-mcp
+  base_url: claude-code://cli
+  api_mode: chat_completions
+```
+
+Danach nagelt es `auxiliary.compression`, `.title_generation` und `.kanban_decomposer`
+auf die billige Route fest, für die das Profil schon Zugangsdaten hat. Grund: diese
+Blöcke stehen auf `provider: auto` und lösen sonst auf den Hauptprovider auf — je
+Kompression und je Kanban-Zerlegung ein CLI-Kaltstart. Wer das bewusst anders will:
+
+```bash
+HERMES_CC_AUX_PROVIDER=claude-code-mcp ./switch-profile.sh claude-dev
+```
+
+Prüfen:
+
+```bash
+hermes -p claude-dev config get model
+hermes kanban --board <slug> assignees      # claude-dev muss ON DISK = yes zeigen
+```
+
+## 4. Für den Kanban-Betrieb: Gateway neu starten
+
+`kanban.dispatch_in_gateway: true` — die Worker laufen im langlebigen
+Gateway-Prozess, und der merkt sich seine Provider-Erkennung (`providers/__init__.py`,
+`_discovered`). Ein Gateway, der vor dem Einbau gestartet wurde, kennt das Plugin nicht
+und scheitert mit demselben `Unknown provider`.
+
+```bash
+hermes gateway restart
+```
+
+⚠ Bricht laufende Agenten ab. Vorher `hermes gateway status` lesen.
+
+Für den interaktiven Betrieb (`hermes -p claude-dev -z …`) ist das **nicht** nötig.
+
+## 5. Betrieb
+
+```bash
+hermes -p claude-dev -z "Lies notiz.txt und nenne mir das Geheimwort."
+```
+
+Mitlesen, was zwischen CLI und Hermes passiert:
+
+```bash
+HERMES_CLAUDE_CODE_DEBUG=/tmp/cc.log hermes -p claude-dev -z "…"
+grep "\[mcp\]" /tmp/cc.log
+```
+
+```
+[mcp] Start, 25 Werkzeuge angemeldet
+[mcp] call toolu_019xoCxPXztnrXvdpFGahqME read_file
+[mcp] done toolu_019xoCxPXztnrXvdpFGahqME is_error=False
+```
+
+⚠ Die Datei enthält Prompt-Inhalte (Profilgedächtnis, Skills-Schnappschuss). Nicht
+committen.
+
+### Stellschrauben
+
+Alle optional, alle als Umgebungsvariablen.
+
+| Variable | Vorgabe | Wirkung |
+|---|---|---|
+| `HERMES_CLAUDE_CODE_COMMAND` · `CLAUDE_CLI_PATH` | `claude` (aus `PATH`) | Binärpfad |
+| `HERMES_CLAUDE_CODE_MODEL` | `sonnet` | `--model` |
+| `HERMES_CLAUDE_CODE_MODE` | `resident` | `resident` \| `stateless` |
+| `HERMES_CLAUDE_CODE_BUDGET_USD` | *leer* | setzt `--max-budget-usd`, wenn belegt |
+| `HERMES_CLAUDE_CODE_MCP_TIMEOUT_MS` | `600000` | hartes Zeitlimit je Werkzeugaufruf |
+| `HERMES_CLAUDE_CODE_ORPHAN_TIMEOUT` | `300` | Frist, nach der eine verwaiste Sitzung abgeräumt wird |
+| `HERMES_CLAUDE_CODE_SYSTEM_PROMPT_MODE` | `replace` | `replace` \| `append` |
+| `HERMES_CLAUDE_CODE_CWD` | aktuelles Verzeichnis | Arbeitsverzeichnis der CLI |
+| `HERMES_CLAUDE_CODE_PYTHON` | `python3` | Interpreter für den MCP-Server |
+| `HERMES_CLAUDE_CODE_ARGS` | *leer* | zusätzliche CLI-Argumente |
+| `HERMES_CLAUDE_CODE_DEBUG` | *leer* | Protokolldatei |
+
+**Ohne Budgetgrenze.** So entschieden: `--max-budget-usd` ist standardmäßig nicht
+gesetzt. Ein durchgedrehter Worker hat damit keine Obergrenze je Aufruf.
+
+### Die drei Zeitlimits, und warum sie gestaffelt sind
+
+| Frist | Vorgabe | Wer |
+|---|---|---|
+| Rendezvous-Wachhund | 300 s | das Plugin — räumt ab, wenn Hermes nicht zurückkommt |
+| MCP-`timeout` je Server | 600 s | Claude Code — harte Wanduhr je Aufruf |
+| `agent.gateway_timeout` | 1800 s | Hermes |
+
+Die mittlere Frist bemisst sich am **Werkzeug**-Budget (`terminal.timeout: 180` plus
+`approvals.timeout: 60` plus Reserve), nicht am Gateway-Budget. Stünde sie auf 1800 s,
+hinge ein verwaister Aufruf eine halbe Stunde — die schlechteste Fehlerform für einen
+unbeaufsichtigten Worker. Der Wachhund liegt darunter, damit so ein Fall schnell und
+mit lesbarer Meldung scheitert.
+
+---
+
+## 6. Fehlersuche
+
+| Symptom | Ursache |
+|---|---|
+| `Unknown provider 'claude-code-mcp'` bei `hermes -p <profil>` | Plugin liegt nicht im Home **des Profils**. `./install.sh <profil>` |
+| Dasselbe, aber nur beim Kanban-Dispatch | Gateway kennt das Plugin nicht. `hermes gateway restart` |
+| `Could not find the 'claude-code-mcp' CLI command` | `claude` nicht im `PATH`. `HERMES_CLAUDE_CODE_COMMAND` setzen |
+| Die CLI endet sofort | `claude` ist nicht angemeldet. Einmal interaktiv starten |
+| Werkzeuge kommen nie an | `grep "\[mcp\]"` im Debug-Log; wenn dort nur „Start" steht, hat das Modell keines gerufen |
+| Der Lauf hängt | Wachhund greift nach 300 s. `HERMES_CLAUDE_CODE_ORPHAN_TIMEOUT` senken zum Nachstellen |
+
+---
+
+## 7. Rückbau
+
+```bash
+./uninstall.sh claude-dev
+```
+
+Spielt das Profil aus der jüngsten Sicherung zurück, entfernt beide Plugin-Kopien und
+räumt verwaiste Rendezvous-Ordner unter `/tmp/hcc-*` weg. Was es tun würde, ohne es zu
+tun:
+
+```bash
+DRY_RUN=1 ./uninstall.sh claude-dev
+```
+
+Nur die Dateien, Profil unangetastet:
+
+```bash
+./uninstall.sh claude-dev --keep-profile
+```
+
+Ein nach dem Rückbau noch laufender Gateway hält das Plugin weiter im Speicher —
+`hermes gateway restart`, wenn das stören würde.
+
+---
+
+## 8. Was das **nicht** ist
+
+- **Keine Sitzungsfortsetzung über Hermes-Züge.** `--resume` ist nicht umgesetzt; jeder
+  neue Zug baut die CLI-Sitzung aus dem vollen Transkript neu auf. Der Cache-Gewinn
+  liegt innerhalb eines Zuges — für einen Kanban-Worker (eine Karte ≈ ein Zug mit
+  vielen Werkzeug-Umläufen) ist das der Fall, auf den es ankommt.
+- **Keine Token-Zahlen auf Werkzeug-Runden.** `usage` kommt erst mit dem Abschluss der
+  CLI; auf Runden mit `finish_reason=tool_calls` meldet der Client Nullen.
+- **Keine Freigabe durch Anthropic.** Es startet der offizielle Client, was die
+  stärkere Position ist als geliehene Zugangsdaten — aber ob das, gesteuert von einem
+  fremden Harness, gedeckt ist, hat Anthropic nicht entschieden.
+
+Vollständig in [VERIFIKATION.md](VERIFIKATION.md), Abschnitt „Was ich **nicht**
+verifiziert habe".

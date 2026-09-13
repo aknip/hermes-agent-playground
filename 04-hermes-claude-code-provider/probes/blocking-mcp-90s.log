@@ -1,0 +1,4 @@
+system/init tools=['mcp__hermes__hermes_probe'] mcp=[{'name': 'hermes', 'status': 'connected'}]
+assistant/tool_use toolu_01QxnNELyU7TbBsTkB7uSMPr mcp__hermes__hermes_probe
+user/tool_result toolu_01QxnNELyU7TbBsTkB7uSMPr -> [{'type': 'text', 'text': 'BLOCKED_OK after 90.0s'}]
+result/success turns=2 dur_ms=95511 usage={"input_tokens": 4, "cache_creation_input_tokens": 12676, "cache_read_input_tokens": 12484, "output_tokens": 310, "output_tokens_details": {"thinking_tokens": 151}, "server_tool_use": {"web_search_req

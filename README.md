@@ -47,3 +47,25 @@ Einstieg: [README](02-hermes-agent-kanban-tutorials/README.md) (Story-Übersicht
 Voraussetzungen, Rückbau) · [TUTORIAL.md](02-hermes-agent-kanban-tutorials/TUTORIAL.md)
 (Grundmodell und Befehlsreferenz) · [VERIFIKATION.md](02-hermes-agent-kanban-tutorials/VERIFIKATION.md)
 (was geprüft wurde — und was nicht).
+
+## [04 — Claude Code als Hermes-Provider](04-hermes-claude-code-provider/)
+
+Ein Provider-Plugin, das die lokale **Claude-Code-CLI zum Modell eines Hermes-Profils**
+macht — Weg B aus der FAQ, umgesetzt mit einem Schema-only-MCP-Server statt der
+mitgelieferten Textbrücke. Das Profil `claude-dev` läuft damit vollständig über
+`claude`, Orchestrierungsschleife eingeschlossen.
+
+Zwei Entscheidungen tragen das: `--tools ""` nimmt Claude Code seine eigenen Werkzeuge
+(jede Ausführung läuft über Hermes zurück, mit dessen Approvals und Logging), und der
+MCP-Werkzeugaufruf **blockiert**, statt die Sitzung abzubrechen — der Sitzungsneubau,
+den `pi-claude-bridge` mit ~58 % Cache-Verlust beziffert, entfällt.
+
+| Inhalt | Worum es geht |
+|---|---|
+| [TUTORIAL.md](04-hermes-claude-code-provider/TUTORIAL.md) | Einbau, Betrieb, Stellschrauben, Fehlersuche, Rückbau |
+| [VERIFIKATION.md](04-hermes-claude-code-provider/VERIFIKATION.md) | Was am Quelltext belegt ist, was nur durch Läufe — und was nicht |
+| [RUN-PROTOKOLL.md](04-hermes-claude-code-provider/RUN-PROTOKOLL.md) | Sechs gemessene Läufe bis zur Kanban-Karte Ende zu Ende |
+
+Der teuerste Befund: **ein Hermes-Profil ist sein eigenes `HERMES_HOME`.** Ein
+Provider-Plugin nur unter `~/.hermes/plugins/` ist für jedes benannte Profil unsichtbar.
+Die [FAQ](00-hermes-FAQ/Hermes-Claude-Code-Integration.md) ist entsprechend korrigiert.

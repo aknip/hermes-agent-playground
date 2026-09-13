@@ -1,0 +1,3 @@
+# Debug-Protokolle enthalten Prompt-Inhalte (Profilgedächtnis, Skills-Schnappschuss).
+*.debug.log
+__pycache__/

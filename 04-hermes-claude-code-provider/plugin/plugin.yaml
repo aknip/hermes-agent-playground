@@ -1,0 +1,5 @@
+name: claude-code-mcp-provider
+kind: model-provider
+version: 0.1.0
+description: Claude Code CLI as a Hermes model provider (schema-only MCP tool bridge)
+author: hermes-agent-playground

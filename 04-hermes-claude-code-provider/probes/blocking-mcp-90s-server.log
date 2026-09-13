@@ -1,0 +1,6 @@
+1789293597.944 IN  {"method":"initialize","params":{"protocolVersion":"2025-11-25","capabilities":{"roots":{"listChanged":true},"elicitation":{}},"clientInfo":{"name":"claude-code","title":"Claude Code","version":"2.1.2
+1789293597.946 IN  {"jsonrpc":"2.0","method":"notifications/initialized"}
+1789293597.946 IN  {"method":"tools/list","jsonrpc":"2.0","id":1}
+1789293600.141 IN  {"method":"tools/call","params":{"name":"hermes_probe","arguments":{"text":"hi"},"_meta":{"claudecode/toolUseId":"toolu_01QxnNELyU7TbBsTkB7uSMPr","progressToken":2}},"jsonrpc":"2.0","id":2}
+1789293600.141 CALL START sleep=90.0
+1789293690.143 CALL RETURN after 90.0s

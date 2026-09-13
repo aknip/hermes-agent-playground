@@ -1,0 +1,6 @@
+[mcp] Start, 2 Werkzeuge angemeldet
+[client] init tools=['mcp__hermes__kanban_show', 'mcp__hermes__terminal'] mcp=[{'name': 'hermes', 'status': 'connected'}]
+[mcp] call toolu_01D4Drg99ruEThS275j6oir9 terminal
+[mcp] done toolu_01D4Drg99ruEThS275j6oir9 is_error=False
+[mcp] call toolu_017xotrJP7tDnQzruKiWRKYk kanban_show
+[mcp] done toolu_017xotrJP7tDnQzruKiWRKYk is_error=False
