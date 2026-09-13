@@ -206,6 +206,34 @@ reasoning_config=None                                  -> {}
 Fällt Hermes aus, greift `agent.reasoning_effort` aus der `config.yaml` des Profils —
 im Test `medium`, was zu `--effort medium` führt.
 
+## Lauf 8 — Wechselt das Modell zur Laufzeit?
+
+Rückfrage aus dem Betrieb, und die README-Formulierung („greift beim Prozessstart")
+war zu pauschal. Drei aufeinanderfolgende `create()`-Aufrufe auf **einer**
+Client-Instanz, je ein anderes Paar aus Modell und Denktiefe:
+
+| angefordert | argv | Modell laut CLI | Selbstauskunft |
+|---|---|---|---|
+| `haiku` + `low` | `--model haiku --effort low` | `claude-haiku-4-5-20251001` | „Meine exakte Modell-ID ist **claude-haiku-4-5-20251001**." |
+| `fable` + `max` | `--model fable --effort max` | `claude-fable-5-1` | „…claude-fable-5-1 (Fable 5.1)." |
+| `haiku` + `medium` | `--model haiku --effort medium` | `claude-haiku-4-5-20251001` | „Meine Modell-ID ist claude-haiku-4-5-20251001…" |
+
+**Belegt:** Der Wechsel wirkt ab dem nächsten Zug, ohne Neustart. Jeder Zug startet
+einen eigenen `claude`-Prozess mit frisch gebauter Argumentliste.
+
+**Dieser Lauf fand einen Fehler:** Der Rückfallpfad für `agent.reasoning_effort`
+(gelesen aus der `config.yaml`, wenn Hermes den Wert nicht als kwarg durchreicht) hat
+seinen Wert **unbegrenzt** zwischengespeichert. In einem tagelang laufenden Gateway
+hätte ein `config set agent.reasoning_effort` damit nie gegriffen. Behoben: der
+Zwischenspeicher hängt jetzt an der mtime der Datei. Nachgeprüft mit einem
+Wegwerf-`HERMES_HOME`:
+
+```
+1. config=medium        -> medium
+2. config=xhigh (neu)   -> xhigh   <- ohne Neustart
+3. Hermes uebergibt max -> max     <- Hermes gewinnt
+```
+
 ## Kosten
 
 Die Einzelläufe lagen zwischen 0,02 und 0,06 USD; die gesamte Prüfleiter inklusive

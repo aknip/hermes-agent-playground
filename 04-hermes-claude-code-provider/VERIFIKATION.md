@@ -75,6 +75,7 @@ Alle Läufe stehen mit Rohdaten in [RUN-PROTOKOLL.md](RUN-PROTOKOLL.md).
 | Ein Kanban-Worker läuft Ende zu Ende über die CLI | 6 |
 | `--effort` nimmt `low, medium, high, xhigh, max`; Unbekanntes wird verworfen statt zu scheitern | 7 (CLI: *„Unknown --effort value … Valid values: low, medium, high, xhigh, max"*) |
 | Modell und Denktiefe aus Hermes schlagen auf die CLI durch | 7 — `--model opus --effort xhigh` → `claude-opus-5`; `--model fable --effort max` → `claude-fable-5-1` |
+| Modell und Denktiefe wechseln **zur Laufzeit**, je Zug, ohne Neustart | 8 — drei Züge auf einer Client-Instanz mit `haiku`/`fable`/`haiku` |
 
 ---
 
@@ -89,6 +90,7 @@ Alle Läufe stehen mit Rohdaten in [RUN-PROTOKOLL.md](RUN-PROTOKOLL.md).
 | **Der Abbruchpfad, wenn der Hermes-Prozess stirbt** | Der Wachhund ist ein Daemon-Thread und stirbt mit. Was den geparkten Aufruf dann löst, ist das EOF auf dem Rendezvous-Socket bzw. die eigene Frist des MCP-Servers (`HERMES_CC_CALL_DEADLINE`, Wachhundfrist + 30 s). Claude Code bekommt daraufhin `isError` und **denkt weiter** — es kann noch eine ganze Antwort erzeugen, nachdem Hermes weg ist, und ohne `--max-budget-usd` bremst das nichts. Der Pfad ist gebaut, aber **nicht ausgelöst worden**. |
 | **`delegate_task` ist unter den 25 durchgereichten Werkzeugen** | Mit `delegation.max_concurrent_children: 10` und ohne Budgetgrenze kann eine einzige Karte auf zehn gleichzeitige residente `claude`-Prozesse auffächern. Ungetestet — und der Betriebsfall, in dem „ohne Budgetgrenze" aufhört, eine kleine Entscheidung zu sein. |
 | **Zwei Hermes-Prozesse auf einem Profil** | Beim Bau real eingetreten: Desktop-App und `hermes -p claude-dev -z …` schrieben gleichzeitig auf `profiles/claude-dev/state.db`. Ergebnis waren zurückgezogene WAL-Generationen und abgebrochene Züge (leere Assistentenantworten). **Kein Fehler dieses Plugins** — der Provider verhält sich in beiden Prozessen korrekt —, aber ein Betriebsfallstrick, der ohne die Testerei nicht aufgefallen wäre. |
+| **`/model` und `hermes kanban set-model` im echten Hermes-Lauf** | Belegt ist, dass der Client ein geändertes `model`-Argument je Zug korrekt umsetzt (Lauf 8). Dass Hermes' `/model`-Befehl und die Karten-Übersteuerung genau dort ankommen, ist der Standardweg (`agent.model` → `create()`-kwargs), aber mit *diesem* Provider nicht einzeln durchgespielt. |
 | **Verhalten des Wachhunds im Ernstfall** | Die Frist (`HERMES_CLAUDE_CODE_ORPHAN_TIMEOUT`, 300 s) und die gestaffelten Zeitlimits sind gesetzt, aber nie ausgelöst worden. |
 | **Große Werkzeugmengen** | 25 Werkzeuge sind belegt. Ob Hermes' `tool_search` (ab `threshold_pct: 10`) den Satz mitten im Zug ändert und wie oft das die Sitzung verwirft, ist ungemessen. |
 | **Hermes' System-Prompt ersetzt Claude Codes eigenen** | `--system-prompt-file` ist die Vorgabe. Ob Claude-Code-Verhalten am eigenen System-Prompt hängt, ist ungeprüft; `HERMES_CLAUDE_CODE_SYSTEM_PROMPT_MODE=append` bleibt als Schalter. |

@@ -59,7 +59,9 @@ _DEFAULT_ORPHAN_TIMEOUT_S = 300.0
 # tool_use-Blöcke ausgespielt hat.
 _RENDEZVOUS_ARRIVAL_TIMEOUT_S = 60.0
 
-_PROFILE_EFFORT_CACHE: str | None = None
+# (mtime der config.yaml, gelesener Wert) — an der mtime aufgehaengt, damit ein
+# langlebiger Gateway eine Config-Aenderung mitbekommt statt sie ewig zu cachen.
+_PROFILE_EFFORT_CACHE: tuple[float, str] | None = None
 
 _PREAMBLE = (
     "Du bist das Modell hinter einem Hermes-Agent-Profil.",
@@ -101,23 +103,34 @@ def _profile_reasoning_effort() -> str:
     """``agent.reasoning_effort`` aus der config.yaml des aktiven Profils.
 
     Rueckfall fuer den Fall, dass Hermes den Wert nicht als ``reasoning_effort``-kwarg
-    durchreicht (der Weg ueber ``build_api_kwargs_extras`` haengt am Aufrufpfad). Einmal
-    gelesen und gemerkt — das hier liegt auf dem heissen Pfad.
+    durchreicht (der Weg ueber ``build_api_kwargs_extras`` haengt am Aufrufpfad).
+
+    Gemerkt wird an der mtime der Datei, nicht auf Dauer: der Gateway laeuft tagelang,
+    und ein ``config set agent.reasoning_effort`` soll auf dem naechsten Zug greifen,
+    nicht erst nach einem Neustart. Der ``stat``-Aufruf je Zug ist dafuer billig genug.
     """
     global _PROFILE_EFFORT_CACHE
-    if _PROFILE_EFFORT_CACHE is not None:
-        return _PROFILE_EFFORT_CACHE
+    try:
+        from hermes_constants import get_hermes_home
+
+        path = get_hermes_home() / "config.yaml"
+        mtime = path.stat().st_mtime
+    except Exception as exc:
+        logger.debug("claude-code: config.yaml nicht erreichbar: %s", exc)
+        return _PROFILE_EFFORT_CACHE[1] if _PROFILE_EFFORT_CACHE else ""
+
+    if _PROFILE_EFFORT_CACHE is not None and _PROFILE_EFFORT_CACHE[0] == mtime:
+        return _PROFILE_EFFORT_CACHE[1]
+
     value = ""
     try:
         import yaml
 
-        from hermes_constants import get_hermes_home
-
-        cfg = yaml.safe_load((get_hermes_home() / "config.yaml").read_text(encoding="utf-8")) or {}
+        cfg = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
         value = str((cfg.get("agent") or {}).get("reasoning_effort") or "")
     except Exception as exc:
         logger.debug("claude-code: reasoning_effort nicht aus der config.yaml lesbar: %s", exc)
-    _PROFILE_EFFORT_CACHE = value
+    _PROFILE_EFFORT_CACHE = (mtime, value)
     return value
 
 

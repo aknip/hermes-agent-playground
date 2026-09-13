@@ -13,7 +13,7 @@ einen Schema-only-MCP-Server statt als Text im Prompt mit Regex-Rückparsing.
 |---|---|
 | [TUTORIAL.md](TUTORIAL.md) | Einbau, Betrieb, Stellschrauben, Fehlersuche, Rückbau |
 | [VERIFIKATION.md](VERIFIKATION.md) | Was am Quelltext belegt ist, was nur durch Läufe — und was **nicht** |
-| [RUN-PROTOKOLL.md](RUN-PROTOKOLL.md) | Die sieben gemessenen Läufe mit Rohdaten |
+| [RUN-PROTOKOLL.md](RUN-PROTOKOLL.md) | Die acht gemessenen Läufe mit Rohdaten |
 | [`plugin/`](plugin/) | Der Master. `install.sh` leitet die Kopien nach `~/.hermes/` ab |
 | [`probes/`](probes/) | Gesäuberte Protokolle der Läufe |
 
@@ -81,13 +81,33 @@ Transport-Schicht überspringt (`HERMES_SKIP_TRANSPORT_WRAP`) und `reasoning_con
 sonst nirgends ankäme; als Rückfall liest der Client `agent.reasoning_effort` direkt
 aus der `config.yaml` des Profils.
 
-### Wann es greift
+### Wann es greift — zur Laufzeit, nicht erst beim Neustart
 
-Beim **Prozessstart**. Eine Änderung wirkt ab dem nächsten `hermes -p … -z …`; für
-Kanban-Worker braucht es `hermes gateway restart`, für eine offene Desktop-Sitzung
-deren Neustart.
+Modell und Denktiefe werden **je Zug** ausgewertet. Jeder Hermes-Zug startet einen
+eigenen `claude`-Prozess, und dessen `--model`/`--effort` kommen aus dem, was Hermes
+*für diesen Zug* übergibt. Ein Wechsel greift also ab dem nächsten Zug — ohne Neustart
+von Gateway, Desktop-App oder sonst etwas.
 
-Gemessen (Lauf 7): `--model opus --effort xhigh` → die CLI fuhr `claude-opus-5`;
+Gemessen (Lauf 8), drei aufeinanderfolgende Züge auf **einer** Client-Instanz:
+
+| angefordert | argv | Modell laut CLI |
+|---|---|---|
+| `haiku` + `low` | `--model haiku --effort low` | `claude-haiku-4-5-20251001` |
+| `fable` + `max` | `--model fable --effort max` | `claude-fable-5-1` |
+| `haiku` + `medium` | `--model haiku --effort medium` | `claude-haiku-4-5-20251001` |
+
+Auch eine Änderung an `agent.reasoning_effort` in der `config.yaml` greift ohne
+Neustart: der Rückfallpfad hängt seinen Zwischenspeicher an der mtime der Datei.
+
+Zwei Dinge ändern sich **nicht** mitten im Lauf:
+
+- **Innerhalb eines Zuges.** Läuft der `claude`-Prozess schon (etwa zwischen zwei
+  Werkzeug-Umläufen), bleibt sein Modell bis zum Ende des Zuges.
+- **Der Plugin-Code selbst.** `providers/__init__.py` merkt sich seine Erkennung
+  (`_discovered`); nach `./install.sh` braucht ein laufender Gateway bzw. eine offene
+  Desktop-Sitzung einen Neustart. Das betrifft den *Code*, nicht die Einstellungen.
+
+Gemessen (Lauf 7): `--model opus --effort xhigh` → `claude-opus-5`;
 `--model fable --effort max` → `claude-fable-5-1`. Beide Modelle nannten ihre ID selbst.
 
 ## Schnellstart
