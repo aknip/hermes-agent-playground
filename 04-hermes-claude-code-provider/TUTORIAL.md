@@ -145,6 +145,21 @@ grep "\[mcp\]" /tmp/cc.log
 ⚠ Die Datei enthält Prompt-Inhalte (Profilgedächtnis, Skills-Schnappschuss). Nicht
 committen.
 
+> ⚠ **Nicht zwei Hermes-Prozesse auf dasselbe Profil loslassen.** Hat die Desktop-App
+> `claude-dev` offen und läuft parallel ein `hermes -p claude-dev -z …`, schreiben beide
+> auf `profiles/claude-dev/state.db`. Hermes zieht dann WAL-Generationen zurück und
+> bricht Züge ab — sichtbar als *„No reply: the turn was stopped because a live Hermes
+> process held a retired state.db-wal generation"* und als leere Assistentenantworten.
+> Das ist kein Fehler dieses Providers, aber beim Bau genau so passiert. Zum Testen ein
+> eigenes Profil nehmen oder die App schließen.
+>
+> Die laufende Datenbank nimmt dabei keinen Schaden: die abgezweigten Nachrichten landen
+> in `sessions/<id>.jsonl`, und die zurückgezogene Generation liegt daneben in
+> `state.db.retired-wal-*/` mit `manifest.json`. Vor dem Zurückspielen erst
+> `hermes sessions recover --source <…>/state.db --inspect-only` lesen und mit der
+> lebenden Datenbank vergleichen — ist die schon weiter, gehören die alten Frames nicht
+> darauf.
+
 ### Stellschrauben
 
 Alle optional, alle als Umgebungsvariablen.

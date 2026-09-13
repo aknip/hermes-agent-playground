@@ -18,6 +18,7 @@ Der Client-Vertrag ist derselbe wie bei ``agent/copilot_acp_client.py:241-280``.
 
 from __future__ import annotations
 
+import atexit
 import hashlib
 import json
 import logging
@@ -338,12 +339,17 @@ def _drop_session(key: str) -> None:
 
 
 def shutdown_all_sessions() -> None:
-    """Alle Sitzungen abräumen (Test- und Rückbaupfad)."""
+    """Alle Sitzungen abräumen (Test- und Rückbaupfad, sowie beim Prozessende)."""
     with _SESSIONS_LOCK:
         sessions = list(_SESSIONS.values())
         _SESSIONS.clear()
     for session in sessions:
         session.close()
+
+
+# Beim normalen Ende des Hermes-Prozesses die Kinder mitnehmen. Bei SIGKILL greift das
+# nicht — dafür hat der MCP-Server seine eigene Frist (ENV_CALL_DEADLINE).
+atexit.register(shutdown_all_sessions)
 
 
 # ── Nachrichten-Signaturen ─────────────────────────────────────────────────────
@@ -422,6 +428,12 @@ class ClaudeCodeClient:
         }
         if debug := _env("HERMES_CLAUDE_CODE_DEBUG"):
             env_block[bridge.ENV_DEBUG] = debug
+        # Eigene Frist des MCP-Servers, knapp über der des Wachhunds: stirbt der
+        # Hermes-Prozess, stirbt der Wachhund mit (Daemon-Thread) — dann ist das hier
+        # das Einzige, was den geparkten Aufruf noch löst, bevor Claude Codes harte
+        # Wanduhr greift.
+        env_block[bridge.ENV_CALL_DEADLINE] = str(int(
+            _env_float("HERMES_CLAUDE_CODE_ORPHAN_TIMEOUT", _DEFAULT_ORPHAN_TIMEOUT_S) + 30))
         timeout_ms = int(_env_float("HERMES_CLAUDE_CODE_MCP_TIMEOUT_MS", _DEFAULT_MCP_TIMEOUT_MS))
         Path(mcp_config).write_text(json.dumps({"mcpServers": {bridge.MCP_SERVER_NAME: {
             "type": "stdio",

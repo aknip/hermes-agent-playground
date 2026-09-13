@@ -84,15 +84,21 @@ def _call_id(params: dict) -> str:
 def _dispatch_to_host(call_id: str, name: str, arguments) -> tuple[str, bool]:
     """Den Werkzeugaufruf an Hermes reichen und auf das Ergebnis warten.
 
-    Hier wird blockiert — absichtlich und unbegrenzt. Die Fristen setzt der Client
-    (kurze Rendezvous-Frist) bzw. Claude Code (``timeout`` je Server); ein eigenes
-    Zeitlimit hier würde nur eine dritte, widersprüchliche Uhr einführen.
+    Hier wird blockiert — das ist der Kniff. Aber nicht unbegrenzt: stirbt der
+    Hermes-Prozess, stirbt sein Wachhund mit (Daemon-Thread), und dann hinge dieser
+    Aufruf nur noch an Claude Codes harter Wanduhr. Die eigene Frist liegt darunter.
     """
     path = os.environ.get(bridge.ENV_SOCKET, "").strip()
     if not path:
         return "Hermes-Rendezvous ist nicht konfiguriert (HERMES_CC_SOCKET fehlt).", True
     sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     try:
+        deadline = os.environ.get(bridge.ENV_CALL_DEADLINE, "").strip()
+        if deadline:
+            try:
+                sock.settimeout(float(deadline))
+            except ValueError:
+                pass
         sock.connect(path)
         bridge.send_line(sock, {"call_id": call_id, "name": name, "arguments": arguments})
         reply = bridge.recv_line(sock)
@@ -100,6 +106,9 @@ def _dispatch_to_host(call_id: str, name: str, arguments) -> tuple[str, bool]:
             return ("Hermes hat die Verbindung geschlossen, ohne ein Ergebnis zu liefern. "
                     "Der Aufruf wurde nicht ausgeführt."), True
         return str(reply.get("content", "")), bool(reply.get("is_error"))
+    except socket.timeout:
+        return ("Hermes hat innerhalb der Frist nicht geantwortet; der Aufruf wurde nicht "
+                "ausgeführt. Brich den Zug ab, statt das Ergebnis zu erfinden."), True
     except Exception as exc:
         return f"Hermes-Rendezvous fehlgeschlagen: {exc}", True
     finally:

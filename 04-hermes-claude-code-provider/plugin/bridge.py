@@ -21,6 +21,9 @@ TOOL_PREFIX = f"mcp__{MCP_SERVER_NAME}__"
 ENV_SOCKET = "HERMES_CC_SOCKET"
 ENV_TOOLS = "HERMES_CC_TOOLS"
 ENV_DEBUG = "HERMES_CC_DEBUG"
+# Eigene Frist des MCP-Servers: ohne sie wartet ein geparkter Aufruf auch dann
+# weiter, wenn der Hermes-Prozess weg ist (der Wachhund im Client stirbt mit ihm).
+ENV_CALL_DEADLINE = "HERMES_CC_CALL_DEADLINE"
 
 _ROLE_LABELS = {
     "system": "System",

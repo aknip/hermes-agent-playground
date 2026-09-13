@@ -24,8 +24,13 @@ Es gibt **drei** Wege, und sie beantworten unterschiedliche Fragen:
 | **B — Provider-Plugin** (ACP/MCP-Subprozess) | **ja** | Eigenbau | **gebaut** (04-…) |
 | **C — Credentials leihen** | nein (ist API) | null | ToS-Problem |
 
-**Empfehlung:** Weg A nehmen. Weg B nur bauen, wenn sich die Delegation als zu wenig
-erweist. Weg C bewusst verwerfen.
+**Empfehlung (Stand der Recherche):** Weg A nehmen. Weg B nur bauen, wenn sich die
+Delegation als zu wenig erweist. Weg C bewusst verwerfen.
+
+**Nachtrag:** Weg B *ist* gebaut, weil Weg A das gestellte Ziel nicht erfüllt — bei der
+Delegation bleibt die Orchestrierungsschleife beim Profilmodell. Wer nur die Codierarbeit
+abgeben will, ist mit Weg A weiterhin besser bedient; wer das ganze Profil über Claude
+Code fahren will, nimmt [04-…](../04-hermes-claude-code-provider/).
 
 ---
 
