@@ -13,7 +13,7 @@ einen Schema-only-MCP-Server statt als Text im Prompt mit Regex-Rückparsing.
 |---|---|
 | [TUTORIAL.md](TUTORIAL.md) | Einbau, Betrieb, Stellschrauben, Fehlersuche, Rückbau |
 | [VERIFIKATION.md](VERIFIKATION.md) | Was am Quelltext belegt ist, was nur durch Läufe — und was **nicht** |
-| [RUN-PROTOKOLL.md](RUN-PROTOKOLL.md) | Die sechs gemessenen Läufe mit Rohdaten |
+| [RUN-PROTOKOLL.md](RUN-PROTOKOLL.md) | Die sieben gemessenen Läufe mit Rohdaten |
 | [`plugin/`](plugin/) | Der Master. `install.sh` leitet die Kopien nach `~/.hermes/` ab |
 | [`probes/`](probes/) | Gesäuberte Protokolle der Läufe |
 

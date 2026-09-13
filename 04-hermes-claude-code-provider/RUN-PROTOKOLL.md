@@ -1,7 +1,8 @@
 # Run-Protokoll
 
 Alle Läufe vom **13.09.2026**, macOS, Hermes Agent v0.20.0 (2026.8.3),
-Claude Code CLI **2.1.270**, Modell `sonnet`. Rohdaten (gesäubert) unter
+Claude Code CLI **2.1.270**. Modell `sonnet`, außer wo anders vermerkt (Lauf 7).
+Rohdaten (gesäubert) unter
 [`probes/`](probes/).
 
 ---
