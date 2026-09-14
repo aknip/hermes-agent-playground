@@ -590,15 +590,19 @@ class ClaudeCodeClient:
                 raise RuntimeError(self._exit_error(session))
 
             if kind == "system" and event.get("subtype") == "init":
-                bridge.debug_log(f"[client] init tools={event.get('tools')} "
-                                 f"mcp={event.get('mcp_servers')}")
+                # Das ``model`` im init-Ereignis ist die SITZUNGSkonfiguration und traegt
+                # ein ``[1m]``-Suffix; das ``model`` im assistant-Ereignis ist die nackte
+                # Wire-ID (``claude-opus-5``). Wer nur letzteres protokolliert, haelt ein
+                # aktives 1M-Fenster faelschlich fuer verloren.
+                bridge.debug_log(f"[client] Sitzungsmodell: {event.get('model')!r} "
+                                 f"tools={event.get('tools')} mcp={event.get('mcp_servers')}")
                 continue
 
             if kind == "assistant":
                 message = event.get("message") or {}
                 if not session.logged_model and (used := message.get("model")):
                     session.logged_model = str(used)
-                    bridge.debug_log(f"[client] Modell laut CLI: {used}")
+                    bridge.debug_log(f"[client] Wire-Modell: {used}")
                 content = message.get("content") or []
                 calls = []
                 for block in content:

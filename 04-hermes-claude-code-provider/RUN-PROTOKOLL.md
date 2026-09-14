@@ -270,6 +270,46 @@ nötig, weil das Plugin damals **neu** war — nicht für jede spätere Umschalt
 
 Danach zurückgebaut: Board gelöscht, Plugin entfernt, Profil `cc-probe-dev` gelöscht.
 
+## Lauf 10 — Das 1M-Kontextfenster, beide Seiten
+
+Aus dem Betrieb: `/model Opus[1m]` meldete „Context: 256,000 tokens". Gemessen auf dem
+Wegwerf-Profil `cc-ctx-probe` gegen Hermes' echte Auflösungsfunktionen
+(`_scope_context_length_to_default_runtime` + `resolve_display_context_length`), offline
+und ohne Modellaufruf:
+
+| Szenario | `model.default` | `context_length` | aktives Modell | angezeigt |
+|---|---|---|---|---|
+| A — Soll | `opus[1m]` | `1000000` | `opus[1m]` | **1.000.000** |
+| B — ohne Schlüssel | `opus[1m]` | *(nicht gesetzt)* | `opus[1m]` | 256.000 |
+| C — Sitzungswechsel | `sonnet` | `1000000` | `opus[1m]` | 256.000 |
+| D — Schreibweise | `opus[1m]` | `1000000` | `Opus[1m]` | 256.000 |
+
+**Belegt:** `model.context_length` wirkt nur, wenn das aktive Modell dem konfigurierten
+`model.default` entspricht (C) — und der Vergleich ist **groß-/kleinschreibungsempfindlich**
+(D). In beiden Fällen liefert die Abschirmung `scoped=None`, und Hermes fällt auf seine
+Schätzung zurück. Die Meldung dazu nennt die Abhilfe selbst:
+
+```
+Could not determine context length for model 'opus[1m]' (base_url=claude-code://cli)
+— falling back to 256,000 tokens. Set model.context_length in config.yaml to override.
+```
+
+Auf der CLI-Seite reicht das Suffix allein. Echter Lauf über Hermes:
+
+```
+[client] spawn … --model 'opus[1m]' --tools '' …
+[client] Sitzungsmodell: 'claude-opus-5[1m]'
+[client] Wire-Modell: claude-opus-5
+```
+
+**Dieser Lauf fand einen Fehler — in der Protokollierung, nicht im Plugin.** Der Client
+hatte das `model` aus dem `assistant`-Ereignis mitgeschrieben. Das ist die nackte
+Wire-ID (`claude-opus-5`); das Suffix steht im `system/init` (`claude-opus-5[1m]`). Der
+erste Messlauf sah deshalb so aus, als ginge das `[1m]` unterwegs verloren — es war
+die ganze Zeit aktiv. Beide Felder werden jetzt getrennt protokolliert.
+
+Danach zurückgebaut: Plugin entfernt, Profil gelöscht, Root-Kopie wiederhergestellt.
+
 ## Kosten
 
 Die Einzelläufe lagen zwischen 0,02 und 0,06 USD; die gesamte Prüfleiter inklusive

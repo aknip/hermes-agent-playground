@@ -13,7 +13,7 @@ einen Schema-only-MCP-Server statt als Text im Prompt mit Regex-Rückparsing.
 |---|---|
 | [TUTORIAL.md](TUTORIAL.md) | Einbau, Betrieb, Stellschrauben, Fehlersuche, Rückbau |
 | [VERIFIKATION.md](VERIFIKATION.md) | Was am Quelltext belegt ist, was nur durch Läufe — und was **nicht** |
-| [RUN-PROTOKOLL.md](RUN-PROTOKOLL.md) | Die neun gemessenen Läufe mit Rohdaten |
+| [RUN-PROTOKOLL.md](RUN-PROTOKOLL.md) | Die zehn gemessenen Läufe mit Rohdaten |
 | [`plugin/`](plugin/) | Der Master. `install.sh` leitet die Kopien nach `~/.hermes/` ab |
 | [`probes/`](probes/) | Gesäuberte Protokolle der Läufe |
 
@@ -69,6 +69,22 @@ Die gültigen Stufen stammen aus der CLI selbst: ein unbekannter Wert meldet
 
 ⚠ `/model` funktioniert **nur interaktiv**. Als `-z`-Prompt übergeben, geht es als
 Text ans Modell, statt umzuschalten.
+
+### Das 1M-Kontextfenster (`opus[1m]`)
+
+Zwei Seiten, beide nötig:
+
+```bash
+hermes -p claude-dev config set model.default "opus[1m]"   # Shell: Quotes Pflicht (zsh-Glob)
+hermes -p claude-dev config set model.context_length 1000000
+```
+
+Das Suffix versorgt **Claude Code** (die Sitzung läuft dann als `claude-opus-5[1m]`);
+`model.context_length` versorgt **Hermes**, das sonst 256.000 schätzt.
+
+⚠ `model.context_length` wird still verworfen, wenn das aktive Modell nicht exakt
+`model.default` entspricht — ein sitzungsweites `/model opus[1m]` ohne `--global` reicht
+also nicht, und `Opus[1m]` ≠ `opus[1m]`. Gemessen in Lauf 10.
 
 ### Vorrang
 
