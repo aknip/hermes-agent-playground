@@ -89,6 +89,11 @@ Alle Läufe stehen mit Rohdaten in [RUN-PROTOKOLL.md](RUN-PROTOKOLL.md).
 | `[1m]` **aktiviert** das 1M-Fenster (Beta-Header), es beschreibt es nicht nur | 12 — im CLI-Binary: `supports_1m_beta`, `ANTHROPIC_BETAS`, `context-1m-2025-08-07`, dazu die CLI-Meldungen *„or /model sonnet[1m] for a 1M context window"* und *„has no 1M form"* |
 | Sonnet 5 kann 1M — mit Suffix | 12 — `--model sonnet[1m]` → Sitzungsmodell `claude-sonnet-5[1m]` |
 | `model.context_length` gilt nur für das Modell, mit dem der Agent **startet** | `agent/agent_runtime_helpers.py:1963-1964` — der Live-Wechsel löscht den Wert ausdrücklich („Clear the per-config override…"), und `:2017` setzt danach nur den `custom_providers`-Override neu |
+| Ein Plugin-Provider mit `auth_type="external_process"` erreicht die Modellauswahl **nie** — `fallback_models` ist dort totes Gewicht | `hermes_cli/models_catalog_static.py:361-363` (Auto-Erweiterung überspringt ihn), `hermes_cli/models.py:1390` (Katalogabruf nur für `api_key`); gemessen in 13: `provider_model_ids("claude-code-mcp") == []`, keine Zeile unter allen vier Flag-Kombinationen |
+| Der einzelne Eintrag `claude-code-mcp` im Auswahlfeld ist die **aktuelle Auswahl**, nicht ein Modell | `apps/desktop/src/lib/chat-runtime.ts:384` setzt den Slug als Namen ein; `components/model-picker.tsx:278` verwirft Gruppen ohne Modelle |
+| Ein `providers:`-Block im Profil füllt die Auswahl und überschattet die Plugin-Registrierung **nicht** | 13 — vier Modelle in der Zeile, mit `refresh=False` und `True`; `get_provider("claude-code-mcp")` bleibt `source=plugin-profile`, `auth_type=external_process` |
+| Ein Kontextfenster aus diesem Block überlebt den Laufzeitwechsel — und wirkt schon beim Kaltstart | 13 — ohne Block fielen `haiku`/`fable` auf 256.000, mit Block 111.000/222.000; beim Kaltstart belegt durch die Zeichengrenze 26.640 = 111.000 × 0,24 (`agent/prompt_builder.py:1036-1041`) |
+| Die Meldung „Could not determine context length … falling back to 256,000" ist **kein** Beweis für das wirksame Fenster | 13 — sie erschien, während das Fenster nachweislich 111.000 war. Nachgestellt: derselbe Aufruf ohne `custom_providers` erzeugt genau diese Zeile und liefert 256.000, mit Liste den Wert aus dem Block; solche Aufrufer existieren (`agent/auxiliary_client.py:3975`), welcher beim Start protokollierte, ist **nicht** bestimmt. `agent/agent_init.py:1822` und `agent/context_compressor.py:1782` reichen die Liste durch |
 
 ---
 
@@ -107,6 +112,8 @@ Alle Läufe stehen mit Rohdaten in [RUN-PROTOKOLL.md](RUN-PROTOKOLL.md).
 | **Große Werkzeugmengen** | 25 Werkzeuge sind belegt. Ob Hermes' `tool_search` (ab `threshold_pct: 10`) den Satz mitten im Zug ändert und wie oft das die Sitzung verwirft, ist ungemessen. |
 | **Hermes' System-Prompt ersetzt Claude Codes eigenen** | `--system-prompt-file` ist die Vorgabe. Ob Claude-Code-Verhalten am eigenen System-Prompt hängt, ist ungeprüft; `HERMES_CLAUDE_CODE_SYSTEM_PROMPT_MODE=append` bleibt als Schalter. |
 | **Kosten im Dauerbetrieb** | Einzelläufe 0,02–0,06 USD. Ohne `--max-budget-usd` gibt es **keine** Obergrenze je Aufruf; die Kostenbremse muss woanders sitzen. |
+| **Der Klick im Desktop-Auswähler** | Die Auswahlzeile ist als Nutzlast gemessen (Lauf 13), der Wechsel als `/model` im TUI. Der Weg über die Oberfläche selbst — sie schickt `provider.slug` plus Modell (`use-model-controls.ts:188`) in dasselbe `switch_model` — ist **nicht** geklickt worden. |
+| **Das echte Fenster von `haiku`/`fable` in der CLI** | Ungeprüft. `install.sh --with-model-picker` trägt für sie deshalb **kein** `context_length` ein (leerer Eintrag `{}`, gemessen: Auswahlzeile vorhanden, Übersteuerung `None`) — ein erfundener Wert unter Hermes' Schätzung von 256.000 würde ihr Fenster still verkleinern. |
 | **Andere Profile** | Nur `claude-dev` ist umgestellt und geprüft. |
 | **Nutzungsbedingungen** | Es startet der offizielle Client — die stärkere Position als „Credentials leihen", **aber keine Freigabe**: ob der offizielle Client, gesteuert von einem fremden Harness, gedeckt ist, hat Anthropic nicht entschieden. Die Einschätzung bleibt beim Betreiber. (Satz aus der FAQ übernommen.) |
 

@@ -52,6 +52,14 @@ wurde `model.context_length` verworfen (siehe die vier Regeln unten).
 4. **Alles klein.** `Opus[1m]` ≠ `opus[1m]`; bei Abweichung fällt das Fenster still auf
    256.000 zurück. Die Großschreibung in der Desktop-App ist nur Anzeige.
 
+**Modellwechsel per Auswahlfeld statt per Befehl:** `./install.sh --with-model-picker
+claude-dev` trägt einen `providers:`-Block ein — danach bietet der Auswähler vier
+Modelle an, und die beiden `[1m]`-Einträge bringen ihr Kontextfenster selbst mit (siehe
+[Modellauswahl im Desktop](#modellauswahl-im-desktop-dropdown)). Regel 3 entschärft sich
+damit **für genau diese Einträge**: deren Fenster überlebt auch einen sitzungsweiten
+Wechsel. Für jedes Modell, das nicht im Block steht — etwa ein voll qualifiziertes
+`claude-opus-5` —, gilt Regel 3 unverändert.
+
 **Danach die Desktop-Sitzung neu starten** — das Kontextfenster wird bei der
 Agent-Initialisierung aufgelöst und beim Live-Wechsel sogar gelöscht
 (`agent_runtime_helpers.py:1963-1964`). Das Modell allein zöge ohne Neustart nach, das
@@ -61,7 +69,7 @@ Fenster nicht. Kanban-Worker starten je Karte frisch und brauchen nichts.
 |---|---|
 | [TUTORIAL.md](TUTORIAL.md) | Einbau, Betrieb, Stellschrauben, Fehlersuche, Rückbau |
 | [VERIFIKATION.md](VERIFIKATION.md) | Was am Quelltext belegt ist, was nur durch Läufe — und was **nicht** |
-| [RUN-PROTOKOLL.md](RUN-PROTOKOLL.md) | Die zwölf gemessenen Läufe mit Rohdaten |
+| [RUN-PROTOKOLL.md](RUN-PROTOKOLL.md) | Die dreizehn gemessenen Läufe mit Rohdaten |
 | [`plugin/`](plugin/) | Der Master. `install.sh` leitet die Kopien nach `~/.hermes/` ab |
 | [`probes/`](probes/) | Gesäuberte Protokolle der Läufe |
 
@@ -166,6 +174,65 @@ den Auswähler lohnt ein `hermes -p claude-dev config get model` — landete `Op
 in der Datei und wäre das aktive Modell anders geschrieben, fiele `context_length`
 still auf 256.000 zurück.
 
+### Modellauswahl im Desktop (Dropdown)
+
+Ohne Zutun steht im Auswahlfeld genau ein Eintrag: `claude-code-mcp`. Das ist kein
+Modell, sondern die aktuelle Auswahl, die der Desktop selbst erzeugt und mit dem
+**Slug** beschriftet (`lib/chat-runtime.ts:384`) — der Provider liefert null Modelle,
+und Gruppen ohne Modelle werden verworfen (`components/model-picker.tsx:278`).
+
+Der Grund liegt tiefer und ist **nicht** durch Plugin-Felder zu beheben: Ein
+Plugin-Provider mit `auth_type="external_process"` wird von der Auto-Erweiterung der
+kanonischen Providerliste ausdrücklich übersprungen
+(`hermes_cli/models_catalog_static.py:361-363`), und der generische Katalogabruf bedient
+nur `auth_type == "api_key"` (`hermes_cli/models.py:1390`). Das `fallback_models` im
+Profil erreicht den Auswähler deshalb nie. Auch **mehrere registrierte Profile**
+(`claude-code-opus`, `claude-code-sonnet`, …) ändern daran nichts — sie wären nur
+weitere Provider-IDs für `/model` und die Konfiguration.
+
+Was wirkt, ist ein `providers:`-Block im Profil — sechs Zeilen Konfiguration, kein
+Eingriff ins Plugin:
+
+```yaml
+providers:
+  claude-code-mcp:
+    name: Claude Code CLI (MCP)     # Titel der Gruppe im Auswähler
+    base_url: claude-code://cli     # muss zu model.base_url passen
+    api_mode: chat_completions
+    models:
+      "sonnet[1m]": {context_length: 1000000}
+      "opus[1m]":   {context_length: 1000000}
+      "haiku": {}                   # in der Auswahl, ohne Fenster-Übersteuerung
+      "fable": {}
+```
+
+Ein Modell darf leer bleiben (`{}`): es erscheint in der Auswahl, und Hermes löst sein
+Fenster weiter selbst auf. Das ist für `haiku` und `fable` die richtige Wahl — ohne
+Eintrag schätzt Hermes 256.000, ein kleinerer erfundener Wert würde ihr Fenster also
+still **verkleinern**.
+
+`install.sh --with-model-picker` schreibt genau diesen Block in jedes Profil, das den
+Provider benutzt; ohne die Option bleibt die Konfiguration unangetastet.
+
+**Der eigentliche Gewinn ist nicht das Dropdown, sondern die zweite Spalte.** Ein
+`/model`-Wechsel zur Laufzeit löscht `model.context_length`
+(`agent_runtime_helpers.py:1963-1964`) und leitet das Fenster danach aus genau diesem
+Block neu her (`:2017`, über `hermes_cli/config_providers.py:312`). Damit trägt jedes
+Modell sein Fenster selbst — die Einschränkung aus dem Abschnitt oben („`/model` ohne
+`--global` verliert das Fenster") entfällt.
+
+In Lauf 13 gemessen, mit absichtlich ungewöhnlichen Zahlen: ohne Block fielen `haiku`
+und `fable` beide auf 256.000 zurück, mit Block lösten sie 111.000 bzw. 222.000 auf —
+auch über den Laufzeitwechsel hinweg.
+
+⚠ Eine Warnung bleibt im Protokoll stehen und ist irreführend: *„Could not determine
+context length for model 'haiku' … falling back to 256,000"* erscheint auch dann, wenn
+das Fenster nachweislich aus dem Block kam. Nachgestellt: derselbe Aufruf **ohne**
+`custom_providers` erzeugt genau diese Zeile — solche Aufrufer gibt es
+(`agent/auxiliary_client.py:3975`). Die maßgeblichen Pfade
+(`agent/agent_init.py:1822`, `agent/context_compressor.py:1782`) reichen die Liste
+durch. Verlassen Sie sich auf die Zahl, nicht auf die Warnung.
+
 ### Vorrang
 
 **Hermes → Umgebungsvariable → Vorgabe** (`sonnet`, `medium`).
@@ -250,12 +317,13 @@ rollt deshalb in beide Homes aus und prüft beide einzeln nach.
 
 ## Stand
 
-**Belegt** (zwölf protokollierte Läufe): Einbau, Profilumstellung, interaktiver Lauf,
+**Belegt** (dreizehn protokollierte Läufe): Einbau, Profilumstellung, interaktiver Lauf,
 Werkzeug-Umlauf mit Hermes' echtem 25-Werkzeug-Satz, eine Kanban-Karte Ende zu Ende;
 Modell und Denktiefe über alle vier Umschaltwege (`model.default`, `-m`, `/model`,
 `kanban set-model`), zur Laufzeit und ohne Neustart; das 1M-Kontextfenster auf beiden
 Seiten, samt Nachweis, dass ein größeres Fenster die Kompression wirklich nach hinten
-schiebt.
+schiebt; und dass ein `providers:`-Block im Profil die Modellauswahl im Desktop füllt
+und das Kontextfenster je Modell über den Laufzeitwechsel rettet.
 
 **Offen** und ausdrücklich als solches vermerkt: echt paralleles Ausspielen mehrerer
 Werkzeuge in *einer* Modellantwort, Sitzungsfortsetzung über Hermes-Züge (`--resume`

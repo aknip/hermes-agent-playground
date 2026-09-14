@@ -185,6 +185,15 @@ Die Recherche endete beim Mechanismus. Der Bau hat gezeigt, was darüber hinaus 
   Live-Wechsel löscht den Wert ausdrücklich (`agent_runtime_helpers.py:1963-1964`); ein
   sitzungsweites `/model` reicht also nicht, und nach einer Änderung braucht eine offene
   Sitzung einen Neustart.
+- **Die Modellauswahl der Desktop-App bleibt leer** — und zwar unabhängig davon, was
+  das Plugin anbietet: ein Provider mit `auth_type="external_process"` wird von der
+  Auto-Erweiterung der kanonischen Providerliste ausdrücklich übersprungen
+  (`hermes_cli/models_catalog_static.py:361-363`), und der generische Katalogabruf
+  bedient nur `auth_type == "api_key"` (`hermes_cli/models.py:1390`). Der einzelne
+  Eintrag, den man sieht, ist die aktuelle Auswahl, beschriftet mit dem Slug. Abhilfe
+  ist ein `providers:`-Block in der Profil-`config.yaml` (`install.sh
+  --with-model-picker`); er füllt die Auswahl **und** gibt jedem Modell ein eigenes
+  `context_length`, das den Laufzeitwechsel übersteht — die Lücke aus dem Punkt davor.
 - **Hilfsaufrufe** (`auxiliary.compression`, `.title_generation`, `.kanban_decomposer`)
   stehen auf `provider: auto` und lösen sonst auf die CLI auf — je Aufruf ein
   Kaltstart. Sie gehören auf eine billige Route festgenagelt.

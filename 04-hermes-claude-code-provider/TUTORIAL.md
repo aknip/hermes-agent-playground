@@ -150,6 +150,30 @@ Reihenfolge, wenn mehrere Quellen etwas sagen: **Hermes gewinnt**, dann
 umgekehrte Reihenfolge hieße, dass ein vergessenes `export` jede Profiländerung
 still schluckt.
 
+### Auswahl statt Tippen: der `providers:`-Block
+
+Im Auswahlfeld der Desktop-App steht ohne Zutun nur ein Eintrag, `claude-code-mcp` —
+das ist die aktuelle Auswahl, kein Modell. Ein Provider-Plugin mit
+`auth_type="external_process"` kommt an den Auswähler grundsätzlich nicht heran
+(`hermes_cli/models_catalog_static.py:361-363`), auch nicht über `fallback_models`.
+
+```bash
+./install.sh --with-model-picker claude-dev
+```
+
+Das schreibt einen `providers:`-Block mit vier Modellen in die `config.yaml` des
+Profils — und zwar nur dort, wo `model.provider` bereits `claude-code-mcp` ist. Danach
+bietet das Auswahlfeld `sonnet[1m]`, `opus[1m]`, `haiku` und `fable` unter dem Titel
+„Claude Code CLI (MCP)" an.
+
+Der Block trägt außerdem je Modell ein `context_length`. Das ist der einzige Weg, auf
+dem ein Kontextfenster einen `/model`-Wechsel zur Laufzeit übersteht: `model.context_length`
+wird dabei gelöscht (`agent/agent_runtime_helpers.py:1963-1964`) und danach aus diesem
+Block neu hergeleitet (`:2017`). Gemessen in Lauf 13.
+
+Rückbau: den `providers:`-Block aus der `config.yaml` löschen — `uninstall.sh` fasst ihn
+nicht an.
+
 ## 4. Für den Kanban-Betrieb: Gateway neu starten
 
 `kanban.dispatch_in_gateway: true` — die Worker laufen im langlebigen

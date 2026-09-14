@@ -1,6 +1,6 @@
 # Run-Protokoll
 
-Alle Läufe vom **13.09.2026**, macOS, Hermes Agent v0.20.0 (2026.8.3),
+Läufe 1–12 vom **13.09.2026**, Lauf 13 vom **14.09.2026**; macOS, Hermes Agent v0.20.0 (2026.8.3),
 Claude Code CLI **2.1.270**. Modell `sonnet`, außer wo anders vermerkt (Lauf 7).
 Rohdaten (gesäubert) unter
 [`probes/`](probes/).
@@ -387,8 +387,106 @@ Hermes löst 1.000.000 auf, Kompression ab 500.000.
 500.000 komprimiert, während die CLI-Sitzung weit früher dicht ist. Deshalb gehören die
 beiden Werte immer zusammen gesetzt.
 
+## Lauf 13 — Modellauswahl im Desktop und das Fenster beim Wechsel
+
+Aus dem Betrieb: Im Modell-Auswahlfeld stand nur ein Eintrag, `claude-code-mcp`. Die
+Frage war, ob das Plugin mehrere Varianten (Haiku, Sonnet, Opus, Fable) anbieten kann.
+
+**Warum die Auswahl leer ist.** Ein Plugin-Provider mit `auth_type="external_process"`
+wird von der Auto-Erweiterung der kanonischen Liste ausdrücklich übersprungen
+(`hermes_cli/models_catalog_static.py:361-363`), und der generische Katalogabruf bedient
+nur `auth_type == "api_key"` (`hermes_cli/models.py:1390`). Damit ist `fallback_models`
+im Profil totes Gewicht — gemessen `provider_model_ids("claude-code-mcp") == []`. Keiner
+der fünf Läufe in `list_authenticated_providers`
+(`hermes_cli/model_switch_providers.py:1078`) erzeugt eine Zeile, unter **keiner** der
+vier Flag-Kombinationen. Der Desktop verwirft Gruppen ohne Modelle
+(`components/model-picker.tsx:278`); übrig bleibt der synthetische Eintrag aus
+`lib/chat-runtime.ts:384`, der den **Slug** als Namen einsetzt.
+
+`copilot-acp` ist die Ausnahme und nur deshalb sichtbar, weil er an drei Stellen von
+Hand eingetragen ist: `CANONICAL_PROVIDERS` (`:329`), `HERMES_OVERLAYS`
+(`hermes_cli/providers.py:43`) und `_PROVIDER_MODELS` (`:167`, mit dem eigenen Slug als
+einzigem „Modell").
+
+**Was stattdessen wirkt:** ein `providers:`-Block im Profil. Wegwerf-Profil
+`cc-pick-probe`, `model.default: haiku`, **kein** `model.context_length`, absichtlich
+ungewöhnliche Fenster, damit jede Zahl eindeutig zuzuordnen ist:
+
+```yaml
+providers:
+  claude-code-mcp:
+    name: Claude Code CLI (MCP)
+    base_url: claude-code://cli
+    api_mode: chat_completions
+    models:
+      "haiku":      {context_length: 111000}
+      "fable":      {context_length: 222000}
+      "sonnet[1m]": {context_length: 1000000}
+      "opus[1m]":   {context_length: 1000000}
+```
+
+| | Auswahlzeile im Desktop | aufgelöstes Fenster (haiku / fable) |
+|---|---|---|
+| **A** ohne Block | *fehlt ganz* | 256.000 / 256.000 (Rückfall) |
+| **B** mit Block | `Claude Code CLI (MCP)` mit 4 Modellen | **111.000 / 222.000** |
+
+Die Zeile in B kam mit `refresh=False` **und** `refresh=True`, also auch auf dem Pfad,
+den der Desktop wirklich nimmt (`probe_current_custom_provider=True`) — das
+`claude-code://`-Schema löst keine Sonde und keine Verzögerung aus. `slug` bleibt
+`claude-code-mcp`, `name` wird zum Gruppentitel.
+
+**Der echte Wechsel**, TUI über ein Pseudo-Terminal, ein Zug, `/model fable`, noch ein Zug:
+
+```
+A  10:55:44  WARNING … Could not determine context length for model 'fable' … 256,000
+   10:55:44  Model switched in-place: haiku (claude-code-mcp) -> fable (claude-code-mcp)
+
+B  10:57:48  Model switched in-place: haiku (claude-code-mcp) -> fable (claude-code-mcp)
+             (keine Rückfallmeldung)
+```
+
+**Belegt:** Der Block überlebt den Laufzeitwechsel. Er ist damit genau die Ergänzung zu
+`model.context_length`, das beim Wechsel gelöscht wird
+(`agent/agent_runtime_helpers.py:1963-1964`) und anschließend über
+`get_custom_provider_context_length` neu hergeleitet wird (`:2017`).
+`hermes_cli/config_providers.py:312` mischt den `providers:`-Block dafür in dieselbe
+Liste wie `custom_providers`.
+
+**Eine Zahl aus dem Lauf beweist es unabhängig von der Log-Meldung.** In B meldete der
+Prompt-Aufbau: *„Context file AGENTS.md TRUNCATED: 29556 chars exceeds limit of 26640"*.
+Die Grenze ist `context_length × 4 × 0,06` (`agent/prompt_builder.py:1036-1041`):
+111.000 × 0,24 = **26.640**. In A blieb dieselbe Datei unbeanstandet, weil 256.000 ×
+0,24 = 61.440 reichte. Der Block wirkte also auch schon beim **Kaltstart**.
+
+**Eine Warnung bleibt trotzdem stehen** und ist irreführend: „Could not determine context
+length for model 'haiku' … falling back to 256,000" erschien in B beim Start, obwohl das
+Fenster nachweislich 111.000 war. Nachgestellt: **derselbe Aufruf ohne
+`custom_providers` erzeugt genau diese Zeile** und liefert 256.000, mit Liste den Wert
+aus dem Block.
+Es gibt solche Aufrufer (`agent/auxiliary_client.py:3975`); welcher beim Start
+protokollierte, habe ich nicht bestimmt. Die maßgeblichen Pfade
+(`agent/agent_init.py:1822`, `agent/context_compressor.py:1782`) reichen die Liste
+durch — und die Zeichengrenze oben beweist, dass dort der richtige Wert ankam.
+
+Der Wechsel lief durch das Plugin, nicht daran vorbei:
+
+```
+[client] spawn … --model fable --tools '' …
+run_agent: claude-code-mcp client created from provider profile (switch_model, shared=True)
+```
+
+Rohdaten: `probes/lauf13-modellauswahl.log`. Danach zurückgebaut: Profil
+`cc-pick-probe` gelöscht.
+
+**Nicht gemessen:** der Klick im Desktop selbst — der Wechsel wurde als `/model fable`
+getippt. Beide Wege landen im selben `switch_model`; die Oberfläche schickt
+`provider.slug` plus Modell (`use-model-controls.ts:188`).
+
 ## Kosten
 
-Die Einzelläufe lagen zwischen 0,02 und 0,06 USD; die gesamte Prüfleiter inklusive
-der Kanban-Karte blieb deutlich unter 1 USD. `--max-budget-usd` war **nicht** gesetzt
+Die Einzelläufe lagen meist zwischen 0,02 und 0,06 USD; die gesamte Prüfleiter
+inklusive der Kanban-Karte blieb unter 1 USD. Der Ausreißer steht in Lauf 13: ein
+einziger Fable-Zug mit kaltem Cache kostete **0,60 USD**, derselbe Zug in Durchgang B
+mit warmem Cache (30.136 von 30.138 Token) nur **0,009 USD** — der Faktor 68 ist das
+beste Argument für den residenten Betrieb, das dieses Protokoll enthält. `--max-budget-usd` war **nicht** gesetzt
 (so entschieden) — die Zahlen sind deshalb Messwerte, keine Obergrenzen.

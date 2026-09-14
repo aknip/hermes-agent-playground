@@ -1,0 +1,25 @@
+# Lauf 13 — Modellauswahl über einen providers:-Block (Wegwerf-Profil cc-pick-probe)
+
+## A — ohne Block (agent.log)
+2026-09-14 10:55:07,866 WARNING agent.model_metadata: Could not determine context length for model 'haiku' (base_url=claude-code://cli) — falling back to 256,000 tokens. Set model.context_le
+2026-09-14 10:55:29,928 INFO [20260914_105506_13bd0d] agent.turn_context: conversation turn: session=20260914_105506_13bd0d model=haiku provider=claude-code-mcp platform=tui history=0 msg='A
+2026-09-14 10:55:44,134 WARNING agent.model_metadata: Could not determine context length for model 'fable' (base_url=claude-code://cli) — falling back to 256,000 tokens. Set model.context_le
+2026-09-14 10:55:44,148 INFO agent.agent_runtime_helpers: Model switched in-place: haiku (claude-code-mcp) -> fable (claude-code-mcp)
+2026-09-14 10:55:57,161 INFO [20260914_105506_13bd0d] agent.turn_context: conversation turn: session=20260914_105506_13bd0d model=fable provider=claude-code-mcp platform=tui history=3 msg='A
+
+## B — mit Block (agent.log)
+2026-09-14 10:57:10,747 WARNING agent.model_metadata: Could not determine context length for model 'haiku' (base_url=claude-code://cli) — falling back to 256,000 tokens. Set model.context_le
+2026-09-14 10:57:34,623 INFO [20260914_105710_6d82f2] agent.turn_context: conversation turn: session=20260914_105710_6d82f2 model=haiku provider=claude-code-mcp platform=tui history=0 msg='A
+2026-09-14 10:57:34,916 WARNING [20260914_105710_6d82f2] agent.prompt_builder: ⚠️  Context file AGENTS.md TRUNCATED: 29556 chars exceeds limit of 26640 — trim the file, pin a larger context_
+2026-09-14 10:57:48,059 INFO agent.agent_runtime_helpers: Model switched in-place: haiku (claude-code-mcp) -> fable (claude-code-mcp)
+2026-09-14 10:58:01,074 INFO [20260914_105710_6d82f2] agent.turn_context: conversation turn: session=20260914_105710_6d82f2 model=fable provider=claude-code-mcp platform=tui history=3 msg='A
+
+## Client-Protokoll B (gekürzt)
+[client] spawn /Users/aknipschild/.local/bin/claude -p --output-format stream-json --verbose --model haiku --effort low --tools '' --mcp-config /tmp/hcc-auqa177c/mcp.json --strict-mcp-config --permiss
+[client] spawn /Users/aknipschild/.local/bin/claude -p --output-format stream-json --verbose --model haiku --tools '' --mcp-config /tmp/hcc-o5ykpm72/mcp.json --strict-mcp-config --permission-prompts n
+[client] Sitzungsmodell: 'claude-haiku-4-5-20251001' tools=[] mcp=[{'name': 'hermes', 'status': 'connected'}]
+[client] Sitzungsmodell: 'claude-haiku-4-5-20251001' tools=[25 Hermes-Werkzeuge]
+[client] Zugende: prompt=21,050 (cached 10,446) completion=86 cost=0.023674599999999997
+[client] spawn /Users/aknipschild/.local/bin/claude -p --output-format stream-json --verbose --model fable --tools '' --mcp-config /tmp/hcc-tgvdzeyz/mcp.json --strict-mcp-config --permission-prompts n
+[client] Sitzungsmodell: 'claude-fable-5-1' tools=[25 Hermes-Werkzeuge]
+[client] Zugende: prompt=30,138 (cached 30,136) completion=4 cost=0.008808
