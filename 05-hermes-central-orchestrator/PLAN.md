@@ -959,12 +959,21 @@ Reihen, aber nicht identisch zu ihnen.
 
 ### Die Gesamtschau über vier Worker-Modelle
 
-| Worker-Modell | n | min | max | Median | Streuung | `kanban_show` | Artefakt |
-|---|---|---|---|---|---|---|---|
-| deepseek-v4-flash | 4 | 90 s | 469 s | 364 s | 5,2× | 4–30 | 2 von 4 |
-| **Sonnet** (Claude Code) | 3 | 13 s | 17 s | **15 s** | 1,3× | je 1 | 3 von 3 |
-| GLM 5.3 Flash | 3 | 48 s | 73 s | 52 s | 1,5× | je 1 | 3 von 3 |
-| **GLM 5.3 (voll)** | 3 | 16 s | 35 s | **19 s** | 2,2× | je 1 | 3 von 3 |
+| Worker-Modell | n | min | max | Median | Streuung | **Turns** | `kanban_show` | Artefakt |
+|---|---|---|---|---|---|---|---|---|
+| deepseek-v4-flash | 4 | 90 s | 469 s | 364 s | 5,2× | **10–36** | 4–30 | 2 von 4 |
+| **Sonnet** (Claude Code) | 3 | 13 s | 17 s | **15 s** | 1,3× | **je 1** | je 1 | 3 von 3 |
+| GLM 5.3 Flash | 3 | 48 s | 73 s | 52 s | 1,5× | **3–5** | je 1 | 3 von 3 |
+| **GLM 5.3 (voll)** | 3 | 16 s | 35 s | **19 s** | 2,2× | **3–5** | je 1 | 3 von 3 |
+
+Einzelwerte — deepseek: 15 / 26 / 10 / 36 · Sonnet: 1 / 1 / 1 ·
+GLM Flash: 3 / 4 / 5 · GLM 5.3: 3 / 5 / 4.
+
+Die Turn-Spalte trennt die Modelle schärfer als die Sekunden: **GLM Flash und
+GLM 5.3 brauchen gleich viele Durchgänge (3–5), sind aber unterschiedlich
+schnell** (Median 52 s gegen 19 s). Der Unterschied liegt also in der Zeit
+pro Durchgang, nicht in der Zahl der Durchgänge — rund 13 s gegen 5 s.
+Bei deepseek ist es umgekehrt: dort ist die *Zahl* der Durchgänge das Problem.
 
 Bemerkenswert: **das volle GLM 5.3 ist als Worker rund dreimal schneller als
 seine Flash-Variante** (Median 19 s gegen 52 s) — die kleinere Variante ist
