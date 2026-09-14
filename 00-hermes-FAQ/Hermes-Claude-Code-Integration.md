@@ -1,8 +1,20 @@
 # Claude Code als Backend für ein Hermes-Profil
 
-**Stand:** 13.09.2026 · Recherche. **Weg B ist inzwischen gebaut** — siehe
-[`04-hermes-claude-code-provider/`](../04-hermes-claude-code-provider/). Zwei Aussagen
-dieses Dokuments haben sich dabei als falsch erwiesen; sie sind unten markiert.
+**Stand:** 13.09.2026 · Recherche; Nachträge aus dem Bau vom 14.09.2026.
+**Weg B ist inzwischen gebaut.** Zwei Aussagen dieses Dokuments haben sich dabei als
+falsch erwiesen; sie sind unten markiert.
+
+> **Die Umsetzung liegt in [`04-hermes-claude-code-provider/`](../04-hermes-claude-code-provider/)**
+> — dieses Dokument bleibt die Recherche, dort steht das Gebaute:
+>
+> | | |
+> |---|---|
+> | [README.md](../04-hermes-claude-code-provider/README.md) | Kurzreferenz der Befehle, Architektur, Modell- und Fensterfragen |
+> | [TUTORIAL.md](../04-hermes-claude-code-provider/TUTORIAL.md) | Einbau, Betrieb, Stellschrauben, Fehlersuche, Rückbau |
+> | [VERIFIKATION.md](../04-hermes-claude-code-provider/VERIFIKATION.md) | Belegt am Quelltext · belegt durch Läufe · **nicht** verifiziert |
+> | [RUN-PROTOKOLL.md](../04-hermes-claude-code-provider/RUN-PROTOKOLL.md) | Die dreizehn gemessenen Läufe mit Rohdaten |
+>
+> Die Nachträge unten nennen jeweils ihren Beleg — eine Quelltextstelle oder einen Lauf.
 
 **Ausgangsfrage:** Kann man einem Hermes-Profil die **Claude-Code-CLI** (nicht die API)
 als LLM zuweisen, so dass das Profil seine Aufgaben über die lokale Claude-Code-Instanz
@@ -11,6 +23,8 @@ ausführt?
 Belegart je Aussage:
 · **QUELLTEXT** = in `~/.hermes/hermes-agent/` nachgelesen
 · **WEB** = externe Quelle, unten verlinkt
+· **MESSUNG** = protokollierter Lauf, siehe
+[04-…/RUN-PROTOKOLL.md](../04-hermes-claude-code-provider/RUN-PROTOKOLL.md)
 
 ---
 
@@ -84,7 +98,12 @@ Anmelden, v2.x+.
 
 ## Weg B — Provider-Plugin (macht Claude Code zum Modell)
 
-Der Mechanismus existiert, ein fertiger Provider nicht.
+Der Mechanismus existiert, ein fertiger Provider nicht — **stand 13.09.2026**. Seither
+gibt es einen: `claude-code-mcp` in
+[`04-…/plugin/`](../04-hermes-claude-code-provider/plugin/), out-of-tree, ohne
+Core-Eingriff. Der Abschnitt bleibt stehen, weil er den Mechanismus erklärt; wie der
+Einbau konkret läuft, steht im
+[TUTORIAL](../04-hermes-claude-code-provider/TUTORIAL.md).
 
 ### Was Hermes schon hat (QUELLTEXT)
 
@@ -125,10 +144,18 @@ Achtung, zwei verschiedene Ladepfade (QUELLTEXT, `providers/__init__.py`):
 - `plugins/model-providers/<name>/` → wird nach Provider-Profilen durchsucht
 - `plugins/<name>/` → dorthin klont `hermes plugins install`, flach
 
-Das Verzeichnis `model-providers/` existiert hier **noch nicht**; es wäre handzulegen.
+Das Verzeichnis `model-providers/` existierte am 13.09.2026 hier **noch nicht**; es wäre
+handzulegen.
 Inhalt: `plugin.yaml` (`kind: model-provider`) + `__init__.py` mit einer
 `ProviderProfile`-Unterklasse, deren `create_client` den eigenen Client liefert, plus
 `register_provider(...)`.
+
+> **Nachtrag (14.09.2026).** Beides legt heute
+> [`04-…/install.sh`](../04-hermes-claude-code-provider/install.sh) an — in **beide**
+> Homes, mit anschließender Prüfung der Registrierung je Home. Die Vermutung, relative
+> Importe könnten unter dem synthetischen Modulnamen brechen, hat sich nicht bestätigt:
+> `_import_plugin_dir` setzt `submodule_search_locations` (`providers/__init__.py:191`),
+> das Plugin besteht aus vier Python-Dateien mit relativen Importen und lädt.
 
 ### Die zwei Haken (QUELLTEXT, `agent/acp_openai_bridge.py`)
 
@@ -192,8 +219,9 @@ Die Recherche endete beim Mechanismus. Der Bau hat gezeigt, was darüber hinaus 
   bedient nur `auth_type == "api_key"` (`hermes_cli/models.py:1390`). Der einzelne
   Eintrag, den man sieht, ist die aktuelle Auswahl, beschriftet mit dem Slug. Abhilfe
   ist ein `providers:`-Block in der Profil-`config.yaml` (`install.sh
-  --with-model-picker`); er füllt die Auswahl **und** gibt jedem Modell ein eigenes
-  `context_length`, das den Laufzeitwechsel übersteht — die Lücke aus dem Punkt davor.
+  --with-model-picker`): er füllt die Auswahl **und** kann je Modell ein
+  `context_length` tragen, das den Laufzeitwechsel übersteht — die Lücke aus dem Punkt
+  davor, allerdings nur für die Modelle, die im Block stehen. Gemessen in Lauf 13.
 - **Hilfsaufrufe** (`auxiliary.compression`, `.title_generation`, `.kanban_decomposer`)
   stehen auf `provider: auto` und lösen sonst auf die CLI auf — je Aufruf ein
   Kaltstart. Sie gehören auf eine billige Route festgenagelt.
@@ -319,9 +347,13 @@ zu Ende.
 **Weg C nicht.**
 
 Die Umsetzung mit allen Messwerten liegt in
-[`04-hermes-claude-code-provider/`](../04-hermes-claude-code-provider/): elf
-protokollierte Läufe vom blockierenden MCP-Aufruf bis zur Kanban-Karte Ende zu Ende,
-dazu eine Liste dessen, was ausdrücklich **nicht** verifiziert ist.
+[`04-hermes-claude-code-provider/`](../04-hermes-claude-code-provider/): **dreizehn**
+protokollierte Läufe vom blockierenden MCP-Aufruf über die Kanban-Karte Ende zu Ende bis
+zu Modellwechsel, 1M-Kontextfenster und Modellauswahl im Desktop — dazu eine Liste
+dessen, was ausdrücklich **nicht** verifiziert ist
+([VERIFIKATION.md](../04-hermes-claude-code-provider/VERIFIKATION.md)). Einbau und
+Rückbau Schritt für Schritt:
+[TUTORIAL.md](../04-hermes-claude-code-provider/TUTORIAL.md).
 
 ### Randnotiz aus dem ESF-Abbau
 
@@ -333,6 +365,13 @@ der Skill kommt mit Hermes mit und ist bei jedem neuen Profil wieder da.
 ---
 
 ## Quellen
+
+**Die Umsetzung (dieses Repo)**
+- [`04-hermes-claude-code-provider/`](../04-hermes-claude-code-provider/) — Plugin, Skripte und Belege
+  ([README](../04-hermes-claude-code-provider/README.md) ·
+  [TUTORIAL](../04-hermes-claude-code-provider/TUTORIAL.md) ·
+  [VERIFIKATION](../04-hermes-claude-code-provider/VERIFIKATION.md) ·
+  [RUN-PROTOKOLL](../04-hermes-claude-code-provider/RUN-PROTOKOLL.md))
 
 **Lokal (QUELLTEXT)**
 - `~/.hermes/hermes-agent/skills/autonomous-ai-agents/claude-code/SKILL.md`
