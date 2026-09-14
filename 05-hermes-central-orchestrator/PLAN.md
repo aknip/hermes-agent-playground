@@ -1007,3 +1007,64 @@ sondern über einen Weg, der gar keine Rollentreue voraussetzt — die
 **Triage-Spalte** (Abschnitt 1–3): dort zerlegt der Decomposer jede Karte
 zwangsläufig, ohne dass ein Modell sich für oder gegen das Orchestrieren
 entscheiden könnte. Gemessen ist dieser Vergleich nicht.
+
+---
+
+## 15. Fünfter Modellvergleich: GPT 5.6 Terra
+
+Nur der Worker geändert (`openai/gpt-5.6-terra` über OpenRouter);
+`stall_guards: false` und `reasoning_effort: none` unverändert.
+
+**Methode:** Der Orchestrator stand noch auf GLM 5.3 Flash, das zuletzt nur in
+1 von 3 Läufen eine Karte anlegte (Abschnitt 14). Die drei Karten wurden
+deshalb direkt per `hermes kanban create` mit dem **byte-identischen
+Kartentext** aus Lauf 2 des vorigen Abschnitts angelegt. Diese Reihe ist damit
+exakt mit den Nachmessungen 2b/3b vergleichbar und näherungsweise mit den
+früheren Reihen, in denen der Orchestrator den Text jeweils neu formulierte.
+
+| Lauf | Karte | Worker | Turns | `kanban_show` | `skill_view` | Artefakt |
+|---|---|---|---|---|---|---|
+| 1 | `t_74e10502` | 17 s | 1 | 1 | 1 | ja |
+| 2 | `t_f19b08d3` | 20 s | 1 | 1 | 1 | ja |
+| 3 | `t_a3c31b19` | 24 s | 1 | 1 | 1 | ja |
+
+### Die Gesamtschau über fünf Worker-Modelle
+
+| Worker-Modell | n | min | max | Median | Streuung | Turns | `kanban_show` | Artefakt |
+|---|---|---|---|---|---|---|---|---|
+| deepseek-v4-flash | 4 | 90 s | 469 s | 364 s | 5,2× | 10–36 | 4–30 | 2 von 4 |
+| **Sonnet** (Claude Code) | 3 | 13 s | 17 s | **15 s** | 1,3× | **je 1** | je 1 | 3 von 3 |
+| GLM 5.3 Flash | 3 | 48 s | 73 s | 52 s | 1,5× | 3–5 | je 1 | 3 von 3 |
+| GLM 5.3 (voll) | 3 | 16 s | 35 s | 19 s | 2,2× | 3–5 | je 1 | 3 von 3 |
+| **GPT 5.6 Terra** | 3 | 17 s | 24 s | **20 s** | 1,4× | **je 1** | je 1 | 3 von 3 |
+
+Einzelwerte — deepseek: 15 / 26 / 10 / 36 · Sonnet: 1 / 1 / 1 ·
+GLM Flash: 3 / 4 / 5 · GLM 5.3: 3 / 5 / 4 · GPT: 1 / 1 / 1.
+
+### Wie GPT die eine Runde nutzt
+
+Das Log zeigt einen einzigen Durchgang, in dem **alle vier Werkzeuge gebündelt**
+laufen, bevor überhaupt Text entsteht:
+
+```
+kanban_show → skill_view (summarizer-Skill) → write_file → kanban_complete
+```
+
+GPT ist damit das **einzige Modell der Reihe, das den im Profil hinterlegten
+`summarizer`-Skill überhaupt zieht** — in allen drei Läufen. Sonnet kommt auch
+mit einem Turn aus, aber ohne diesen Schritt.
+
+Damit erreichen zwei Modelle das Optimum von einem Durchgang, auf
+unterschiedlichem Weg: Sonnet über kürzere Einzelschritte (Median 15 s), GPT
+über einen breiteren Werkzeug-Batch inklusive Skill (20 s). Der Unterschied
+zwischen beiden ist kleiner als die Streuung innerhalb der deepseek-Reihe.
+
+### Ein Messfehler, der beinahe in die Tabelle gewandert wäre
+
+Lauf 1 meldete zunächst `turns=0`. Das war kein Modellverhalten, sondern mein
+Zähler: er liest das Worker-Log in dem Moment, in dem die Karte auf `done`
+springt — der abschließende Ausgabeblock ist dann noch nicht geschrieben.
+Derselbe Fehler hatte in Abschnitt 10 schon einmal eine zu niedrige Turn-Zahl
+erzeugt (dort „5" statt 10). **Turn-Zahlen gehören nach Abschluss aus dem
+fertigen Log ausgezählt**, nicht aus dem Lauf heraus; die Werte oben sind so
+ermittelt.
