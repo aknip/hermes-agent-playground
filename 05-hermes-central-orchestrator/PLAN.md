@@ -698,3 +698,95 @@ prüfen, sonst testet man die eigene Shell statt das Profil.
 
 `t_c3a24225` archiviert (ohne `--rm`, wie in Lauf 1 — der Anhang
 `ergebnis.md` ist die einzige verbliebene Kopie des Ergebnisses).
+
+---
+
+## 10. Warum ein Kanban-Worker Minuten braucht, wo der Chat Sekunden braucht
+
+Dieselbe Aufgabe (Text in drei Stichpunkten zusammenfassen), dasselbe Profil
+`summarizer`, viermal gefahren. Direkt im Chat an `summarizer` gestellt ist sie
+in **Sekunden** erledigt; als Kanban-Karte dauert sie Minuten.
+
+### Die Messreihe
+
+| Lauf | `reasoning_effort` | `stall_guards` | Dauer | Turns | davon leer / nur Absicht | „byte-identical" | Artefakt |
+|---|---|---|---|---|---|---|---|
+| 1 | medium (Default) | true | 469 s | 15 | 1 (6 %) | 1 | ja |
+| 2 | none | true | 292 s | 26 | 6 (23 %) | 3 | nein |
+| 3 | none | **false** | **90 s** | 10 | 3 (30 %) | 0 | nein |
+| 4 | none | **false** | 435 s | 36 | **25 (69 %)** | 0 | **ja** |
+
+„Turns" = Modell-Durchgänge im Worker-Log
+(`~/.hermes/kanban/logs/<id>.log`, gezählt an `╭─ ☤ Hermes`-Blöcken).
+„Leer / nur Absicht" = Block mit weniger als 60 Zeichen Inhalt.
+
+### Wo die Zeit hingeht
+
+**Nicht in der Aufgabe.** Die fertige Zusammenfassung steht in jedem Lauf schon
+in den ersten Durchgängen im Log. Die Zeit verbrennt in wiederholten
+`kanban_show`-Aufrufen: 13, 23, 4 und 30 Stück. Jeder davon ist ein
+vollständiger Modell-Durchgang mit dem kompletten Worker-Systemprompt.
+
+Ausgelöst wird das durch Schritt 1 des Worker-Protokolls in der
+`KANBAN_GUIDANCE` (`prompt_builder.py:243`): *„Call `kanban_show()` first."*
+Der Chat-Weg hat diesen Orientierungsschritt nicht — **null** `kanban_show`,
+ein Durchgang, fertig. Das ist der strukturelle Unterschied.
+
+Das Muster im Log ist in allen vier Läufen dasselbe: das Modell gibt eine reine
+Absichtserklärung aus („I'll orient myself with the task details.") oder einen
+leeren Block, ruft `kanban_show` erneut auf und verarbeitet das Ergebnis nie.
+In Lauf 4 waren **69 % aller Durchgänge** von dieser Art.
+
+### Was die beiden Schalter *nicht* erklären
+
+Läufe 3 und 4 haben **identische Konfiguration** — und 90 s gegen 435 s, also
+Faktor 4,8. Damit ist die naheliegende Erklärung widerlegt:
+
+> **`stall_guards: false` beseitigt die Schleife nicht.** Nach Lauf 3 sah es so
+> aus (23 → 4 `kanban_show`, keine „byte-identical"-Meldung mehr), aber Lauf 4
+> mit derselben Einstellung hatte 30 Aufrufe und die längste Schleife der Reihe.
+> Lauf 3 war ein glücklicher Lauf, kein Beleg.
+
+Schlimmer noch: der Schalter hebt laut `config_defaults.py:139-143` **beides**
+auf — das Result-Stubbing *und* die „continue-intent extension of empty-response
+recovery [that] re-prompts once when the model says it will continue but takes
+no action". Genau dieser Fehlermodus dominiert Lauf 4. Der Verdacht liegt nahe,
+dass `stall_guards: false` die Sache im Mittel **verschlechtert**; belegt ist
+das mit zwei Läufen nicht.
+
+Zum Result-Stubbing (`run_agent.py:1247`) bleibt ein echter Befund: In den
+Läufen 1 und 2 meldete das Modell wörtlich *„the kanban_show returned
+byte-identical to an earlier call, **but I don't see that earlier result in my
+context**"* und rief deshalb erneut auf. Der Verweis zeigt für dieses Modell ins
+Leere. Das erzeugt Schleifen — es ist nur nicht die einzige Ursache.
+
+### Was belastbar ist
+
+1. **Der Orientierungsschritt ist der Kostentreiber**, nicht die Aufgabe. Wer
+   Kanban-Worker mit diesem Modell betreibt, zahlt ihn bei *jeder* Karte.
+2. **`reasoning_effort: none` macht den einzelnen Durchgang schneller**
+   (31,3 s → 11,2 s in Läufen 1→2), erhöht aber die Zahl der Durchgänge. Netto
+   in dieser Reihe −38 %.
+3. **Die Streuung ist größer als jeder Schaltereffekt.** 90 s bis 469 s bei
+   vier Läufen derselben Aufgabe. Ein einzelner Lauf taugt hier nicht als
+   Beleg — auch meiner nicht.
+
+### Was den Artefakt-Verlust behoben hat
+
+Unabhängig von alledem: bis Lauf 3 ging das Ergebnis verloren
+(`result_len: 0`, kein Anhang, Workspace nach `done` gelöscht). Ursache war die
+frei formulierte Kartenanweisung des Orchestrators — in Lauf 2 stand dort
+„Liefere nur die drei Stichpunkte als Ergebnis", woraufhin der Worker gar keine
+Datei anlegte.
+
+`SOUL.orchestrator.md` schreibt jetzt einen wörtlichen Satz vor, den der
+Orchestrator in jede Karte übernimmt:
+
+> ABLIEFERUNG: Schreibe das Ergebnis in eine Datei im Arbeitsverzeichnis und
+> hänge sie mit `kanban_complete(artifacts=[<absoluter Pfad>])` an. Die
+> Zusammenfassung im `summary` ersetzt das Artefakt nicht.
+
+In Lauf 4 stand der Satz wörtlich in der Karte, und das Ergebnis kam als
+Anhang `deichwartung_3_stichpunkte.md` an. **Ein Lauf ist ein Lauf** — aber der
+Wirkzusammenhang ist hier direkt nachvollziehbar, anders als bei den
+Laufzeit-Schaltern.

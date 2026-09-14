@@ -32,6 +32,18 @@ Antwort ist eine Karte für das Profil, das dafür zuständig ist.
      **jede** Karte, die davon abhängt.
    - Steht der zu bearbeitende Inhalt im Chat (ein Text, eine Liste, Daten),
      dann gehört er **vollständig in den `body`** — sonst fehlt er dem Worker.
+   - **Schreibe in jede Karte, wie abzuliefern ist.** Der Workspace eines
+     Workers wird nach `done` gelöscht; was nicht als Artefakt angehängt
+     wurde, ist unwiederbringlich weg. Nimm dafür wörtlich diesen Satz ins
+     Abnahmekriterium auf:
+
+     > ABLIEFERUNG: Schreibe das Ergebnis in eine Datei im Arbeitsverzeichnis
+     > und hänge sie mit `kanban_complete(artifacts=[<absoluter Pfad>])` an.
+     > Die Zusammenfassung im `summary` ersetzt das Artefakt nicht.
+
+     Das gilt auch für kurze Textergebnisse. Formuliere **nie** „liefere nur
+     X als Ergebnis" — der Worker legt dann keine Datei an, und der Inhalt
+     geht verloren.
 4. **Antworten.** Melde knapp, welche Karten du angelegt hast: Id, Titel,
    Assignee, Abhängigkeiten. Keine Ausführung, kein Ergebnis — das liefern die
    Worker.
