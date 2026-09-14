@@ -932,3 +932,69 @@ Orchestrator-Profil auf ein Modell stellen, das Rollenanweisungen
 zuverlässiger befolgt — dieselbe Empfehlung, die Abschnitt 12 für das
 Worker-Profil gibt. Gemessen ist das für den Orchestrator **nicht**; die
 Zahlen oben betreffen nur das Worker-Modell.
+
+---
+
+## 14. Vierter Modellvergleich: GLM 5.3 (voll) — und ein Gegenbefund zum Orchestrator
+
+Diesmal wanderten **zwei** Variablen: Orchestrator von
+`deepseek-v4-flash` auf `z-ai/glm-5.3-flash`, Worker von
+`z-ai/glm-5.3-flash` auf das volle `z-ai/glm-5.3`. Die Vergleichsvariablen
+(`stall_guards: false`, `reasoning_effort: none`) blieben erneut stehen.
+
+### Worker: GLM 5.3 (voll)
+
+| Lauf | Karte | Worker | Turns | `kanban_show` | Artefakt |
+|---|---|---|---|---|---|
+| 1 | — | — | — | — | Orchestrator legte keine Karte an |
+| 2 | `t_0683b0f3` | 19 s | 3 | 1 | ja |
+| 2b | `t_89c5f8b1` | 16 s | 5 | 1 | ja |
+| 3b | `t_7ff65055` | 35 s | 4 | 1 | ja |
+
+Weil der Orchestrator in zwei von drei Läufen aussetzte (siehe unten), wurden
+die Messpunkte 2b und 3b mit **byte-identischem Kartentext** aus Lauf 2
+direkt per `hermes kanban create` angelegt. Das schaltet die Formulierung des
+Orchestrators als Störgröße aus — methodisch sauberer als die vorherigen
+Reihen, aber nicht identisch zu ihnen.
+
+### Die Gesamtschau über vier Worker-Modelle
+
+| Worker-Modell | n | min | max | Median | Streuung | `kanban_show` | Artefakt |
+|---|---|---|---|---|---|---|---|
+| deepseek-v4-flash | 4 | 90 s | 469 s | 364 s | 5,2× | 4–30 | 2 von 4 |
+| **Sonnet** (Claude Code) | 3 | 13 s | 17 s | **15 s** | 1,3× | je 1 | 3 von 3 |
+| GLM 5.3 Flash | 3 | 48 s | 73 s | 52 s | 1,5× | je 1 | 3 von 3 |
+| **GLM 5.3 (voll)** | 3 | 16 s | 35 s | **19 s** | 2,2× | je 1 | 3 von 3 |
+
+Bemerkenswert: **das volle GLM 5.3 ist als Worker rund dreimal schneller als
+seine Flash-Variante** (Median 19 s gegen 52 s) — die kleinere Variante ist
+hier nicht die schnellere. Sonnet bleibt vorn, der Abstand schrumpft aber von
+Faktor 3,5 auf 1,3.
+
+Drei der vier Modelle erledigen den Orientierungsschritt in **einem**
+`kanban_show`-Aufruf. Allein deepseek-v4-flash gerät in die Schleife. Das
+bleibt die Trennlinie.
+
+### ⚠ Gegenbefund: GLM Flash ist als Orchestrator **schlechter** als deepseek
+
+| Orchestrator-Modell | Karte angelegt |
+|---|---|
+| `deepseek-v4-flash` | ~10 von 12 |
+| `z-ai/glm-5.3-flash` | **1 von 3** |
+
+In beiden Aussetzern schrieb GLM Flash die Zusammenfassung sauber selbst —
+nach 15 bzw. 10 Sekunden, also ohne je ein Werkzeug anzufassen.
+
+**Damit ist die Empfehlung aus Abschnitt 13 widerlegt.** Dort stand, man solle
+den Orchestrator „auf ein Modell stellen, das Rollenanweisungen zuverlässiger
+befolgt". Der erste Gegentest zeigt das Gegenteil: das neue Modell ist
+schlechter. Der Fehlermodus tritt bei **zwei verschiedenen Modellen** auf und
+ist damit keine Modelleigenschaft, sondern strukturell — eine Rollenanweisung
+in `SOUL.md` tritt gegen eine konkret formulierte Nutzeraufgabe an, und je
+kleiner und eindeutiger die Aufgabe, desto häufiger gewinnt die Aufgabe.
+
+Wer Verlässlichkeit braucht, löst das vermutlich nicht über die Modellwahl,
+sondern über einen Weg, der gar keine Rollentreue voraussetzt — die
+**Triage-Spalte** (Abschnitt 1–3): dort zerlegt der Decomposer jede Karte
+zwangsläufig, ohne dass ein Modell sich für oder gegen das Orchestrieren
+entscheiden könnte. Gemessen ist dieser Vergleich nicht.
