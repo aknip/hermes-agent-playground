@@ -13,7 +13,7 @@ einen Schema-only-MCP-Server statt als Text im Prompt mit Regex-Rückparsing.
 |---|---|
 | [TUTORIAL.md](TUTORIAL.md) | Einbau, Betrieb, Stellschrauben, Fehlersuche, Rückbau |
 | [VERIFIKATION.md](VERIFIKATION.md) | Was am Quelltext belegt ist, was nur durch Läufe — und was **nicht** |
-| [RUN-PROTOKOLL.md](RUN-PROTOKOLL.md) | Die acht gemessenen Läufe mit Rohdaten |
+| [RUN-PROTOKOLL.md](RUN-PROTOKOLL.md) | Die neun gemessenen Läufe mit Rohdaten |
 | [`plugin/`](plugin/) | Der Master. `install.sh` leitet die Kopien nach `~/.hermes/` ab |
 | [`probes/`](probes/) | Gesäuberte Protokolle der Läufe |
 
@@ -58,13 +58,17 @@ Die Enden werden zusammengefaltet:
 Die gültigen Stufen stammen aus der CLI selbst: ein unbekannter Wert meldet
 *„Valid values: low, medium, high, xhigh, max"* und fällt auf die Vorgabe zurück.
 
-### Drei Reichweiten
+### Vier Reichweiten — alle belegt (Lauf 9)
 
 | Was | Wie | Gilt für |
 |---|---|---|
 | Profil | `hermes -p claude-dev config set model.default opus` | alles auf diesem Profil |
-| Sitzung | `/model` in der laufenden Sitzung | nur diese Sitzung |
+| Ein Aufruf | `hermes -p claude-dev -m fable -z "…"` | nur diesen Aufruf |
+| Laufende Sitzung | `/model fable` im TUI | ab dem nächsten Zug dieser Sitzung |
 | Einzelne Karte | `hermes kanban set-model <task-id> fable` | diesen einen Worker (`none` löscht es) |
+
+⚠ `/model` funktioniert **nur interaktiv**. Als `-z`-Prompt übergeben, geht es als
+Text ans Modell, statt umzuschalten.
 
 ### Vorrang
 

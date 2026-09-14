@@ -234,6 +234,42 @@ Wegwerf-`HERMES_HOME`:
 3. Hermes uebergibt max -> max     <- Hermes gewinnt
 ```
 
+## Lauf 9 — `/model`, `-m` und `set-model` im echten Hermes
+
+Lauf 8 zeigte nur, dass der *Client* ein geändertes `model`-Argument umsetzt. Offen war,
+ob Hermes' drei Umschaltwege dort auch ankommen. Alles auf einem **Wegwerf-Profil**
+`cc-probe-dev` — die Desktop-App hielt weiterhin einen `claude-dev`-Serve-Prozess, und
+zwei Schreiber auf einem Profil sind genau die Falle aus Lauf 4.
+
+Profilvorgabe durchgehend `model.default: haiku`.
+
+| Weg | Befehl | Modell laut CLI |
+|---|---|---|
+| Profil | `config set model.default haiku` | `claude-haiku-4-5-20251001` |
+| Je Aufruf | `hermes -p cc-probe-dev -m fable -z …` | `claude-fable-5-1` |
+| **`/model` im TUI** | `/model fable` zwischen zwei Zügen | Zug 1 `claude-haiku-4-5-20251001`, Zug 2 **`claude-fable-5-1`** |
+| Je Karte | `hermes kanban set-model <id> fable` | Worker schrieb `claude-fable-5-1` |
+
+Das TUI musste über ein Pseudo-Terminal getrieben werden (`pty.fork`, zeichenweise
+getippt): Slash-Befehle gibt es **nur** interaktiv — als `-z`-Prompt übergeben, geht
+`/model fable` als Text ans Modell, das dann erklärt, wie man es richtig macht. Der
+Beleg steht im Client-Protokoll, weil der TUI-Mitschnitt durch die Neuzeichnung
+zerfasert:
+
+```
+argv: --model haiku
+[client] Modell laut CLI: claude-haiku-4-5-20251001
+argv: --model fable
+[client] Modell laut CLI: claude-fable-5-1
+```
+
+Die Karten-Übersteuerung lief **ohne** Gateway-Neustart durch (Karte `done`,
+`model_override: fable`, Ergebnisdatei `claude-fable-5-1`): Worker werden je Karte
+frisch gestartet und machen ihre Provider-Erkennung selbst. Der Neustart aus Lauf 6 war
+nötig, weil das Plugin damals **neu** war — nicht für jede spätere Umschaltung.
+
+Danach zurückgebaut: Board gelöscht, Plugin entfernt, Profil `cc-probe-dev` gelöscht.
+
 ## Kosten
 
 Die Einzelläufe lagen zwischen 0,02 und 0,06 USD; die gesamte Prüfleiter inklusive
