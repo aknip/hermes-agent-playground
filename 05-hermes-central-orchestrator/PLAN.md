@@ -1,8 +1,8 @@
 # Plan: Orchestrator-Profil für Kanban-Triage
 
 **Stand:** 2026-09-14 · **Version:** Hermes Agent **v0.21.2 (2026.9.11)**, macOS
-**Status:** umgesetzt — alle acht Schritte ausgeführt, Lauf vollständig
-durchlaufen und protokolliert (Abschnitt 8)
+**Status:** umgesetzt — alle Schritte ausgeführt; **beide** Wege (Triage und
+Chat) je einmal vollständig durchlaufen und protokolliert (Abschnitt 8)
 
 > ⚠ **Versionsabweichung zur Repo-Konvention.** `CLAUDE.md` schreibt das Repo auf
 > v0.20.0 (2026.8.3) fest. Die installierte Version ist aber **v0.21.2
@@ -115,6 +115,52 @@ hermes -p orchestrator config set model.api_mode  chat_completions
 
 `OPENROUTER_BASE_URL` verifiziert in `hermes_constants.py:1176`;
 `OPENROUTER_API_KEY` ist in `~/.hermes/.env` vorhanden.
+
+### Schritt 2b — Zugangsdaten für das neue Profil ← **sonst nur in der Shell nutzbar**
+
+`hermes profile create` legt eine **Platzhalter-`.env`** an — drei
+Kommentarzeilen, kein Schlüssel — und warnt beim Anlegen ausdrücklich:
+
+```
+⚠ This profile has no API keys yet. Run 'orchestrator setup' first,
+  or it will inherit keys from your shell environment.
+```
+
+Genau daran hängt eine Falle: **in der Shell funktioniert das Profil trotzdem**,
+weil es den Schlüssel aus der Umgebung erbt. Die Desktop-App startet ohne diese
+Umgebung, und Profile sind bewusst getrennte Inseln, die die Root-`.env`
+**nicht** erben (`profiles.py:846` — „the profile silently inherited shell API
+keys — read by users as *the new profile reads the root .env*"). Das Symptom
+dort ist ein Setup-Dialog:
+
+```
+No usable credentials found for openrouter, setup.status reports configured
+credentials, but runtime resolution still failed.
+```
+
+Die anderen Profile lösen das über eine schlichte `.env`-Zeile. Dieselbe
+Konvention spiegeln:
+
+```bash
+grep -m1 '^OPENROUTER_API_KEY=' ~/.hermes/.env \
+  >> ~/.hermes/profiles/orchestrator/.env
+chmod 600 ~/.hermes/profiles/orchestrator/.env
+```
+
+> **`hermes auth status` taugt hier nicht als Prüfung.** Der Befehl berichtet
+> über OAuth und Credential-Pool, nicht über die `.env`: er meldet
+> `openrouter: logged out` auch für ein Profil, das einwandfrei läuft
+> (nachgemessen an `developer`). Richtig prüft man mit bewusst geleerter
+> Umgebung — also so, wie die App startet:
+>
+> ```bash
+> env -u OPENROUTER_API_KEY -u OPENAI_API_KEY \
+>   hermes -p orchestrator chat --oneshot -Q -q "Antworte mit genau einem Wort: bereit"
+> ```
+
+Alternative, wenn das Profil einen **eigenen** Schlüssel bekommen soll (so hält
+es hier `summarizer`): `hermes -p orchestrator setup` bzw.
+`hermes -p orchestrator auth add openrouter --type api-key`.
 
 ### Schritt 3 — Kanban-Toolset freischalten (**pro Plattform**)
 
@@ -287,8 +333,39 @@ ist — **keine Existenzprüfung des Profils**. Die Karte landet dann für immer
 
 Das setzt voraus, dass das Terminal-Toolset für die jeweilige Plattform aktiv
 ist — sonst kann das Modell `hermes profile list` gar nicht aufrufen. Schritt 6
-(Profilbeschreibungen) hilft hier **nicht**: den Roster bekommt nur der
-Decomposer gestellt, der Chat-Weg sieht ihn nie.
+(Profilbeschreibungen) hilft hier **nicht** von selbst: den Roster bekommt nur
+der Decomposer gestellt, der Chat-Weg sieht ihn nie — er muss ihn sich holen.
+
+**d) Ohne Rollendefinition in `SOUL.md` erledigt das Profil die Aufgabe selbst.**
+Das ist die wichtigste Bedingung, und sie war in der ersten Fassung dieses Plans
+nicht enthalten. Real gemessen (Abschnitt 8): mit allen 14 `kanban_*`-Werkzeugen
+im Schema und der Bitte „Fasse den folgenden Text in drei Stichpunkten zusammen"
+hat das Profil **die Zusammenfassung geschrieben** statt eine Karte anzulegen.
+
+Der Grund steht in der `KANBAN_GUIDANCE` selbst: der Abschnitt „Orchestrator
+mode" ist **konditional** formuliert — *„If your task is itself a decomposition
+task (e.g. a planner profile given a high-level goal)"*. Eine direkte Bitte um
+eine Zusammenfassung liest sich nicht als Zerlegungsauftrag. Der umgebende Text
+ist zudem das Worker-Protokoll („You have been assigned ONE task").
+
+Die Rolle muss deshalb aus dem Profil selbst kommen. `hermes profile create`
+legt eine generische `SOUL.md` an (eine Absatzzeile, keine Rolle); sie wird
+ersetzt durch `SOUL.orchestrator.md` aus diesem Verzeichnis:
+
+```bash
+cp SOUL.orchestrator.md ~/.hermes/profiles/orchestrator/SOUL.md
+```
+
+Die vier Punkte, auf die es darin ankommt:
+
+1. **„Du verteilst Arbeit, du erledigst sie nicht"** — ausdrücklich auch dann
+   nicht, wenn die Aufgabe klein wirkt.
+2. **Roster zuerst holen** (`hermes profile list`), und nach **Beschreibung**
+   zuordnen, nicht nach Namen.
+3. **Der Inhalt aus dem Chat gehört vollständig in den `body`.** Der Worker
+   sieht weder den Chat noch Geschwisterkarten.
+4. **Ein erfundener Assignee wird stillschweigend angenommen, aber nie
+   ausgeführt** — der Stolperstein aus (c), in Worten, die das Modell liest.
 
 ### Zusätzlicher Prüfschritt
 
@@ -320,7 +397,8 @@ Leaf-Arbeit statt Orchestrierung macht. Im Plan steht oben `claude-dev`.
 | Das Gateway läuft tatsächlich mit `HERMES_HOME` = Root | Aus dem Code zwingend, am laufenden Prozess aber nicht nachgemessen | `hermes gateway status` bzw. Prozess-Env prüfen |
 | ~~Der Dispatcher dispatcht **keine** Karten in Triage an ihren Assignee~~ | **Erledigt.** Die Testkarte lag unassigned in Triage und wurde nicht dispatcht, sondern zerlegt (Abschnitt 8) | — |
 | ~~Verhalten der Wurzelkarte nach Abschluss aller Kinder~~ | **Erledigt.** Sie wachte auf, wurde an `orchestrator` dispatcht und lief 1m 41s (Abschnitt 8) | — |
-| ~~Ein Chat-/Telegram-Lauf legt tatsächlich Karten an~~ | **Weiterhin offen** — dieser Lauf belegt nur den Triage-Weg. Der Chat-Weg (Abschnitt 4) ist unverändert ungeprüft, und das Profil hat noch keinen Telegram-Bot-Token | `hermes -p orchestrator chat`, danach `hermes kanban list` |
+| ~~Ein Chat-Lauf legt tatsächlich Karten an~~ | **Erledigt für den CLI-Chat** (Abschnitt 8, Lauf 2) — inklusive des Befunds, dass es ohne Rollendefinition in `SOUL.md` *nicht* funktioniert | — |
+| Der **Telegram**-Weg legt Karten an | Ungeprüft: das Profil hat keinen eigenen Bot-Token, nur die Toolset-Auflösung ist gemessen | Bot-Token in `~/.hermes/profiles/orchestrator/` hinterlegen, Gateway starten, Aufgabe per Telegram schicken |
 
 ---
 
@@ -543,3 +621,80 @@ Bleibend geändert durch diese Umsetzung:
 
 Nicht angetastet: die bestehenden Modell- und Channel-Einstellungen der vier
 Altprofile, das Root-Modell, und alles im Repo außer diesem Plan.
+
+---
+
+## 9. Lauf 2: der Chat-Weg (2026-09-14)
+
+Aufgabe per CLI-Chat an das Profil, bewusst simpel gehalten, damit **eine**
+Karte die richtige Antwort ist:
+
+```bash
+hermes -p orchestrator chat --oneshot -Q -q "Fasse den folgenden Text in drei
+Stichpunkten zusammen. TEXT: <Deichwartung, 5 Sätze>"
+```
+
+### Erster Versuch: der Orchestrator erledigt die Aufgabe selbst
+
+Mit der Konfiguration aus den Schritten 1–7 kam keine Karte, sondern die
+fertige Zusammenfassung — das Board blieb unverändert.
+
+Die Diagnose war der entscheidende Schritt, denn „konnte nicht" und „wollte
+nicht" hätten verschiedene Ursachen. Eine direkte Abfrage im selben Profil
+ergab, dass **alle 14 `kanban_*`-Werkzeuge im Schema standen**:
+
+```
+kanban_attach, kanban_attach_url, kanban_attachments, kanban_block,
+kanban_comment, kanban_complete, kanban_create, kanban_heartbeat,
+kanban_link, kanban_list, kanban_request_changes, kanban_request_review,
+kanban_show, kanban_unblock
+```
+
+Schritt 3 funktioniert also — das Modell hat sich **entschieden**, die Arbeit
+zu tun. Ursache ist die Formulierung der `KANBAN_GUIDANCE`: ihr Abschnitt
+„Orchestrator mode" ist konditional (*„If your task is itself a decomposition
+task"*), und der umgebende Text ist das Worker-Protokoll („You have been
+assigned ONE task"). Eine Bitte um eine Zusammenfassung löst das nicht aus.
+
+### Zweiter Versuch: mit Rollendefinition
+
+Nach dem Ersetzen der generischen `SOUL.md` durch `SOUL.orchestrator.md`
+(Bedingung (d) in Abschnitt 4) — **gleiche Aufgabe, gleicher Wortlaut**:
+
+```
+Karte angelegt:
+- t_c3a24225 — "Deichwartung-Text in drei Stichpunkten zusammenfassen"
+  — Assignee: summarizer — keine Abhängigkeiten.
+```
+
+Richtiger Zuschnitt (einfache Aufgabe = eine Karte), Routing über die
+Beschreibung, und — der kritische Punkt — der **Volltext stand im `body`**
+(1056 Zeichen, nach ZIEL/TEXT gegliedert). Hätte der Orchestrator ihn
+weggelassen, wäre die Karte unbearbeitbar gewesen: der Worker sieht den Chat
+nicht.
+
+Der Dispatcher übernahm binnen eines Ticks. Ergebnis nach **7m 49s** als
+Anhang `ergebnis.md` — drei Stichpunkte, inhaltlich korrekt, nichts erfunden.
+Die lange Laufzeit ist Reasoning des `summarizer`-Modells, kein Hänger; der
+Worker-Log unter `~/.hermes/kanban/logs/t_c3a24225.log` zeigt durchgehende
+Aktivität.
+
+### Der Fehler, der den Plan bis hierhin hatte
+
+Das Profil lief in der Shell, aber die **Desktop-App konnte es nicht öffnen**:
+
+```
+No usable credentials found for openrouter, setup.status reports configured
+credentials, but runtime resolution still failed.
+```
+
+Ursache und Behebung stehen jetzt als **Schritt 2b**. Der Punkt, der das
+Übersehen erst möglich machte: in der Shell *funktioniert* das Profil ohne
+eigenen Schlüssel, weil es ihn aus der Umgebung erbt. Jeder CLI-Test ist
+deshalb blind für diesen Fehler — man muss mit `env -u OPENROUTER_API_KEY`
+prüfen, sonst testet man die eigene Shell statt das Profil.
+
+### Aufräumen
+
+`t_c3a24225` archiviert (ohne `--rm`, wie in Lauf 1 — der Anhang
+`ergebnis.md` ist die einzige verbliebene Kopie des Ergebnisses).
