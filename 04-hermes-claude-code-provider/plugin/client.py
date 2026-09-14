@@ -740,6 +740,11 @@ class ClaudeCodeClient:
                 usage=bridge.map_usage(None), finish_reason="tool_calls")
 
         event = outcome["event"]
+        _usage = bridge.map_usage(event.get("usage"))
+        bridge.debug_log(
+            f"[client] Zugende: prompt={_usage['prompt_tokens']:,} "
+            f"(cached {_usage['cached_tokens']:,}) completion={_usage['completion_tokens']:,} "
+            f"cost={event.get('total_cost_usd')}")
         _drop_session_object(session)  # der Zug ist zu Ende, der Prozess läuft aus
         return self._completion(
             model=model, text=outcome["text"], tool_calls=[],

@@ -310,6 +310,45 @@ die ganze Zeit aktiv. Beide Felder werden jetzt getrennt protokolliert.
 
 Danach zurückgebaut: Plugin entfernt, Profil gelöscht, Root-Kopie wiederhergestellt.
 
+## Lauf 11 — Komprimiert Hermes bei größerem Fenster wirklich später?
+
+Der offene Punkt aus Lauf 10. Ein echter 1M-Lauf wäre sehr teuer, also derselbe
+Mechanismus mit kleinen Zahlen und `haiku`: die Schwelle ist
+`threshold_tokens = context_length × compression.threshold`
+(`agent/context_engine.py:242`), also skaliert sie linear.
+
+Aufbau: Wegwerf-Profil `cc-win-probe`, `compression.threshold: 0.5`, eine Datei mit
+125.904 Zeichen einlesen lassen, dann zweimal fortsetzen. **Identisches Gespräch**, nur
+`model.context_length` unterschiedlich.
+
+| | Fenster | Schwelle | Zug 1 | Zug 2 | Zug 3 |
+|---|---|---|---|---|---|
+| **A** | 64.000 | 32.000 | 66.685 | **20.217** | 20.234 |
+| **B** | 200.000 | 100.000 | 47.180 | **61.182** | 61.199 |
+
+**Belegt:** In A überschreitet Zug 1 mit 66.685 die Schwelle von 32.000 — Zug 2 startet
+danach bei nur noch 20.217 Token, die Historie ist zusammengefasst worden. In B bleibt
+dasselbe Gespräch mit 61.182 unter der Schwelle von 100.000 und wächst unkomprimiert
+weiter. `model.context_length` steuert also tatsächlich, *wann* komprimiert wird.
+
+Hochgerechnet auf die Ausgangsfrage: 256.000 → Kompression ab ~128.000;
+1.000.000 → ab ~500.000.
+
+**Der Preis steht mit in der Tabelle.** B kostete je Fortsetzung rund 0,14 USD gegen
+0,02 USD in A — ein größeres Fenster heißt später komprimieren, also mehr Token je Zug.
+Das 1M-Fenster ist keine Gratis-Verbesserung.
+
+Zwei Nebenbefunde:
+
+- **Hermes erzwingt mindestens 64.000.** `model.context_length: 30000` wird abgelehnt:
+  *„…is below the minimum 64,000 required by Hermes Agent."*
+- **`--continue` setzte die Sitzung nicht fort**, sondern legte eine neue an; der erste
+  Messversuch blieb deshalb ohne Kompression. Mit `--resume <session-id>` lief es.
+
+Der Client protokolliert die Token je Zug jetzt mit
+(`[client] Zugende: prompt=… (cached …) completion=… cost=…`) — ohne das wäre dieser
+Lauf nicht auswertbar gewesen.
+
 ## Kosten
 
 Die Einzelläufe lagen zwischen 0,02 und 0,06 USD; die gesamte Prüfleiter inklusive

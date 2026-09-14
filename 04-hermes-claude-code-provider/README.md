@@ -13,7 +13,7 @@ einen Schema-only-MCP-Server statt als Text im Prompt mit Regex-Rückparsing.
 |---|---|
 | [TUTORIAL.md](TUTORIAL.md) | Einbau, Betrieb, Stellschrauben, Fehlersuche, Rückbau |
 | [VERIFIKATION.md](VERIFIKATION.md) | Was am Quelltext belegt ist, was nur durch Läufe — und was **nicht** |
-| [RUN-PROTOKOLL.md](RUN-PROTOKOLL.md) | Die zehn gemessenen Läufe mit Rohdaten |
+| [RUN-PROTOKOLL.md](RUN-PROTOKOLL.md) | Die elf gemessenen Läufe mit Rohdaten |
 | [`plugin/`](plugin/) | Der Master. `install.sh` leitet die Kopien nach `~/.hermes/` ab |
 | [`probes/`](probes/) | Gesäuberte Protokolle der Läufe |
 
@@ -85,6 +85,15 @@ Das Suffix versorgt **Claude Code** (die Sitzung läuft dann als `claude-opus-5[
 ⚠ `model.context_length` wird still verworfen, wenn das aktive Modell nicht exakt
 `model.default` entspricht — ein sitzungsweites `/model opus[1m]` ohne `--global` reicht
 also nicht, und `Opus[1m]` ≠ `opus[1m]`. Gemessen in Lauf 10.
+
+Was das bringt: Hermes komprimiert bei `compression.threshold: 0.5` erst ab
+`context_length × 0.5` — also ab ~128.000 statt der geschätzten 256.000, und mit 1M erst
+ab ~500.000. In Lauf 11 mit identischem Gespräch gemessen: 64k-Fenster komprimierte
+(66.685 → 20.217 Token), 200k-Fenster nicht (61.182 blieben stehen).
+
+⚠ Das ist keine Gratis-Verbesserung: später komprimieren heißt mehr Token je Zug. Im
+selben Test kostete die Variante mit großem Fenster rund 0,14 USD je Fortsetzung gegen
+0,02 USD bei kleinem. Und unter 64.000 nimmt Hermes den Wert gar nicht erst an.
 
 ### Vorrang
 

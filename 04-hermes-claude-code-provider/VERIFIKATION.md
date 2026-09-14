@@ -81,6 +81,9 @@ Alle Läufe stehen mit Rohdaten in [RUN-PROTOKOLL.md](RUN-PROTOKOLL.md).
 | Eine Karten-Übersteuerung braucht **keinen** Gateway-Neustart | 9 — Worker werden je Karte frisch gestartet |
 | `model.context_length` hebt Hermes' Schätzung auf — aber nur bei Übereinstimmung mit `model.default`, groß-/kleinschreibungsgenau | 10 — vier Szenarien, 1.000.000 gegen 256.000 |
 | Das `[1m]`-Suffix erreicht die CLI und setzt die Sitzung auf `claude-opus-5[1m]` | 10 — `system/init`; das `assistant`-Ereignis führt die nackte Wire-ID |
+| Ein größeres `model.context_length` verschiebt die Kompression nachweislich nach hinten | 11 — A/B mit identischem Gespräch: 64k-Fenster komprimiert (66.685 → 20.217), 200k-Fenster nicht (61.182 bleibt) |
+| Die Schwelle ist `context_length × compression.threshold` | `agent/context_engine.py:242` |
+| Hermes erzwingt ein Mindestfenster von 64.000 | 11 — `model.context_length: 30000` wird abgelehnt |
 
 ---
 
@@ -100,7 +103,6 @@ Alle Läufe stehen mit Rohdaten in [RUN-PROTOKOLL.md](RUN-PROTOKOLL.md).
 | **Hermes' System-Prompt ersetzt Claude Codes eigenen** | `--system-prompt-file` ist die Vorgabe. Ob Claude-Code-Verhalten am eigenen System-Prompt hängt, ist ungeprüft; `HERMES_CLAUDE_CODE_SYSTEM_PROMPT_MODE=append` bleibt als Schalter. |
 | **Kosten im Dauerbetrieb** | Einzelläufe 0,02–0,06 USD. Ohne `--max-budget-usd` gibt es **keine** Obergrenze je Aufruf; die Kostenbremse muss woanders sitzen. |
 | **Andere Profile** | Nur `claude-dev` ist umgestellt und geprüft. |
-| **Ob Hermes bei 1M auch tatsächlich später komprimiert** | Belegt ist die *gemeldete* Fenstergröße (Lauf 10). Dass `compression.threshold: 0.5` daraufhin erst bei ~500k greift, folgt aus der Rechnung, ist aber nicht an einem langen Lauf gemessen. |
 | **Nutzungsbedingungen** | Es startet der offizielle Client — die stärkere Position als „Credentials leihen", **aber keine Freigabe**: ob der offizielle Client, gesteuert von einem fremden Harness, gedeckt ist, hat Anthropic nicht entschieden. Die Einschätzung bleibt beim Betreiber. (Satz aus der FAQ übernommen.) |
 
 ---
