@@ -869,3 +869,66 @@ alle vier Jahreszeiten abgedeckt, keine erfundenen Fakten.
 Der Stand vor der Umstellung liegt in `/tmp/summarizer-config.vor-sonnet.yaml`
 (`provider: openrouter`, `default: deepseek/deepseek-v4-flash-0731`). Für einen
 dauerhaften Rückbau gehört diese Sicherung an einen beständigeren Ort.
+
+---
+
+## 12. Dritter Modellvergleich: GLM 5.3 Flash
+
+Gleiche Aufgabe, gleiches Skript, dreimal. Geändert wurde erneut **nur** der
+Modellblock des `summarizer`-Profils (`provider: openrouter`,
+`default: z-ai/glm-5.3-flash`); `reasoning_effort: none` und
+`stall_guards: false` blieben unverändert stehen.
+
+| Lauf | Karte | Dauer | Turns | `kanban_show` | Artefakt |
+|---|---|---|---|---|---|
+| 1 | `t_17135902` | 52 s | 3 | 1 | ja |
+| 2 | `t_4bd8ce32` | 73 s | 4 | 1 | ja |
+| 3 | `t_5b8c7e1c` | 48 s | 5 | 1 | ja |
+
+### Die Gesamtschau
+
+| Modell | Läufe | min | max | Median | Streuung | `kanban_show` | Artefakt |
+|---|---|---|---|---|---|---|---|
+| deepseek-v4-flash | 4 | 90 s | 469 s | 364 s | **5,2×** | 4–30 | 2 von 4 |
+| **Sonnet** (Claude Code) | 3 | **13 s** | **17 s** | **15 s** | 1,3× | **je 1** | **3 von 3** |
+| GLM 5.3 Flash | 3 | 48 s | 73 s | 52 s | 1,5× | **je 1** | **3 von 3** |
+
+**Die Trennlinie verläuft nicht bei der Geschwindigkeit, sondern bei der
+Schleife.** Sonnet und GLM erledigen den `kanban_show`-Orientierungsschritt
+beide in **einem** Aufruf und liefern zuverlässig ein Artefakt; ihre Streuung
+bleibt unter Faktor 1,6. deepseek gerät in die Wiederholung (bis zu 30
+Aufrufe) und streut um Faktor 5,2.
+
+Zwischen Sonnet und GLM bleibt ein Faktor von rund 3,5 im Median — GLM braucht
+3 bis 5 Durchgänge, wo Sonnet mit einem auskommt. Beide sind für den Betrieb
+brauchbar; deepseek ist es als Worker-Modell nicht.
+
+Die Ergebnisqualität ist bei allen drei Modellen gleichwertig: drei
+Stichpunkte, alle vier Jahreszeiten abgedeckt, keine erfundenen Fakten.
+
+---
+
+## 13. ⚠ Die Rollentreue des Orchestrators ist nicht verlässlich
+
+Beim dritten GLM-Lauf legte der Orchestrator **keine Karte an**, sondern
+beantwortete die Aufgabe selbst — der Fehlermodus aus Abschnitt 9, den
+`SOUL.orchestrator.md` beheben sollte. Ein direkt danach wiederholter Aufruf
+scheiterte genauso; erst der dritte Anlauf legte wieder eine Karte an.
+
+Geprüft und ausgeschlossen: die `SOUL.md` war unverändert (byte-identisch zur
+Repo-Kopie), das Orchestrator-Modell unverändert
+`deepseek/deepseek-v4-flash-0731`.
+
+**Damit ist die Aussage aus Abschnitt 9 zu relativieren.** Dort wurde der
+`SOUL.md`-Fix nach *einem* erfolgreichen Lauf als wirksam bezeichnet. Über
+inzwischen zwölf Orchestrator-Aufrufe steht es bei etwa **10 von 12** — die
+Rollendefinition erhöht die Trefferquote deutlich, garantiert sie aber nicht.
+
+Praktische Folge: Ein Orchestrator auf `deepseek-v4-flash` beantwortet
+gelegentlich Aufgaben selbst, statt sie zu verteilen. Das fällt im Chat auf
+(man bekommt eine Antwort statt einer Karten-Id), auf einem unbeaufsichtigten
+Kanal wie Telegram aber nicht. Wer sich darauf verlassen muss, sollte das
+Orchestrator-Profil auf ein Modell stellen, das Rollenanweisungen
+zuverlässiger befolgt — dieselbe Empfehlung, die Abschnitt 12 für das
+Worker-Profil gibt. Gemessen ist das für den Orchestrator **nicht**; die
+Zahlen oben betreffen nur das Worker-Modell.
