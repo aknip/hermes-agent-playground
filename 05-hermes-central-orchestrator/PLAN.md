@@ -498,3 +498,48 @@ anhängt. Hier hat die Wurzelkarte neun Anhänge bekommen:
 Dort läuft `pytest` weiterhin grün (15 passed). **Für eine Story heißt das:
 Ergebnisse gehören in `artifacts`, nicht in den Workspace** — sonst ist das
 Erzeugnis nach dem letzten `done` unwiederbringlich.
+
+### Aufräumen nach dem Lauf
+
+Die vier Testkarten wurden **archiviert, nicht gelöscht**:
+
+```bash
+hermes kanban archive t_cc896ed5 t_6552cccb t_d0f7b317 t_e27d3131
+```
+
+Bewusst ohne `--rm`. `hermes kanban archive --rm <ids>` löscht bereits
+archivierte Karten endgültig — und damit auch ihre Anhänge, die nach dem
+Workspace-Aufräumen die **einzige** verbliebene Kopie der Ergebnisse sind und
+oben als Beleg zitiert werden.
+
+Nachgeprüft, dass das Archivieren die Belege nicht antastet:
+
+```
+~/.hermes/kanban/attachments/t_e27d3131/
+  csvstats.py  test_csvstats.py  README.md  sample.csv
+→ python3 -m pytest -q   ...............  15 passed
+```
+
+Das aktive Board enthält danach nur noch die Karte, die schon vor dem Lauf
+dort lag (`t_8cc31f56`, my-test-bot). Nicht angetastet.
+
+> Wer die Karten samt Anhängen endgültig loswerden will:
+> `hermes kanban archive --rm t_cc896ed5 t_6552cccb t_d0f7b317 t_e27d3131`.
+> Danach sind die Belege dieses Abschnitts nicht mehr nachvollziehbar.
+> `hermes kanban gc` räumt zusätzlich Workspaces und alte Ereignisse
+> archivierter Karten ab.
+
+### Was `~/.hermes/` nach allem enthält
+
+Bleibend geändert durch diese Umsetzung:
+
+| Ort | Änderung |
+|---|---|
+| `~/.hermes/profiles/orchestrator/` | neues Profil (Modellblock, `platform_toolsets`, 58 Skills, Wrapper `~/.local/bin/orchestrator`) |
+| `~/.hermes/config.yaml` | `kanban.orchestrator_profile`, `kanban.default_assignee`, vier `auxiliary.kanban_decomposer.*`-Schlüssel |
+| `~/.hermes/profiles/{claude-dev,developer,summarizer}/profile.yaml` | je eine LLM-erzeugte `description` (Schritt 6); `default` ebenfalls |
+| `~/.hermes/kanban.db` | vier archivierte Karten |
+| `~/.hermes/kanban/attachments/` | die vier Ergebnisdateien |
+
+Nicht angetastet: die bestehenden Modell- und Channel-Einstellungen der vier
+Altprofile, das Root-Modell, und alles im Repo außer diesem Plan.
