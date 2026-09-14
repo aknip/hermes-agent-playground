@@ -1,6 +1,0 @@
-◆  Linting product.komposition/index.html
-
-  ⚠ timeline_track_too_dense: Track 1 has 6 timed elements in this HTML file. Smaller sub-compositions keep timelines easier to read, iterate on, and diff.
-    Fix: Move coherent scene groups into separate .html files under compositions/ and mount them from the parent with data-composition-src so the timeline stays easier to inspect, revise, and validate.
-
-◇  0 error(s), 1 warning(s)

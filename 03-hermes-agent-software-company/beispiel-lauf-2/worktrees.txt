@@ -1,5 +1,0 @@
-/Users/aknipschild/github/hermes-agent-playground/04-hermes-agent-software-company-test-kaneo                        56e0b8f [main]
-/Users/aknipschild/github/hermes-agent-playground/04-hermes-agent-software-company-test-kaneo/.worktrees/t_0fccb8ce  ae7cbe4 (detached HEAD)
-/Users/aknipschild/github/hermes-agent-playground/04-hermes-agent-software-company-test-kaneo/.worktrees/t_6c366810  03d939b [feat/esf-r1-f5-api-modularisierung]
-/Users/aknipschild/github/hermes-agent-playground/04-hermes-agent-software-company-test-kaneo/.worktrees/t_801cb487  09ba5ac [feat/esf-r1-f2-zwei-faktor]
-/Users/aknipschild/github/hermes-agent-playground/04-hermes-agent-software-company-test-kaneo/.worktrees/t_e4473bf4  ba5eb81 [feat/esf-r1-f1-globale-suche]
