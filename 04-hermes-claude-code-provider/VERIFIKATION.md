@@ -128,12 +128,14 @@ Was diese Umsetzung angefasst hat — und wie es zurückgeht:
 | `~/.hermes/plugins/model-providers/claude-code-mcp/` angelegt | **liegt** — `./uninstall.sh` |
 | `~/.hermes/profiles/claude-dev/plugins/model-providers/claude-code-mcp/` angelegt | **liegt** — `./uninstall.sh` |
 | `claude-dev/config.yaml`: Provider, Modell, drei `auxiliary`-Blöcke | **umgestellt** — `./switch-profile.sh claude-dev --restore` |
-| `claude-dev/config.yaml`: `model.default: opus[1m]`, `model.context_length: 1000000` | **gesetzt** (14.09.2026) — Sicherung `config.yaml.pre-claude-code-20260914-080505.bak` |
+| `claude-dev/config.yaml`: `model.default: sonnet[1m]`, `model.context_length: 1000000` | **gesetzt** (14.09.2026; zwischenzeitlich `opus[1m]`) — Sicherungen `config.yaml.pre-claude-code-20260914-*.bak` |
+| `claude-dev/config.yaml`: `providers.claude-code-mcp` mit vier Modellen | **gesetzt** (14.09.2026, `./install.sh --with-model-picker claude-dev`) — Sicherung `config.yaml.bak-20260914-113833`; Rückbau `./uninstall.sh` oder `hermes -p claude-dev config unset providers.claude-code-mcp` |
 | Gateway zweimal neu gestartet | erledigt; `developer` und `summarizer` liefen beide Male durch |
 | Wegwerf-Boards `cc-probe`, `cc-model-probe` | gelöscht |
-| Wegwerf-Profile `cc-probe-dev`, `cc-ctx-probe`, `cc-win-probe` | gelöscht |
+| Wegwerf-Profile `cc-probe-dev`, `cc-ctx-probe`, `cc-win-probe`, `cc-pick-probe` | gelöscht |
 
 ⚠ `./switch-profile.sh claude-dev --restore` spielt den Stand **vor** der Umstellung
-zurück — also auch `sonnet` statt `opus[1m]` und ohne `context_length`.
+zurück — also auch das damalige Modell ohne `[1m]`, ohne `context_length` und ohne den
+`providers:`-Block.
 
 **Nicht angefasst:** die Story-Skripte unter `02-…`, fremde Profile, `~/.claude/`.

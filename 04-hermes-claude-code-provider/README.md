@@ -32,10 +32,21 @@ hermes -p claude-dev config set model.default sonnet
 hermes -p claude-dev config set model.context_length 200000
 ```
 
+**Modellauswahl im Desktop füllen** (einmalig je Profil)
+
+```bash
+./install.sh --with-model-picker claude-dev   # trägt den providers:-Block ein
+```
+
+Danach bietet das Auswahlfeld `sonnet[1m]`, `opus[1m]`, `haiku` und `fable` an; die
+beiden `[1m]`-Einträge bringen ihr 1M-Fenster selbst mit. Rückbau: `./uninstall.sh` —
+oder gezielt `hermes -p claude-dev config unset providers.claude-code-mcp`.
+
 **Prüfen**
 
 ```bash
-hermes -p claude-dev config get model      # beide Schlüssel ansehen
+hermes -p claude-dev config get model                        # beide Schlüssel ansehen
+hermes -p claude-dev config get providers.claude-code-mcp    # der Auswahl-Block
 ```
 
 Im Chat `/model` — dort muss `Context: 1,000,000 tokens` stehen. Steht dort `256,000`,
@@ -218,8 +229,9 @@ Provider benutzt; ohne die Option bleibt die Konfiguration unangetastet.
 `/model`-Wechsel zur Laufzeit löscht `model.context_length`
 (`agent_runtime_helpers.py:1963-1964`) und leitet das Fenster danach aus genau diesem
 Block neu her (`:2017`, über `hermes_cli/config_providers.py:312`). Damit trägt jedes
-Modell sein Fenster selbst — die Einschränkung aus dem Abschnitt oben („`/model` ohne
-`--global` verliert das Fenster") entfällt.
+**im Block aufgeführte** Modell sein Fenster selbst — für sie entfällt die Einschränkung
+aus dem Abschnitt oben („`/model` ohne `--global` verliert das Fenster"). Für alles
+andere, etwa ein voll qualifiziertes `claude-opus-5`, gilt sie weiter.
 
 In Lauf 13 gemessen, mit absichtlich ungewöhnlichen Zahlen: ohne Block fielen `haiku`
 und `fable` beide auf 256.000 zurück, mit Block lösten sie 111.000 bzw. 222.000 auf —
@@ -232,6 +244,17 @@ das Fenster nachweislich aus dem Block kam. Nachgestellt: derselbe Aufruf **ohne
 (`agent/auxiliary_client.py:3975`). Die maßgeblichen Pfade
 (`agent/agent_init.py:1822`, `agent/context_compressor.py:1782`) reichen die Liste
 durch. Verlassen Sie sich auf die Zahl, nicht auf die Warnung.
+
+**Prüfen und zurückbauen**
+
+```bash
+hermes -p claude-dev config get providers.claude-code-mcp    # was eingetragen ist
+hermes -p claude-dev config unset providers.claude-code-mcp  # gezielt entfernen
+```
+
+`./uninstall.sh` nimmt den Block ohnehin mit; `--keep-profile` lässt ihn stehen — dann
+bietet die Auswahl vier Modelle eines entfernten Providers an. Eine Änderung wird erst
+nach einem Neustart der Desktop-Sitzung sichtbar.
 
 ### Vorrang
 
@@ -280,9 +303,10 @@ Gemessen (Lauf 7): `--model opus --effort xhigh` → `claude-opus-5`;
 ## Schnellstart
 
 ```bash
-./install.sh claude-dev          # Plugin in Root-Home UND Profil-Home
-./switch-profile.sh claude-dev   # sichert, setzt alle vier Modell-Schlüssel
-hermes gateway restart           # nur für Kanban-Betrieb nötig
+./install.sh claude-dev                       # Plugin in Root-Home UND Profil-Home
+./switch-profile.sh claude-dev                # sichert, setzt alle vier Modell-Schlüssel
+./install.sh --with-model-picker claude-dev   # optional: Modellauswahl im Desktop
+hermes gateway restart                        # nur für Kanban-Betrieb nötig
 hermes -p claude-dev -z "Lies notiz.txt und nenne mir das Geheimwort."
 ```
 

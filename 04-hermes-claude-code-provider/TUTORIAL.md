@@ -171,8 +171,9 @@ dem ein Kontextfenster einen `/model`-Wechsel zur Laufzeit übersteht: `model.co
 wird dabei gelöscht (`agent/agent_runtime_helpers.py:1963-1964`) und danach aus diesem
 Block neu hergeleitet (`:2017`). Gemessen in Lauf 13.
 
-Rückbau: den `providers:`-Block aus der `config.yaml` löschen — `uninstall.sh` fasst ihn
-nicht an.
+Rückbau: `./uninstall.sh` entfernt den Block mit (`--keep-profile` lässt die
+`config.yaml` unangetastet); gezielt geht auch
+`hermes -p claude-dev config unset providers.claude-code-mcp`.
 
 ## 4. Für den Kanban-Betrieb: Gateway neu starten
 
@@ -288,15 +289,16 @@ mit lesbarer Meldung scheitert.
 ./uninstall.sh claude-dev
 ```
 
-Spielt das Profil aus der jüngsten Sicherung zurück, entfernt beide Plugin-Kopien und
-räumt verwaiste Rendezvous-Ordner unter `/tmp/hcc-*` weg. Was es tun würde, ohne es zu
-tun:
+Spielt das Profil aus der jüngsten Sicherung zurück, entfernt den `providers:`-Block
+der Modellauswahl, beide Plugin-Kopien und verwaiste Rendezvous-Ordner unter
+`/tmp/hcc-*`. Was es tun würde, ohne es zu tun:
 
 ```bash
 DRY_RUN=1 ./uninstall.sh claude-dev
 ```
 
-Nur die Dateien, Profil unangetastet:
+Nur die Dateien, Profil unangetastet — dann bleibt auch der `providers:`-Block stehen
+und böte weiter vier Modelle eines entfernten Providers an:
 
 ```bash
 ./uninstall.sh claude-dev --keep-profile
