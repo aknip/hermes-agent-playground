@@ -790,3 +790,82 @@ In Lauf 4 stand der Satz wörtlich in der Karte, und das Ergebnis kam als
 Anhang `deichwartung_3_stichpunkte.md` an. **Ein Lauf ist ein Lauf** — aber der
 Wirkzusammenhang ist hier direkt nachvollziehbar, anders als bei den
 Laufzeit-Schaltern.
+
+---
+
+## 11. Modellwechsel: `summarizer` auf Claude Code / Sonnet
+
+Die Messreihe aus Abschnitt 10 ließ offen, ob der Worker-Overhead strukturell
+ist oder am Modell hängt. Der Gegentest entscheidet das: **nur das Modell des
+`summarizer`-Profils geändert**, `reasoning_effort: none` und
+`stall_guards: false` bewusst stehen gelassen, damit nicht zwei Variablen
+gleichzeitig wandern. Dieselbe Aufgabe, dreimal nacheinander.
+
+### Die Umstellung
+
+```bash
+hermes -p summarizer config set model.default        "sonnet[1m]"
+hermes -p summarizer config set model.provider       claude-code-mcp
+hermes -p summarizer config set model.base_url       "claude-code://cli"
+hermes -p summarizer config set model.api_mode       chat_completions
+hermes -p summarizer config set model.context_length 1000000
+```
+
+> ⚠ **Die fünf Schlüssel allein genügen nicht.** Danach kam
+> `Unknown provider 'claude-code-mcp'`, obwohl das Plugin unter
+> `~/.hermes/plugins/model-providers/` lag. Der Grund steht als Kommentar in
+> `04-hermes-claude-code-provider/install.sh:10-12`:
+> `providers._user_plugins_dir()` sucht unter
+> `$HERMES_HOME/plugins/model-providers/` — für ein Profil also **nicht** im
+> Root-Home. Eine nur global abgelegte Kopie ist für `hermes -p <profil>`
+> unsichtbar. Der belegte Weg ist das Repo-Skript:
+>
+> ```bash
+> cd 04-hermes-claude-code-provider && ./install.sh summarizer
+> ```
+>
+> Es legt das Plugin in **beide** Homes und prüft die Registrierung
+> (`Profil+Registry=ja`).
+
+### Die drei Läufe
+
+| Lauf | Karte | Dauer | Turns | `kanban_show` | Artefakt |
+|---|---|---|---|---|---|
+| 1 | `t_818c25e9` | **15 s** | 1 | 1 | `zusammenfassung.txt` |
+| 2 | `t_63e33bda` | **13 s** | 1 | 1 | `zusammenfassung_deichwartung.md` |
+| 3 | `t_498f2880` | **17 s** | 1 | 1 | `zusammenfassung.txt` |
+
+### Der Befund
+
+**Der Overhead war modellspezifisch, nicht strukturell.**
+
+| | deepseek-v4-flash (4 Läufe) | Sonnet via Claude Code (3 Läufe) |
+|---|---|---|
+| Dauer | 90 – 469 s | **13 – 17 s** |
+| Streuung | Faktor 5,2 | Faktor 1,3 |
+| Turns | 10 – 36 | **durchgehend 1** |
+| `kanban_show` | 4 – 30 | **durchgehend 1** |
+| Artefakt abgeliefert | 2 von 4 | **3 von 3** |
+
+Sonnet erledigt den Orientierungsschritt der `KANBAN_GUIDANCE` in **einem**
+Durchgang — genau so, wie das Protokoll ihn meint. Die Schleife aus leeren
+Absichtserklärungen und wiederholten `kanban_show`-Aufrufen tritt nicht auf.
+
+Damit relativieren sich zwei frühere Schlüsse dieses Dokuments:
+
+- Der „strukturelle Rest" aus Abschnitt 10 (Prozessstart, Skill-Laden,
+  Dispatcher-Tick) ist mit **13–17 s** deutlich kleiner als dort vermutet.
+  Der Abstand zum Chat-Weg schrumpft auf Sekunden.
+- Die Schalter `reasoning_effort` und `stall_guards` sind für dieses Ergebnis
+  **belanglos** — sie standen in allen drei Läufen noch auf den
+  deepseek-Werten. Wer das Laufzeitproblem hatte, löst es über das Modell,
+  nicht über diese Schalter.
+
+Die Ergebnisqualität ist in allen drei Läufen gleichwertig: drei Stichpunkte,
+alle vier Jahreszeiten abgedeckt, keine erfundenen Fakten.
+
+### Rückbau
+
+Der Stand vor der Umstellung liegt in `/tmp/summarizer-config.vor-sonnet.yaml`
+(`provider: openrouter`, `default: deepseek/deepseek-v4-flash-0731`). Für einen
+dauerhaften Rückbau gehört diese Sicherung an einen beständigeren Ort.
