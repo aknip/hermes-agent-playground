@@ -154,6 +154,31 @@ nicht-leere `allowlist` (`acp_openai_bridge.py:90`) — oder den besseren Kniff 
 > die `allowlist` ist überflüssig. Real gemessen, siehe
 > [RUN-PROTOKOLL.md](../04-hermes-claude-code-provider/RUN-PROTOKOLL.md).
 
+### Was der Betrieb zusätzlich verlangt (nachgetragen 14.09.2026)
+
+Die Recherche endete beim Mechanismus. Der Bau hat gezeigt, was darüber hinaus nötig ist
+— Belege in [`04-…/VERIFIKATION.md`](../04-hermes-claude-code-provider/VERIFIKATION.md):
+
+- **Das Plugin muss in *jedes* Profil-Home**, nicht nur ins Root-Home (siehe Korrektur
+  oben). `install.sh` rollt deshalb in beide aus.
+- **Alle vier Modell-Schlüssel** (`model.default`, `.provider`, `.base_url`,
+  `.api_mode`) müssen in der Profil-`config.yaml` stehen, sonst ist das Profil nicht
+  dispatchbar — die bekannte Hermes-Invariante gilt auch hier.
+- **Ein Gateway, der vor dem Einbau lief, kennt das Plugin nicht.**
+  `providers/__init__.py` merkt sich seine Erkennung (`_discovered`), also einmalig
+  `hermes gateway restart`. Für spätere Modellwechsel ist das *nicht* nötig.
+- **Modell und Denktiefe kommen aus Hermes** und wirken zur Laufzeit: `model.default`,
+  `-m`, `/model` und `hermes kanban set-model` schlagen alle durch. Reasoning läuft über
+  den Provider-Haken `build_api_kwargs_extras`, weil dieser Client die Transport-Schicht
+  überspringt.
+- **Für das 1M-Kontextfenster sind zwei Schlüssel nötig:** `opus[1m]` versorgt Claude
+  Code, `model.context_length: 1000000` versorgt Hermes — das sonst 256.000 schätzt und
+  entsprechend früh komprimiert. Gemessen: ein größeres Fenster verschiebt die
+  Kompression wirklich nach hinten, kostet aber mehr Token je Zug.
+- **Hilfsaufrufe** (`auxiliary.compression`, `.title_generation`, `.kanban_decomposer`)
+  stehen auf `provider: auto` und lösen sonst auf die CLI auf — je Aufruf ein
+  Kaltstart. Sie gehören auf eine billige Route festgenagelt.
+
 ### Stand bei Nous (WEB)
 
 - Issue **#78563** „Add Claude Code CLI backend provider" — **offen** seit 04.08.2026,
@@ -211,6 +236,14 @@ dokumentiert **~58 % Prompt-Cache-Verlust gegenüber ~26 %** bei einfachem Resum
 *„Sessions get rebuilt more often than they need to be, and a rebuild is expensive."*
 Die Sitzungsidentität ist die teure Stelle, nicht der Subprozess.
 
+> **Eigene Messung (13.09.2026).** Der blockierende Weg hält den Cache *innerhalb eines
+> Zuges* warm: 1.259 bzw. 1.294 gelesene Cache-Token gegen **0** im stateless-Betrieb
+> (später bis 2.639 von 2.643 Prompt-Token). Die Aussage der Bridge wird damit auf der
+> eigenen Maschine bestätigt — und der Grund dafür beseitigt, statt ihn zu bezahlen.
+> **Über Hermes-Züge hinweg** ist `--resume` allerdings *nicht* umgesetzt; dort baut
+> jeder neue Zug die CLI-Sitzung neu auf. Für einen Kanban-Worker (eine Karte ≈ ein Zug
+> mit vielen Werkzeug-Umläufen) ist der Gewinn innerhalb des Zuges der entscheidende.
+
 ---
 
 ## Verworfen: die Kette Hermes → Pi → Claude Code
@@ -265,6 +298,11 @@ MCP-Aufruf blockiert, bis Hermes geliefert hat. Nachgewiesen bis zur Kanban-Kart
 zu Ende.
 
 **Weg C nicht.**
+
+Die Umsetzung mit allen Messwerten liegt in
+[`04-hermes-claude-code-provider/`](../04-hermes-claude-code-provider/): elf
+protokollierte Läufe vom blockierenden MCP-Aufruf bis zur Kanban-Karte Ende zu Ende,
+dazu eine Liste dessen, was ausdrücklich **nicht** verifiziert ist.
 
 ### Randnotiz aus dem ESF-Abbau
 

@@ -248,6 +248,11 @@ mit lesbarer Meldung scheitert.
 | Die CLI endet sofort | `claude` ist nicht angemeldet. Einmal interaktiv starten |
 | Werkzeuge kommen nie an | `grep "\[mcp\]"` im Debug-Log; wenn dort nur „Start" steht, hat das Modell keines gerufen |
 | Der Lauf hängt | Wachhund greift nach 300 s. `HERMES_CLAUDE_CODE_ORPHAN_TIMEOUT` senken zum Nachstellen |
+| Desktop zeigt `Opus[1m]` statt `opus[1m]` | Anzeige-Kosmetik der App; `config get model` zeigt den echten Wert |
+| Hermes meldet 256.000 statt 1.000.000 | `model.default` und aktives Modell weichen ab (Schreibweise zählt) oder `model.context_length` fehlt |
+| `model.context_length` wird abgelehnt | Hermes erzwingt mindestens 64.000 |
+| `--continue` setzt die Sitzung nicht fort | Bekannt; `--resume <session-id>` benutzen |
+| `could not reach the claude-code-mcp API to validate …` | Erwartbar: der Provider hat keinen `/models`-Endpunkt. Kosmetik |
 
 ---
 

@@ -84,6 +84,8 @@ Alle Läufe stehen mit Rohdaten in [RUN-PROTOKOLL.md](RUN-PROTOKOLL.md).
 | Ein größeres `model.context_length` verschiebt die Kompression nachweislich nach hinten | 11 — A/B mit identischem Gespräch: 64k-Fenster komprimiert (66.685 → 20.217), 200k-Fenster nicht (61.182 bleibt) |
 | Die Schwelle ist `context_length × compression.threshold` | `agent/context_engine.py:242` |
 | Hermes erzwingt ein Mindestfenster von 64.000 | 11 — `model.context_length: 30000` wird abgelehnt |
+| Die Desktop-App schreibt Modellnamen nur für die **Anzeige** groß | Bundle `apps/desktop/dist/assets/*.js`: `charAt(0).toUpperCase()+e.slice(1)`; die `config.yaml` bleibt kleingeschrieben |
+| `--continue` setzt die Sitzung **nicht** fort, sondern legt eine neue an | 11 — der erste Messversuch blieb deshalb ohne Kompression; `--resume <session-id>` funktioniert |
 
 ---
 
@@ -111,12 +113,17 @@ Alle Läufe stehen mit Rohdaten in [RUN-PROTOKOLL.md](RUN-PROTOKOLL.md).
 
 Was diese Umsetzung angefasst hat — und wie es zurückgeht:
 
-| Eingriff | Rückbau |
+| Eingriff | Stand / Rückbau |
 |---|---|
-| `~/.hermes/plugins/model-providers/claude-code-mcp/` angelegt | `./uninstall.sh` |
-| `~/.hermes/profiles/claude-dev/plugins/model-providers/claude-code-mcp/` angelegt | `./uninstall.sh` |
-| `~/.hermes/profiles/claude-dev/config.yaml` umgestellt (Modell + drei `auxiliary`-Blöcke) | `./switch-profile.sh claude-dev --restore` (Sicherungen `config.yaml.pre-claude-code-*.bak`) |
-| Gateway neu gestartet (PID 54702 → 12346) | nicht nötig; `developer` und `summarizer` liefen durch |
-| Wegwerf-Board `cc-probe` | gelöscht (`hermes kanban boards rm cc-probe --delete`) |
+| `~/.hermes/plugins/model-providers/claude-code-mcp/` angelegt | **liegt** — `./uninstall.sh` |
+| `~/.hermes/profiles/claude-dev/plugins/model-providers/claude-code-mcp/` angelegt | **liegt** — `./uninstall.sh` |
+| `claude-dev/config.yaml`: Provider, Modell, drei `auxiliary`-Blöcke | **umgestellt** — `./switch-profile.sh claude-dev --restore` |
+| `claude-dev/config.yaml`: `model.default: opus[1m]`, `model.context_length: 1000000` | **gesetzt** (14.09.2026) — Sicherung `config.yaml.pre-claude-code-20260914-080505.bak` |
+| Gateway zweimal neu gestartet | erledigt; `developer` und `summarizer` liefen beide Male durch |
+| Wegwerf-Boards `cc-probe`, `cc-model-probe` | gelöscht |
+| Wegwerf-Profile `cc-probe-dev`, `cc-ctx-probe`, `cc-win-probe` | gelöscht |
+
+⚠ `./switch-profile.sh claude-dev --restore` spielt den Stand **vor** der Umstellung
+zurück — also auch `sonnet` statt `opus[1m]` und ohne `context_length`.
 
 **Nicht angefasst:** die Story-Skripte unter `02-…`, fremde Profile, `~/.claude/`.

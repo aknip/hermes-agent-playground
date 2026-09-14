@@ -95,6 +95,17 @@ ab ~500.000. In Lauf 11 mit identischem Gespräch gemessen: 64k-Fenster komprimi
 selben Test kostete die Variante mit großem Fenster rund 0,14 USD je Fortsetzung gegen
 0,02 USD bei kleinem. Und unter 64.000 nimmt Hermes den Wert gar nicht erst an.
 
+**Die Desktop-App zeigt `Opus[1m]` mit großem O — das ist Kosmetik.** Das Bundle
+verschönert jeden Modellnamen für die Anzeige (`charAt(0).toUpperCase()+e.slice(1)`);
+in der `config.yaml` steht weiter `opus[1m]`. Für Claude Code wäre die Großschreibung
+ohnehin egal (beide Varianten laufen), für Hermes' Vergleich zählt der Dateiinhalt.
+
+⚠ Ungeprüft: ob der Modell-Auswähler der Desktop-App den kanonischen Namen
+zurückschreibt oder die angezeigte, großgeschriebene Fassung. Nach einem Wechsel über
+den Auswähler lohnt ein `hermes -p claude-dev config get model` — landete `Opus[1m]`
+in der Datei und wäre das aktive Modell anders geschrieben, fiele `context_length`
+still auf 256.000 zurück.
+
 ### Vorrang
 
 **Hermes → Umgebungsvariable → Vorgabe** (`sonnet`, `medium`).
@@ -179,13 +190,19 @@ rollt deshalb in beide Homes aus und prüft beide einzeln nach.
 
 ## Stand
 
-Belegt: Einbau, Profilumstellung, interaktiver Lauf, Werkzeug-Umlauf mit Hermes'
-echtem 25-Werkzeug-Satz, eine Kanban-Karte Ende zu Ende.
+**Belegt** (elf protokollierte Läufe): Einbau, Profilumstellung, interaktiver Lauf,
+Werkzeug-Umlauf mit Hermes' echtem 25-Werkzeug-Satz, eine Kanban-Karte Ende zu Ende;
+Modell und Denktiefe über alle vier Umschaltwege (`model.default`, `-m`, `/model`,
+`kanban set-model`), zur Laufzeit und ohne Neustart; das 1M-Kontextfenster auf beiden
+Seiten, samt Nachweis, dass ein größeres Fenster die Kompression wirklich nach hinten
+schiebt.
 
-Offen und ausdrücklich als solches vermerkt: echt paralleles Ausspielen mehrerer
-Werkzeuge in einem Zug, Sitzungsfortsetzung über Hermes-Züge (`--resume` ist nicht
-umgesetzt), Token-Zahlen auf Werkzeug-Runden, Kosten im Dauerbetrieb. Die vollständige
-Liste steht in [VERIFIKATION.md](VERIFIKATION.md).
+**Offen** und ausdrücklich als solches vermerkt: echt paralleles Ausspielen mehrerer
+Werkzeuge in *einer* Modellantwort, Sitzungsfortsetzung über Hermes-Züge (`--resume`
+ist nicht umgesetzt), Token-Zahlen auf Werkzeug-Runden (dort meldet der Client Nullen),
+`delegate_task`-Auffächerung ohne Budgetgrenze, und ob der Desktop-Modellauswähler den
+kanonischen Modellnamen zurückschreibt. Die vollständige Liste steht in
+[VERIFIKATION.md](VERIFIKATION.md).
 
 Zu den Nutzungsbedingungen: Es startet der **offizielle** Client — die stärkere
 Position als geliehene Zugangsdaten, aber keine Freigabe. Ob der offizielle Client,
