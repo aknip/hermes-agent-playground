@@ -1,7 +1,14 @@
 # Plan: Orchestrator-Profil für Kanban-Triage
 
-**Stand:** 2026-09-14 · **Version:** Hermes Agent v0.20.0 (2026.8.3), macOS
-**Status:** Entwurf — noch nichts ausgeführt, `~/.hermes/` unverändert
+**Stand:** 2026-09-14 · **Version:** Hermes Agent **v0.21.2 (2026.9.11)**, macOS
+**Status:** umgesetzt — Schritte 1–7 ausgeführt und belegt (Abschnitt 8)
+
+> ⚠ **Versionsabweichung zur Repo-Konvention.** `CLAUDE.md` schreibt das Repo auf
+> v0.20.0 (2026.8.3) fest. Die installierte Version ist aber **v0.21.2
+> (2026.9.11)** (`hermes --version`, Install-Methode `git`). Sämtliche
+> Zeilenangaben in diesem Plan stammen aus dem Quellcode dieser
+> installierten Version unter `~/.hermes/hermes-agent/` — sie sind gegen
+> v0.21.2 belegt, **nicht** gegen v0.20.0.
 
 **Ziel:** Ein Profil `orchestrator` (OpenRouter, `deepseek/deepseek-v4-flash-0731`),
 das eine Aufgabe analysiert und sie als eine oder mehrere Karten — parallel
@@ -155,9 +162,16 @@ Das ist der Schritt, der „der Orchestrator analysiert" wahr macht.
 hermes config set auxiliary.kanban_decomposer.provider  openrouter
 hermes config set auxiliary.kanban_decomposer.model     deepseek/deepseek-v4-flash-0731
 hermes config set auxiliary.kanban_decomposer.base_url  https://openrouter.ai/api/v1
+hermes config set auxiliary.kanban_decomposer.reasoning_effort none
 ```
 
-Zwei Hinweise:
+Die vierte Zeile ist **nicht optional** — ohne sie schlägt die Zerlegung fehl.
+`max_tokens` ist in `kanban_decompose.py:320` fest auf 4000 verdrahtet; ein
+Reasoning-Modell verbraucht dieses Budget vollständig für Reasoning-Tokens und
+liefert null Zeichen Inhalt. Der Fehler lautet dann irreführend
+`"LLM returned malformed JSON"`. Real gemessen, siehe Abschnitt 8.
+
+Drei Hinweise:
 
 - **Kein `api_mode`** — der `_aux()`-Block (`config_defaults.py:9`) kennt nur
   `provider, model, base_url, api_key, timeout, extra_body, reasoning_effort`.
@@ -297,11 +311,11 @@ Leaf-Arbeit statt Orchestrierung macht. Im Plan steht oben `claude-dev`.
 
 | Aussage | Warum offen | Wie prüfbar |
 |---|---|---|
-| `deepseek/deepseek-v4-flash-0731` existiert bei OpenRouter | Kein Beleg im lokalen Quellcode; Modellname stammt aus der Anfrage | `hermes models list --provider openrouter \| grep deepseek` bzw. ein Testcall |
-| `hermes config set platform_toolsets.telegram '[...]'` parst Liste **und** verschachtelten Schlüssel korrekt | Die Wert-Koerzierung von `config set` nicht im Quellcode gefunden | Nach dem Setzen `hermes -p orchestrator config get platform_toolsets` |
-| `hermes-telegram` ist der korrekte Composite-Name für die Telegram-Plattform | Aus `_platform_default_toolset` (`tools_config.py:176`, `f"hermes-{platform}"`) abgeleitet, nicht am `PLATFORMS`-Dict geprüft | `hermes -p orchestrator tools` zeigt die aufgelöste Liste |
+| ~~`deepseek/deepseek-v4-flash-0731` existiert bei OpenRouter~~ | **Erledigt.** Genau dieser Slug läuft mit denselben vier Schlüsselwerten bereits in `default` und `developer` (`~/.hermes/config.yaml:1-5`) | — (`hermes models` gibt es übrigens nicht; das Unterkommando heißt `hermes model`) |
+| ~~`hermes config set platform_toolsets.telegram '[...]'` parst Liste und verschachtelten Schlüssel korrekt~~ | **Erledigt.** Geschrieben und nachgemessen, siehe Abschnitt 8 — inklusive der irreführenden Warnung, die dabei erscheint | — |
+| ~~`hermes-telegram` ist der korrekte Composite-Name~~ | **Erledigt.** `_get_platform_tools(cfg, "telegram")` löst zu 18 Toolsets inkl. `kanban` auf (Abschnitt 8) | — |
 | Ein Chat-/Telegram-Lauf legt tatsächlich Karten an | Nur aus Tool-Gating (`kanban_tools.py:83`) und Prompt (`prompt_builder.py:276`) abgeleitet, nie ausgeführt | Testlauf mit einer harmlosen Aufgabe, danach `hermes kanban list` |
-| Das Terminal-Toolset ist unter Telegram aktiv (nötig für `hermes profile list`) | Nicht geprüft — hängt an `platform_toolsets.telegram` | `hermes -p orchestrator tools` |
+| ~~Das Terminal-Toolset ist unter Telegram aktiv~~ | **Erledigt.** `terminal` ist in der aufgelösten Telegram-Liste enthalten (Abschnitt 8) | — |
 | Das Gateway läuft tatsächlich mit `HERMES_HOME` = Root | Aus dem Code zwingend, am laufenden Prozess aber nicht nachgemessen | `hermes gateway status` bzw. Prozess-Env prüfen |
 | Der Dispatcher dispatcht **keine** Karten in der Spalte `triage` an ihren Assignee | Aus `config_defaults.py:1720` („promotes dependency-satisfied todos to ready") abgeleitet, nicht am Lauf belegt | Karte in Triage mit `auto_decompose: false` liegen lassen und beobachten |
 | Verhalten der Wurzelkarte nach Abschluss aller Kinder | Nur aus dem Docstring `kanban_decompose.py:8` gelesen, nicht gemessen | Testlauf bis zum Ende protokollieren |
@@ -317,3 +331,113 @@ Schritt und ist hier bewusst nicht angelegt.
 **Belege:** Quellcode der installierten Version unter
 `~/.hermes/hermes-agent/`, zitiert als `datei.py:zeile`. Die Online-Doku war
 keine Quelle.
+
+---
+
+## 8. Umsetzungsprotokoll (2026-09-14)
+
+Ausgeführt gegen **v0.21.2**. Board: `default`. Alle Schritte real gemessen.
+
+### Was ohne Zutun schon stimmte
+
+**Schritt 2 war ein No-op.** `_seed_model_config` (`profiles.py:512`) kopiert den
+Modellblock des Root-Profils in das neue Profil — und der enthält bereits exakt
+die vier gewünschten Werte. Die vier `config set`-Aufrufe aus Schritt 2 sind
+damit überflüssig; `deepseek/deepseek-v4-flash-0731` ist über `default` und
+`developer` ohnehin als funktionierender Slug belegt.
+
+Das frische Profil hatte erwartungsgemäß **weder** `platform_toolsets` **noch**
+ein Top-Level-`toolsets` — die Analyse aus Schritt 3 trifft zu.
+
+### Eine irreführende Warnung bei Schritt 3
+
+`hermes -p orchestrator config set platform_toolsets.telegram '[...]'` schreibt
+korrekt, meldet aber:
+
+```
+⚠ 'platform_toolsets.telegram' is not a recognized config key — it was saved
+  anyway, but Hermes may not read it.  Did you mean: platform_hints.telegram
+```
+
+**Das ist ein Fehlalarm.** `platform_toolsets` steht nicht in `DEFAULT_CONFIG`,
+wird von `_get_platform_tools` aber sehr wohl gelesen. Nachgemessen:
+
+```
+cli       kanban aktiv: True
+telegram  kanban aktiv: True
+   browser, clarify, code_execution, computer_use, connections, cronjob,
+   delegation, file, image_gen, kanban, memory, session_search, skills,
+   terminal, todo, tts, vision, web
+```
+
+`terminal` ist enthalten — die Voraussetzung für `hermes profile list` aus
+Bedingung (c) in Abschnitt 4 ist damit erfüllt.
+
+### Der eigentliche Stolperstein: leere Antwort des Decomposers
+
+Nach den Schritten 1–7 blieb die Triage-Karte liegen. `hermes kanban decompose`
+lieferte:
+
+```json
+{"task_id": "t_e27d3131", "ok": false, "reason": "LLM returned malformed JSON"}
+```
+
+Denselben Aufruf nachgestellt (`call_llm(task="kanban_decomposer", …,
+max_tokens=4000)`):
+
+```
+finish_reason: length | len(raw): 0
+```
+
+**`finish_reason: length` bei null Zeichen Inhalt.** Das Modell hat das gesamte
+Budget für Reasoning-Tokens verbraucht, bevor überhaupt Inhalt begann.
+`max_tokens=4000` ist in `kanban_decompose.py:320` **fest verdrahtet** und über
+keinen Konfigurationsschlüssel erreichbar — die einzige Stellschraube ist das
+Reasoning selbst:
+
+```bash
+hermes config set auxiliary.kanban_decomposer.reasoning_effort none
+```
+
+Danach derselbe Aufruf:
+
+```
+finish_reason: stop | len: 3275 | parst: True | fanout: True, 3 tasks
+```
+
+> **Merksatz:** Ein Reasoning-Modell am `kanban_decomposer` braucht
+> `reasoning_effort: none` (oder `minimal`). Sonst frisst das Reasoning die
+> fest verdrahteten 4000 Tokens auf, und der Fehler, den man zu sehen bekommt,
+> lautet irreführend „malformed JSON" — nicht „leere Antwort" oder „Limit
+> erreicht". Der Schlüssel fehlte in den Schritten 1–7 und gehört dort dazu.
+
+### Das Ergebnis der Zerlegung
+
+Der Gateway-Dispatcher war mit seinem 10-Sekunden-Takt schneller als der
+manuelle Aufruf und hat die Karte selbst zerlegt — das belegt den
+`auto_decompose`-Pfad gleich mit:
+
+| Karte | Status | Assignee | Parents |
+|---|---|---|---|
+| `t_e27d3131` (Wurzel) | todo | **orchestrator** | — |
+| `t_cc896ed5` Implement csvstats.py | running | developer | `[]` |
+| `t_6552cccb` pytest-Tests | todo | developer | `[t_cc896ed5]` |
+| `t_d0f7b317` README.md | todo | summarizer | `[t_cc896ed5]` |
+
+Damit sind auf einen Schlag belegt:
+
+- **Schritt 4** — die Wurzelkarte gehört `orchestrator`, also greift
+  `kanban.orchestrator_profile` aus der Root-Config.
+- **Schritt 5** — die Zerlegung lief über das gepinnte deepseek-Modell
+  (Gateway-Log: `Auxiliary kanban_decomposer: using openrouter
+  (deepseek/deepseek-v4-flash-0731)`).
+- **Schritt 6** — das Routing folgte den Beschreibungen, nicht den Namen:
+  Implementierung und Tests an `developer`, die README an `summarizer`.
+- **Das Graph-Muster aus Abschnitt 1** — die Implementierung hat keinen Parent
+  und läuft zuerst; Tests und README hängen beide an ihr und laufen danach
+  **parallel**. Sequentiell und parallel in einem Graphen, wie beschrieben.
+
+### Korrektur am Verifikationsbefehl
+
+`hermes models list` gibt es nicht — das Unterkommando heißt `hermes model`.
+Die Modellfrage ist ohnehin anders geklärt (siehe oben).
