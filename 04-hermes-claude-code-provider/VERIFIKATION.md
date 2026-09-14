@@ -86,6 +86,9 @@ Alle Läufe stehen mit Rohdaten in [RUN-PROTOKOLL.md](RUN-PROTOKOLL.md).
 | Hermes erzwingt ein Mindestfenster von 64.000 | 11 — `model.context_length: 30000` wird abgelehnt |
 | Die Desktop-App schreibt Modellnamen nur für die **Anzeige** groß | Bundle `apps/desktop/dist/assets/*.js`: `charAt(0).toUpperCase()+e.slice(1)`; die `config.yaml` bleibt kleingeschrieben |
 | `--continue` setzt die Sitzung **nicht** fort, sondern legt eine neue an | 11 — der erste Messversuch blieb deshalb ohne Kompression; `--resume <session-id>` funktioniert |
+| `[1m]` **aktiviert** das 1M-Fenster (Beta-Header), es beschreibt es nicht nur | 12 — im CLI-Binary: `supports_1m_beta`, `ANTHROPIC_BETAS`, `context-1m-2025-08-07`, dazu die CLI-Meldungen *„or /model sonnet[1m] for a 1M context window"* und *„has no 1M form"* |
+| Sonnet 5 kann 1M — mit Suffix | 12 — `--model sonnet[1m]` → Sitzungsmodell `claude-sonnet-5[1m]` |
+| `model.context_length` gilt nur für das Modell, mit dem der Agent **startet** | `agent/agent_runtime_helpers.py:1963-1964` — der Live-Wechsel löscht den Wert ausdrücklich („Clear the per-config override…"), und `:2017` setzt danach nur den `custom_providers`-Override neu |
 
 ---
 

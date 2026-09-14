@@ -171,10 +171,20 @@ Die Recherche endete beim Mechanismus. Der Bau hat gezeigt, was darüber hinaus 
   `-m`, `/model` und `hermes kanban set-model` schlagen alle durch. Reasoning läuft über
   den Provider-Haken `build_api_kwargs_extras`, weil dieser Client die Transport-Schicht
   überspringt.
-- **Für das 1M-Kontextfenster sind zwei Schlüssel nötig:** `opus[1m]` versorgt Claude
-  Code, `model.context_length: 1000000` versorgt Hermes — das sonst 256.000 schätzt und
-  entsprechend früh komprimiert. Gemessen: ein größeres Fenster verschiebt die
-  Kompression wirklich nach hinten, kostet aber mehr Token je Zug.
+- **Für das 1M-Kontextfenster sind zwei Schlüssel nötig:** `opus[1m]` bzw. `sonnet[1m]`
+  versorgt Claude Code, `model.context_length: 1000000` versorgt Hermes — das sonst
+  256.000 schätzt und entsprechend früh komprimiert. Gemessen: ein größeres Fenster
+  verschiebt die Kompression wirklich nach hinten, kostet aber mehr Token je Zug.
+  Das Suffix ist dabei die **Aktivierung**, kein Etikett: es setzt den Beta-Header
+  `context-1m-2025-08-07`, den die CLI je Modell an der Fähigkeit `supports_1m_beta`
+  festmacht (*„…, or `/model sonnet[1m]` for a 1M context window"*, dazu die Meldung
+  *„has no 1M form"* für Modelle ohne sie). Ohne Suffix kein 1M — auch dann nicht, wenn
+  Hermes' eigene Katalogtabelle für dasselbe Modell 1.000.000 führt: die Tabelle
+  beschreibt die Fähigkeit, das Suffix schaltet sie ein.
+- **`model.context_length` gilt nur für das Modell, mit dem der Agent startet.** Der
+  Live-Wechsel löscht den Wert ausdrücklich (`agent_runtime_helpers.py:1963-1964`); ein
+  sitzungsweites `/model` reicht also nicht, und nach einer Änderung braucht eine offene
+  Sitzung einen Neustart.
 - **Hilfsaufrufe** (`auxiliary.compression`, `.title_generation`, `.kanban_decomposer`)
   stehen auf `provider: auto` und lösen sonst auf die CLI auf — je Aufruf ein
   Kaltstart. Sie gehören auf eine billige Route festgenagelt.

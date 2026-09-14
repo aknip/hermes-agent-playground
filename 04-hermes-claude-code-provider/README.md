@@ -9,11 +9,59 @@ Das ist **Weg B** aus
 umgesetzt mit dem MCP-Kniff aus Weg D: Hermes' Werkzeuge erreichen Claude Code über
 einen Schema-only-MCP-Server statt als Text im Prompt mit Regex-Rückparsing.
 
+## Kurzreferenz — Modell aktivieren und prüfen
+
+**Opus mit 1M-Kontextfenster**
+
+```bash
+hermes -p claude-dev config set model.default "opus[1m]"
+hermes -p claude-dev config set model.context_length 1000000
+```
+
+**Sonnet mit 1M-Kontextfenster**
+
+```bash
+hermes -p claude-dev config set model.default "sonnet[1m]"
+hermes -p claude-dev config set model.context_length 1000000
+```
+
+**Ohne 1M** (Standardfenster; `sonnet` ohne Suffix bekommt **kein** 1M)
+
+```bash
+hermes -p claude-dev config set model.default sonnet
+hermes -p claude-dev config set model.context_length 200000
+```
+
+**Prüfen**
+
+```bash
+hermes -p claude-dev config get model      # beide Schlüssel ansehen
+```
+
+Im Chat `/model` — dort muss `Context: 1,000,000 tokens` stehen. Steht dort `256,000`,
+wurde `model.context_length` verworfen (siehe die vier Regeln unten).
+
+**Vier Regeln, an denen es sonst scheitert**
+
+1. **Immer beide Zeilen.** `[1m]` schaltet Claude Codes 1M-Beta ein,
+   `model.context_length` sagt es Hermes. Eine allein genügt nicht.
+2. **In der Shell mit Anführungszeichen** — `[1m]` ist für zsh ein Glob-Muster.
+3. **Im Chat ohne Anführungszeichen, dafür mit `--global`**: `/model opus[1m] --global`.
+   Hermes zerlegt die Zeile per `split()` ohne Quote-Entfernung, und ohne `--global`
+   gilt der Wechsel nur für die Sitzung — wobei `model.context_length` dabei entfällt.
+4. **Alles klein.** `Opus[1m]` ≠ `opus[1m]`; bei Abweichung fällt das Fenster still auf
+   256.000 zurück. Die Großschreibung in der Desktop-App ist nur Anzeige.
+
+**Danach die Desktop-Sitzung neu starten** — das Kontextfenster wird bei der
+Agent-Initialisierung aufgelöst und beim Live-Wechsel sogar gelöscht
+(`agent_runtime_helpers.py:1963-1964`). Das Modell allein zöge ohne Neustart nach, das
+Fenster nicht. Kanban-Worker starten je Karte frisch und brauchen nichts.
+
 | Datei | Inhalt |
 |---|---|
 | [TUTORIAL.md](TUTORIAL.md) | Einbau, Betrieb, Stellschrauben, Fehlersuche, Rückbau |
 | [VERIFIKATION.md](VERIFIKATION.md) | Was am Quelltext belegt ist, was nur durch Läufe — und was **nicht** |
-| [RUN-PROTOKOLL.md](RUN-PROTOKOLL.md) | Die elf gemessenen Läufe mit Rohdaten |
+| [RUN-PROTOKOLL.md](RUN-PROTOKOLL.md) | Die zwölf gemessenen Läufe mit Rohdaten |
 | [`plugin/`](plugin/) | Der Master. `install.sh` leitet die Kopien nach `~/.hermes/` ab |
 | [`probes/`](probes/) | Gesäuberte Protokolle der Läufe |
 
@@ -81,6 +129,18 @@ hermes -p claude-dev config set model.context_length 1000000
 
 Das Suffix versorgt **Claude Code** (die Sitzung läuft dann als `claude-opus-5[1m]`);
 `model.context_length` versorgt **Hermes**, das sonst 256.000 schätzt.
+
+**`[1m]` ist die Aktivierung, kein Etikett.** Im CLI-Binary stehen das Modell-Flag
+`supports_1m_beta`, der Header `ANTHROPIC_BETAS` und der Beta-Bezeichner
+`context-1m-2025-08-07`; die CLI schreibt selbst *„…, or `/model sonnet[1m]` for a 1M
+context window"* und kennt für Modelle ohne die Fähigkeit die Meldung *„has no 1M
+form"*. Ohne Suffix wird der Beta-Header nicht gesetzt — plain `sonnet` bekommt also
+**kein** 1M, egal was in der Konfiguration steht.
+
+Das löst auch einen scheinbaren Widerspruch: Hermes' eigene Tabelle
+(`agent/model_metadata.py`) führt `claude-sonnet-5` mit 1.000.000, die CLI verlangt
+trotzdem das Suffix. Beide haben recht — die Tabelle beschreibt die **Fähigkeit** des
+Modells, das Suffix ist die **Aktivierung**. Für ein Profil zählt die Aktivierung.
 
 ⚠ `model.context_length` wird still verworfen, wenn das aktive Modell nicht exakt
 `model.default` entspricht — ein sitzungsweites `/model opus[1m]` ohne `--global` reicht
@@ -190,7 +250,7 @@ rollt deshalb in beide Homes aus und prüft beide einzeln nach.
 
 ## Stand
 
-**Belegt** (elf protokollierte Läufe): Einbau, Profilumstellung, interaktiver Lauf,
+**Belegt** (zwölf protokollierte Läufe): Einbau, Profilumstellung, interaktiver Lauf,
 Werkzeug-Umlauf mit Hermes' echtem 25-Werkzeug-Satz, eine Kanban-Karte Ende zu Ende;
 Modell und Denktiefe über alle vier Umschaltwege (`model.default`, `-m`, `/model`,
 `kanban set-model`), zur Laufzeit und ohne Neustart; das 1M-Kontextfenster auf beiden

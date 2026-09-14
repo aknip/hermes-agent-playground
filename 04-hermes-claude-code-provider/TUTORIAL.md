@@ -120,8 +120,10 @@ hermes -p claude-dev config set agent.reasoning_effort xhigh  # s. Tabelle unten
 **Modell.** Alles, was `claude --model` frisst: die öffentlichen Aliase `sonnet`,
 `opus`, `fable`, `haiku` oder ein voll qualifizierter Name (`claude-opus-5`,
 `claude-fable-5-1`, `claude-haiku-4-5-20251001`). Ein angehängtes `[1m]`
-(`opus[1m]`) bleibt erhalten — das ist Claude Codes Schalter für das
-1M-Kontextfenster. Ein vorangestelltes `anbieter/` schneidet das Plugin ab.
+(`opus[1m]`, `sonnet[1m]`) **aktiviert** Claude Codes 1M-Kontextfenster — es setzt den
+Beta-Header `context-1m-2025-08-07`, den die CLI je Modell an der Fähigkeit
+`supports_1m_beta` festmacht. Ohne Suffix kein 1M. Dazu gehört immer
+`model.context_length: 1000000`, sonst schätzt Hermes 256.000 (siehe README). Ein vorangestelltes `anbieter/` schneidet das Plugin ab.
 
 Wirksam sind damit auch `/model` in der Sitzung und die Karten-Übersteuerung
 `hermes kanban set-model <task-id> fable` (das Modell ist positional; `none` löscht

@@ -349,6 +349,44 @@ Der Client protokolliert die Token je Zug jetzt mit
 (`[client] Zugende: prompt=… (cached …) completion=… cost=…`) — ohne das wäre dieser
 Lauf nicht auswertbar gewesen.
 
+## Lauf 12 — Was `[1m]` wirklich tut
+
+Aus dem Betrieb: `claude-dev` sollte auf Sonnet, und es war unklar, ob das Suffix nötig
+ist. Hermes' Tabelle (`agent/model_metadata.py`) führt `claude-sonnet-5` mit 1.000.000 —
+das las sich, als käme das Fenster ohne Zutun. Die CLI unterscheidet aber `sonnet` von
+`sonnet[1m]`, was dagegen sprach.
+
+Im CLI-Binary (v2.1.270) nachgesehen:
+
+```
+supports_1m_beta        ANTHROPIC_BETAS        context-1m-2025-08-07
+"…, or /model sonnet[1m] for a 1M context window"
+"' isn't available: the setting switches models in plan mode and has no 1M form."
+```
+
+**Belegt:** Das Suffix schaltet einen **Beta-Header** ein (`context-1m-2025-08-07`), der
+je Modell an einer Fähigkeit (`supports_1m_beta`) hängt. Ohne Suffix kein Header, also
+kein 1M-Fenster — unabhängig davon, was in Hermes' Konfiguration steht.
+
+Damit löst sich der Widerspruch: die Tabelle beschreibt die **Fähigkeit** des Modells,
+das Suffix ist die **Aktivierung**. Für ein Profil zählt die Aktivierung.
+
+Gegenprobe am laufenden System:
+
+| `--model` | Sitzungsmodell laut `system/init` |
+|---|---|
+| `sonnet` | `claude-sonnet-5` |
+| `sonnet[1m]` | `claude-sonnet-5[1m]` |
+| `opus[1m]` | `claude-opus-5[1m]` |
+
+`claude-dev` steht seither auf `sonnet[1m]` mit `model.context_length: 1000000`;
+Hermes löst 1.000.000 auf, Kompression ab 500.000.
+
+**Konsequenz für die Zwischenstation:** Eine kurzzeitig gesetzte Kombination aus plain
+`sonnet` und `context_length: 1000000` wäre falsch gewesen — Hermes hätte erst bei
+500.000 komprimiert, während die CLI-Sitzung weit früher dicht ist. Deshalb gehören die
+beiden Werte immer zusammen gesetzt.
+
 ## Kosten
 
 Die Einzelläufe lagen zwischen 0,02 und 0,06 USD; die gesamte Prüfleiter inklusive
