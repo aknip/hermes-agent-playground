@@ -1,22 +1,9 @@
 # macOS
 .DS_Store
 
-# Das Ziel-Repo der ESF (04-…) ist ZUSAETZLICH ein eigenstaendiges Git-Repo:
-# Die ESF entwickelt dort in Branches und Git-Worktrees, das setzt eine eigene
-# Historie voraus. Die Dateien bleiben trotzdem hier mitverwaltet (Commit
-# a76e6a4), damit ein Rollback des Playgrounds auch den Produktstand zuruecknimmt.
-# Ausgenommen ist nur, was pro Lauf neu entsteht:
-04-hermes-agent-software-company-test-kaneo/test-results/
-04-hermes-agent-software-company-test-kaneo/playwright-report/
-
-# Die Wegwerfkopie der ESF — seed/ ist der Master.
-03-hermes-agent-software-company/workspace/
-03-hermes-agent-software-company/task-ids*.env
-
-# Schluesseldateien. Der vorgesehene Ort ist ~/.hermes/esf-openrouter-keys.txt,
-# also ausserhalb des Repos — diese Zeilen sind das Netz fuer den Fall, dass
-# doch einmal eine Kopie hier landet. Was ins Repo GEHOERT, ist allein
-# key-zuordnung.txt: Profil, Name und Fingerabdruck, kein Geheimnis.
+# Schluesseldateien. Der vorgesehene Ort fuer Schluessel liegt ausserhalb des
+# Repos (unter ~/.hermes/) — diese Zeilen sind nur das Netz fuer den Fall, dass
+# doch einmal eine Kopie hier landet.
 *openrouter-keys*.txt
 *openrouter-keys*.env
 .env
