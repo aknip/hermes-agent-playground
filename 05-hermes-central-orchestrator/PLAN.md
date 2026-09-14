@@ -1,7 +1,8 @@
 # Plan: Orchestrator-Profil für Kanban-Triage
 
 **Stand:** 2026-09-14 · **Version:** Hermes Agent **v0.21.2 (2026.9.11)**, macOS
-**Status:** umgesetzt — Schritte 1–7 ausgeführt und belegt (Abschnitt 8)
+**Status:** umgesetzt — alle acht Schritte ausgeführt, Lauf vollständig
+durchlaufen und protokolliert (Abschnitt 8)
 
 > ⚠ **Versionsabweichung zur Repo-Konvention.** `CLAUDE.md` schreibt das Repo auf
 > v0.20.0 (2026.8.3) fest. Die installierte Version ist aber **v0.21.2
@@ -317,8 +318,9 @@ Leaf-Arbeit statt Orchestrierung macht. Im Plan steht oben `claude-dev`.
 | Ein Chat-/Telegram-Lauf legt tatsächlich Karten an | Nur aus Tool-Gating (`kanban_tools.py:83`) und Prompt (`prompt_builder.py:276`) abgeleitet, nie ausgeführt | Testlauf mit einer harmlosen Aufgabe, danach `hermes kanban list` |
 | ~~Das Terminal-Toolset ist unter Telegram aktiv~~ | **Erledigt.** `terminal` ist in der aufgelösten Telegram-Liste enthalten (Abschnitt 8) | — |
 | Das Gateway läuft tatsächlich mit `HERMES_HOME` = Root | Aus dem Code zwingend, am laufenden Prozess aber nicht nachgemessen | `hermes gateway status` bzw. Prozess-Env prüfen |
-| Der Dispatcher dispatcht **keine** Karten in der Spalte `triage` an ihren Assignee | Aus `config_defaults.py:1720` („promotes dependency-satisfied todos to ready") abgeleitet, nicht am Lauf belegt | Karte in Triage mit `auto_decompose: false` liegen lassen und beobachten |
-| Verhalten der Wurzelkarte nach Abschluss aller Kinder | Nur aus dem Docstring `kanban_decompose.py:8` gelesen, nicht gemessen | Testlauf bis zum Ende protokollieren |
+| ~~Der Dispatcher dispatcht **keine** Karten in Triage an ihren Assignee~~ | **Erledigt.** Die Testkarte lag unassigned in Triage und wurde nicht dispatcht, sondern zerlegt (Abschnitt 8) | — |
+| ~~Verhalten der Wurzelkarte nach Abschluss aller Kinder~~ | **Erledigt.** Sie wachte auf, wurde an `orchestrator` dispatcht und lief 1m 41s (Abschnitt 8) | — |
+| ~~Ein Chat-/Telegram-Lauf legt tatsächlich Karten an~~ | **Weiterhin offen** — dieser Lauf belegt nur den Triage-Weg. Der Chat-Weg (Abschnitt 4) ist unverändert ungeprüft, und das Profil hat noch keinen Telegram-Bot-Token | `hermes -p orchestrator chat`, danach `hermes kanban list` |
 
 ---
 
@@ -441,3 +443,58 @@ Damit sind auf einen Schlag belegt:
 
 `hermes models list` gibt es nicht — das Unterkommando heißt `hermes model`.
 Die Modellfrage ist ohnehin anders geklärt (siehe oben).
+
+### Der vollständige Lauf
+
+| Karte | Assignee | Laufzeit | Ergebnis |
+|---|---|---|---|
+| `t_cc896ed5` Implementierung | developer | 18m 38s | `csvstats.py`, 6129 B, stdlib-only |
+| `t_6552cccb` Tests | developer | 6m 39s | `test_csvstats.py`, 15 Tests |
+| `t_d0f7b317` README | summarizer | 1m 33s | `README.md`, 2789 B |
+| `t_e27d3131` Wurzel | **orchestrator** | 1m 41s | konsolidiert, Abnahme geprüft |
+
+Die beiden abhängigen Karten liefen **gleichzeitig**, sobald die
+Implementierung `done` war — sequentiell gegenüber dem Parent, parallel
+zueinander, genau wie der Graph es vorgab.
+
+Abnahme selbst nachgeprüft (nicht aus der Zusammenfassung übernommen):
+`python3 -m pytest -q` → **15 passed**.
+
+### Geschwisterkarten koordinieren sich über einen Kommentar, nicht über den Workspace
+
+Naheliegende Fehlannahme: die Kinder erbten den Workspace des Parents. Sie tun
+es **nicht**. `_insert_decomposed_child` (`kanban_db_graph.py:176-193`) vererbt
+den Pfad nur, wenn die Wurzel schon einen hat — eine frisch per
+`hermes kanban create --triage` angelegte Karte hat `workspace_path = None`.
+Jedes Kind bekam folglich ein eigenes Scratch-Verzeichnis.
+
+Nachgemessen: `csvstats.py` lag in beiden Workspaces inhaltlich identisch, im
+README-Workspace aber mit **fünf Minuten jüngerem** mtime — der zweite Worker
+hat sie sich selbst geholt. Möglich war ihm das, weil der erste Worker einen
+`kanban_comment` hinterlassen hatte, der die beiden Folgekarten namentlich
+adressiert und die Design-Entscheidungen festhält („eindeutig zählt den
+Leerwert als eigene Kategorie", „numerisch nur bei lückenloser Spalte").
+
+Das ist exakt das, was die `KANBAN_GUIDANCE` verlangt: *„Every child card body
+must carry the decisions it depends on, because workers cannot see sibling
+context."* Wer eine Story darauf aufbaut, muss den Handoff also in den
+Kartentext schreiben — auf einen geteilten Workspace ist kein Verlass.
+
+### ⚠ Nach `done` sind die Workspaces weg
+
+Nach Abschluss aller Karten war
+`~/.hermes/kanban/workspaces/` **vollständig leer** — Scratch-Workspaces werden
+aufgeräumt (`_REMOVABLE_KINDS`, `kanban_db_workspace.py:22`; der Kommentar bei
+Zeile 24 nennt die Bedingung: kein Kind mehr aktiv).
+
+Erhalten bleibt nur, was ein Worker über `kanban_complete(artifacts=[…])`
+anhängt. Hier hat die Wurzelkarte neun Anhänge bekommen:
+
+```
+/Users/aknipschild/.hermes/kanban/attachments/t_e27d3131/
+  csvstats.py  test_csvstats.py  README.md  sample.csv
+```
+
+Dort läuft `pytest` weiterhin grün (15 passed). **Für eine Story heißt das:
+Ergebnisse gehören in `artifacts`, nicht in den Workspace** — sonst ist das
+Erzeugnis nach dem letzten `done` unwiederbringlich.
