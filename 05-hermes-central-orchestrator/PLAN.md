@@ -1,8 +1,8 @@
 # Plan: Orchestrator-Profil für Kanban-Triage
 
-**Stand:** 2026-09-14 · **Version:** Hermes Agent **v0.21.2 (2026.9.11)**, macOS
-**Status:** umgesetzt — alle Schritte ausgeführt; **beide** Wege (Triage und
-Chat) je einmal vollständig durchlaufen und protokolliert (Abschnitt 8)
+**Stand:** 2026-09-15 · **Version:** Hermes Agent **v0.21.2 (2026.9.11)**, macOS
+**Status:** in Betrieb. Beide Wege (Triage und Chat) laufen; Worker- und
+Orchestrator-Modell sind über Messreihen ausgewählt (Abschnitte 11–17).
 
 > ⚠ **Versionsabweichung zur Repo-Konvention.** `CLAUDE.md` schreibt das Repo auf
 > v0.20.0 (2026.8.3) fest. Die installierte Version ist aber **v0.21.2
@@ -11,11 +11,63 @@ Chat) je einmal vollständig durchlaufen und protokolliert (Abschnitt 8)
 > installierten Version unter `~/.hermes/hermes-agent/` — sie sind gegen
 > v0.21.2 belegt, **nicht** gegen v0.20.0.
 
-**Ziel:** Ein Profil `orchestrator` (OpenRouter, `deepseek/deepseek-v4-flash-0731`),
-das eine Aufgabe analysiert und sie als eine oder mehrere Karten — parallel
-und/oder sequentiell — auf dem Kanban-Board anlegt, jede Karte dem passenden
+**Ziel (ursprüngliche Aufgabenstellung):** Ein Profil `orchestrator`, das eine
+Aufgabe analysiert und sie als eine oder mehrere Karten — parallel und/oder
+sequentiell — auf dem Kanban-Board anlegt, jede Karte dem passenden
 installierten Profil zugeordnet. Auslöser: Zuweisung per Chat oder eine Karte
-in der Spalte **Triage**.
+in der Spalte **Triage**. Das ursprünglich vorgesehene Modell
+`deepseek/deepseek-v4-flash-0731` ist im Betrieb durch Messreihen ersetzt
+worden (Abschnitt 16) — die Aufgabenstellung selbst ist erfüllt.
+
+---
+
+## 0. Stand heute — was eingerichtet ist
+
+| Profil | Modell | Rolle |
+|---|---|---|
+| **`orchestrator`** | `sonnet[1m]` via `claude-code-mcp` | legt Karten an (Chat-Weg), besitzt die Wurzelkarte nach Triage-Fan-out |
+| `summarizer` | `openai/gpt-5.6-terra` | Worker: Zusammenfassungen, Transkripte |
+| `claude-dev` | `sonnet[1m]` via `claude-code-mcp` | Worker: Entwicklung; zugleich `default_assignee` |
+| `developer`, `my-test-bot`, `default` | `z-ai/glm-5.3-flash` | Worker bzw. Root-Profil |
+
+**Root-Config** (`~/.hermes/config.yaml` — *nicht* im Profil, siehe Abschnitt 2):
+
+```yaml
+kanban:
+  orchestrator_profile: orchestrator
+  default_assignee: claude-dev
+  auto_decompose: true
+auxiliary:
+  kanban_decomposer:
+    model: deepseek/deepseek-v4-flash-0731
+    provider: openrouter
+    reasoning_effort: none      # Pflicht, siehe Abschnitt 8
+```
+
+**Orchestrator-Profil**: Modellblock wie oben, `platform_toolsets` für `cli`
+und `telegram` je mit `kanban`, eigener `OPENROUTER_API_KEY` in der
+Profil-`.env` (Schritt 2b), und `SOUL.md` = `SOUL.orchestrator.md` aus diesem
+Verzeichnis (77 Zeilen, Fassung v2).
+
+### Belegt
+
+- **Triage-Weg** vollständig, mit echten Workern: eine Karte → drei Kindkarten
+  (parallel und sequentiell) → Wurzelkarte wacht auf (Abschnitt 8).
+- **Chat-Weg** über die CLI, inklusive Ablieferung als Artefakt (Abschnitt 9).
+- **Worker-Modell** über fünf Kandidaten, je drei bis vier Läufe (Abschnitt 15).
+- **Orchestrator-Modell** über fünf Kandidaten, je bis zu 18 Läufe in vier
+  Härtegraden (Abschnitt 16).
+
+### Offen
+
+- **Telegram** ist nie gelaufen. Die Toolset-Auflösung ist gemessen, ein
+  eigener Bot-Token für das Profil fehlt.
+- **Der Decomposer läuft weiter auf deepseek.** Das ist ein anderer Mechanismus
+  als der Chat-Orchestrator (ein einzelner JSON-Call ohne Rollentreue-Bedarf)
+  und funktioniert mit `reasoning_effort: none` — aber er ist nicht gegen die
+  anderen Modelle getestet.
+- **Laufzeitunterschiede zwischen Konfigurationen** sind bei n = 3 nicht
+  messbar; die Streuung ist zu groß (Abschnitt 17).
 
 ---
 
@@ -392,7 +444,6 @@ Leaf-Arbeit statt Orchestrierung macht. Im Plan steht oben `claude-dev`.
 | ~~`deepseek/deepseek-v4-flash-0731` existiert bei OpenRouter~~ | **Erledigt.** Genau dieser Slug läuft mit denselben vier Schlüsselwerten bereits in `default` und `developer` (`~/.hermes/config.yaml:1-5`) | — (`hermes models` gibt es übrigens nicht; das Unterkommando heißt `hermes model`) |
 | ~~`hermes config set platform_toolsets.telegram '[...]'` parst Liste und verschachtelten Schlüssel korrekt~~ | **Erledigt.** Geschrieben und nachgemessen, siehe Abschnitt 8 — inklusive der irreführenden Warnung, die dabei erscheint | — |
 | ~~`hermes-telegram` ist der korrekte Composite-Name~~ | **Erledigt.** `_get_platform_tools(cfg, "telegram")` löst zu 18 Toolsets inkl. `kanban` auf (Abschnitt 8) | — |
-| Ein Chat-/Telegram-Lauf legt tatsächlich Karten an | Nur aus Tool-Gating (`kanban_tools.py:83`) und Prompt (`prompt_builder.py:276`) abgeleitet, nie ausgeführt | Testlauf mit einer harmlosen Aufgabe, danach `hermes kanban list` |
 | ~~Das Terminal-Toolset ist unter Telegram aktiv~~ | **Erledigt.** `terminal` ist in der aufgelösten Telegram-Liste enthalten (Abschnitt 8) | — |
 | Das Gateway läuft tatsächlich mit `HERMES_HOME` = Root | Aus dem Code zwingend, am laufenden Prozess aber nicht nachgemessen | `hermes gateway status` bzw. Prozess-Env prüfen |
 | ~~Der Dispatcher dispatcht **keine** Karten in Triage an ihren Assignee~~ | **Erledigt.** Die Testkarte lag unassigned in Triage und wurde nicht dispatcht, sondern zerlegt (Abschnitt 8) | — |
