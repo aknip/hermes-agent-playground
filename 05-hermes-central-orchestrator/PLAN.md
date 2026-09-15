@@ -1153,3 +1153,74 @@ damit faktisch über Namen statt Beschreibungen. Korrigiert: v2 enthält jetzt
 eine Terminal-Zeile, die beides zusammenführt, und die Anweisung, bei
 fehlenden Beschreibungen die dünne Grundlage in der Antwort zu benennen.
 Nachgemessen — der Orchestrator gibt die Zuständigkeiten seither korrekt aus.
+
+---
+
+## 17. Aufräumen der deepseek-Tunings — und was dabei auffiel
+
+`agent.stall_guards: false` und `agent.reasoning_effort: none` waren
+Anpassungen für deepseek als Worker (Abschnitt 10). Seit `summarizer` auf
+GPT 5.6 Terra läuft, haben sie dort keinen Zweck mehr. Beide Schlüssel wurden
+per `config unset` **entfernt** — nicht auf Default-Werte gesetzt —, sodass
+wieder die Vorgaben aus `config_defaults.py` greifen
+(`stall_guards: True`, `reasoning_effort` ungesetzt). Der `agent:`-Block
+ist damit ganz aus der Profil-Config verschwunden.
+
+### ⚠ `hermes config set agent.reasoning_effort none` bewirkt das Gegenteil
+
+Beim Nachmessen schrieb der Befehl **`null`** in die Datei, nicht die
+Zeichenkette `none`. Das ist nicht dasselbe:
+
+| Wert in der Datei | `parse_reasoning_effort` | Wirkung |
+|---|---|---|
+| `null` | `None` | Provider-Default — Reasoning **AN** |
+| `none` (Zeichenkette) | `{'enabled': False}` | Reasoning **AUS** |
+
+Ursache: `agent.reasoning_effort` steht **nicht** in `DEFAULT_CONFIG` (geprüft).
+Der Setter meldet es als „nicht erkannten Schlüssel" und schiebt den Wert durch
+eine generische Umwandlung, die `none` zu YAML-`null` macht. Bei
+`auxiliary.*.reasoning_effort` passiert das nicht — dieser Schlüssel ist
+bekannt und behält seinen Typ.
+
+> **Die Warnung ist hier also echt.** Bei `platform_toolsets` (Abschnitt 8) war
+> dieselbe Meldung ein Fehlalarm — dort wird der Schlüssel trotzdem gelesen.
+> Bei `agent.reasoning_effort` zeigt sie ein reales Problem an. Die Meldung
+> allein sagt nicht, welcher Fall vorliegt; das muss man nachmessen.
+
+Sofort geprüft: der Decomposer-Fix aus Abschnitt 8
+(`auxiliary.kanban_decomposer.reasoning_effort`) ist **intakt** — dort steht
+die Zeichenkette `none` und löst zu `{'enabled': False}` auf.
+
+Wer `agent.reasoning_effort` wirklich setzen will, schreibt den Wert direkt in
+die `config.yaml` und prüft mit:
+
+```python
+resolve_reasoning_config(load_config())   # muss {'enabled': False} liefern
+```
+
+### Die Laufzeit-Frage ließ sich nicht beantworten
+
+Nach dem Zurücksetzen lief die erste Kontrollreihe langsamer, und ich hatte
+bereits „der Aufräumschritt kostet rund 45 % Laufzeit" notiert. Die
+Isolationsreihe widerlegt das:
+
+| Konfiguration | Läufe | Median | Spanne |
+|---|---|---|---|
+| A — `stall=false`, `reasoning=none` | 17 / 20 / 24 s | 20 s | 17–24 s |
+| B — beide auf Default | 27 / 29 / 36 s | 29 s | 27–36 s |
+| C — nur `reasoning=none` | 38 / 24 / 17 s | 24 s | **17–38 s** |
+
+Reihe C überlappt **beide** anderen vollständig. Die Streuung innerhalb einer
+Konfiguration ist damit so groß wie der vermeintliche Unterschied zwischen
+Konfigurationen — bei n = 3 ist keine der drei voneinander zu trennen.
+
+**Damit ist die 45-Prozent-Aussage zurückgenommen.** Sie beruhte auf zwei
+nicht überlappenden 3er-Reihen, und genau dieser Trugschluss ist in diesem
+Dokument schon zweimal vorgekommen (Abschnitt 10: `stall_guards` als
+vermeintliche Ursache; Abschnitt 14: eine Empfehlung aus einem einzelnen
+Lauf). Alle neun Läufe zusammen liegen zwischen 17 s und 38 s, ohne erkennbare
+Gruppierung nach Konfiguration.
+
+**Endzustand:** beide Schlüssel entfernt. Es gibt keinen gemessenen Grund,
+sie zu behalten — aber auch keinen belegten Nachteil dadurch, sie entfernt zu
+haben.
