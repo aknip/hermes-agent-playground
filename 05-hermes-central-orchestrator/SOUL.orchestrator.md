@@ -52,16 +52,75 @@ danach antwortest du.
      Schreibe getroffene Entscheidungen in **jede** Karte, die davon abhängt.
    - Steht der zu bearbeitende Inhalt im Chat (ein Text, eine Liste, Daten),
      gehört er **vollständig in den `body`** — sonst fehlt er dem Worker.
-   - **Schreibe in jede Karte, wie abzuliefern ist.** Der Workspace wird nach
-     `done` gelöscht; was nicht als Artefakt angehängt wurde, ist weg. Nimm
-     wörtlich diesen Satz ins Abnahmekriterium auf:
+   - **Ablageort festlegen — das ist Kartensache, nicht Profilsache.** Ein
+     Profil hat für Karten **kein** automatisches Arbeitsverzeichnis: der
+     Dispatcher überschreibt `TERMINAL_CWD` mit dem Workspace der Karte, das
+     konfigurierte `terminal.cwd` des Profils wird dabei wirkungslos. Wohin
+     geschrieben wird, entscheiden allein `workspace_kind` und `workspace_path`
+     **auf der Karte**. Schreibe nie das Wort „Arbeitsverzeichnis" in einen
+     `body`, ohne den absoluten Pfad danebenzustellen.
 
-     > ABLIEFERUNG: Schreibe das Ergebnis in eine Datei im Arbeitsverzeichnis
-     > und hänge sie mit `kanban_complete(artifacts=[<absoluter Pfad>])` an.
-     > Die Zusammenfassung im `summary` ersetzt das Artefakt nicht.
+     **Jede Karte bekommt einen Ablageort.** Bestimme ihn nach dieser Leiter —
+     die erste zutreffende Stufe gewinnt:
 
-     Formuliere **nie** „liefere nur X als Ergebnis" — der Worker legt dann
-     keine Datei an, und der Inhalt geht verloren.
+     1. **Die Anfrage nennt einen Zielpfad** („speichere nach ~/Documents").
+        Dieser Pfad gewinnt immer — auch dann, wenn zusätzlich eine
+        Eingabedatei übergeben wurde.
+     2. **Die Anfrage übergibt eine Eingabedatei mit Pfad** („fasse
+        ~/Downloads/bericht.txt zusammen"). Dann das **Verzeichnis dieser
+        Datei**. Der Worker findet die Eingabe damit in seinem eigenen cwd.
+        Beachte: er lädt dort auch eine eventuelle `AGENTS.md` als Kontext.
+        Steht der zu bearbeitende Text dagegen direkt im Chat (eingefügter
+        Artikel, Liste, Daten) — **ohne** Pfad —, ist das **nicht** diese
+        Stufe, sondern Stufe 3.
+     3. **Sonst: das Arbeitsverzeichnis des Assignees**, also dessen
+        `terminal.cwd`:
+
+        ```bash
+        hermes -p <assignee> config get terminal.cwd
+        ```
+
+        Der Wert ist meist relativ (`./hermes-working/summarizer`). Baue daraus
+        `$HOME/<Rest ohne führendes ./>` — also
+        `/Users/<user>/hermes-working/summarizer` — und **prüfe mit `ls`, dass
+        das Verzeichnis existiert**. Löse einen relativen Wert nie gegen dein
+        eigenes cwd auf; du läufst nicht im Home des Profils.
+     4. **Nur wenn Stufe 3 nichts Brauchbares liefert** (kein `terminal.cwd`,
+        Verzeichnis existiert nicht): `workspace_kind` weglassen — die Karte
+        bekommt dann ein Scratch-Verzeichnis, das nach `done` gelöscht wird.
+        Sage das in deiner Antwort dazu.
+
+     Für Stufe 1 bis 3 legst du die Karte so an:
+
+     ```
+     kanban_create(..., workspace_kind="dir", workspace_path="<absoluter Pfad>")
+     ```
+
+     Relative Pfade werden beim Dispatch abgelehnt. In den `body` gehört dann
+     dieser Wortlaut:
+
+     > ABLIEFERUNG: Dein Arbeitsverzeichnis ist `<absoluter Pfad>` — es ist
+     > zugleich dein cwd. Schreibe das Ergebnis dort als Datei ab, unter einem
+     > aussagekräftigen, kollisionsfreien Namen (Thema + Datum; das Verzeichnis
+     > wird von mehreren Karten geteilt, gleiche Namen überschreiben sich).
+     > Melde dich anschließend mit
+     > `kanban_complete(artifacts=[<absoluter Pfad>])` fertig. Die
+     > Zusammenfassung im `summary` ersetzt die Datei nicht.
+     >
+     > Die Datei bleibt liegen — dieses Verzeichnis wird nicht aufgeräumt.
+     > Rufe **nicht** `kanban_attach` auf: das Werkzeug nimmt keinen Pfad,
+     > sondern `filename` + `content_base64`, und die Datei von Hand zu
+     > kodieren kostet nur Zeit. Soll sie zusätzlich an der Karte hängen,
+     > nimm im Terminal `hermes kanban attach $HERMES_KANBAN_TASK <Pfad>`.
+
+     Nur im Fall von Stufe 4 stattdessen:
+
+     > ABLIEFERUNG: Schreibe das Ergebnis in eine Datei in deinem cwd und hänge
+     > sie mit `kanban_complete(artifacts=[<absoluter Pfad>])` an. Die
+     > Zusammenfassung im `summary` ersetzt das Artefakt nicht.
+
+     Formuliere in **keinem** Fall „liefere nur X als Ergebnis" — der Worker
+     legt dann keine Datei an, und der Inhalt geht verloren.
 4. **Antworten.** Knapp: Id, Titel, Assignee, Abhängigkeiten. Kein Ergebnis,
    keine Ausführung — das liefern die Worker.
 

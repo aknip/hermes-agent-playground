@@ -3,7 +3,14 @@
 #
 #   ./install.sh                      # Root-Home + Profil claude-dev
 #   ./install.sh claude-dev foo       # Root-Home + genannte Profile
-#   ./install.sh --with-model-picker  # zusaetzlich den providers:-Block schreiben
+#   ./install.sh --no-model-picker    # ohne den providers:-Block
+#
+# Die Modellauswahl wird seit 15.09.2026 **standardmaessig** eingetragen: ohne den
+# providers:-Block bietet das Auswahlfeld der Desktop-App nichts an, und ein Provider,
+# den man nicht auswaehlen kann, ist praktisch nicht installiert. Der Block AKTIVIERT
+# nichts — er laesst model.default/model.provider unberuehrt und fuellt nur die Liste.
+# Belegt in VERIFIKATION.md (Lauf 13): get_provider bleibt source=plugin-profile,
+# auth_type=external_process. Aktiviert wird weiterhin nur mit ./switch-profile.sh.
 #
 # WICHTIG — und in der FAQ so nicht abgebildet: **jedes Profil ist sein eigenes
 # HERMES_HOME** (`~/.hermes/profiles/<name>`, siehe hermes_cli/main.py:435 ff. und
@@ -21,11 +28,14 @@ PLUGIN_NAME="claude-code-mcp"
 
 [ -d "$SRC" ] || { echo "FEHLER: Master fehlt: $SRC" >&2; exit 1; }
 
-WITH_PICKER=0
+WITH_PICKER=1
 PROFILES=()
 for arg in "$@"; do
     case "$arg" in
+        # Rueckwaertskompatibel: frueher musste man den Block anfordern, jetzt ist er
+        # Standard. Aeltere Aufrufe aus README/TUTORIAL laufen damit unveraendert weiter.
         --with-model-picker) WITH_PICKER=1 ;;
+        --no-model-picker) WITH_PICKER=0 ;;
         -*) echo "FEHLER: unbekannte Option: $arg" >&2; exit 1 ;;
         *) PROFILES+=("$arg") ;;
     esac
@@ -50,28 +60,32 @@ done
 # das Fenster dieser Modelle also still verkleinern. Unter 64000 nimmt Hermes nichts an.
 PICKER_MODELS=("sonnet[1m]:1000000" "opus[1m]:1000000" "haiku:" "fable:")
 
+# Kein Guard auf model.provider mehr. Bis 15.09.2026 uebersprang diese Funktion jedes
+# Home, das nicht ohnehin schon auf claude-code-mcp stand — womit sich der Provider
+# genau dort nicht auswaehlen liess, wo man ihn erst noch auswaehlen wollte. Der Block
+# aktiviert nichts (er ruehrt model.default/model.provider nicht an), also gibt es
+# keinen Grund, ihn zurueckzuhalten.
+#
+# Nimmt die hermes-Aufrufform als Array entgegen: (hermes) fuers Root-Home,
+# (hermes -p <profil>) fuer ein Profil. Das Root-Home braucht den Block ebenfalls —
+# die Desktop-App laeuft darauf, wenn active-profile.json auf null steht.
 write_picker_block() {
-    local profile="$1"
-    local current
-    current="$(hermes -p "$profile" config get model.provider 2>/dev/null | tr -d "[:space:]")"
-    if [ "$current" != "$PLUGIN_NAME" ]; then
-        echo "    $profile — uebersprungen (model.provider=${current:-leer})"
-        return 0
-    fi
-    hermes -p "$profile" config set "providers.$PLUGIN_NAME.name" "Claude Code CLI (MCP)" >/dev/null
-    hermes -p "$profile" config set "providers.$PLUGIN_NAME.base_url" "claude-code://cli" >/dev/null
-    hermes -p "$profile" config set "providers.$PLUGIN_NAME.api_mode" "chat_completions" >/dev/null
+    local label="$1"; shift
+    local -a H=("$@")
+    "${H[@]}" config set "providers.$PLUGIN_NAME.name" "Claude Code CLI (MCP)" >/dev/null
+    "${H[@]}" config set "providers.$PLUGIN_NAME.base_url" "claude-code://cli" >/dev/null
+    "${H[@]}" config set "providers.$PLUGIN_NAME.api_mode" "chat_completions" >/dev/null
     for entry in "${PICKER_MODELS[@]}"; do
         local model="${entry%%:*}" ctx="${entry##*:}"
         if [ -n "$ctx" ]; then
-            hermes -p "$profile" config set \
+            "${H[@]}" config set \
                 "providers.$PLUGIN_NAME.models.$model.context_length" "$ctx" >/dev/null
         else
             # Leere Abbildung: Eintrag in der Auswahl, kein Fenster-Uebersteuern.
-            hermes -p "$profile" config set "providers.$PLUGIN_NAME.models.$model" '{}' >/dev/null
+            "${H[@]}" config set "providers.$PLUGIN_NAME.models.$model" '{}' >/dev/null
         fi
     done
-    echo "    $profile — ${#PICKER_MODELS[@]} Modelle eingetragen"
+    echo "    $label — ${#PICKER_MODELS[@]} Modelle eingetragen"
 }
 
 copy_to() {
@@ -97,14 +111,20 @@ for profile in "${PROFILES[@]}"; do
 done
 
 if [ "$WITH_PICKER" -eq 1 ]; then
-    echo "==> Modellauswahl eintragen (providers:-Block)"
+    echo "==> Modellauswahl eintragen (providers:-Block, aktiviert nichts)"
+    write_picker_block "root-home" hermes
     for profile in "${PROFILES[@]}"; do
         if [ -d "$HERMES_HOME/profiles/$profile" ]; then
-            write_picker_block "$profile"
+            write_picker_block "profil:$profile" hermes -p "$profile"
         else
             echo "    (übersprungen: kein Profil '$profile')"
         fi
     done
+    # `hermes config set` schreibt die YAML neu und verliert dabei AUSKOMMENTIERTE
+    # Dokumentationsbloecke (gemessen 15.09.2026: 22-38 Zeilen je Datei). Lebende
+    # Schluessel bleiben vollstaendig erhalten — geprueft per Diff ueber alle fuenf
+    # Homes: keine einzige Nicht-Kommentarzeile verloren.
+    echo "    Hinweis: config set entfernt auskommentierte Hilfetexte aus der config.yaml"
 fi
 
 echo "==> Registrierung prüfen"

@@ -36,16 +36,27 @@ if [ "$KEEP_PROFILE" -eq 0 ]; then
     # ohne Sicherung bliebe er aber stehen und wuerde in der Modellauswahl vier Modelle
     # eines dann entfernten Providers anbieten. `config unset` endet mit 1, wenn der
     # Schluessel fehlt — das ist hier der Normalfall, kein Fehler.
+    #
+    # Seit 15.09.2026 schreibt install.sh den Block standardmaessig und auch ins
+    # Root-Home — der Rueckbau muss dort ebenfalls greifen, sonst bleibt im
+    # Auswahlfeld der Desktop-App ein Provider stehen, dessen Plugin gerade
+    # geloescht wurde.
     echo "==> Modellauswahl entfernen (providers:-Block)"
+    unset_picker_block() {
+        local label="$1"; shift
+        local -a H=("$@")
+        if [ "${DRY_RUN:-0}" = "1" ]; then
+            echo "    [dry-run] ${H[*]} config unset providers.$PLUGIN_NAME"
+        elif "${H[@]}" config unset "providers.$PLUGIN_NAME" >/dev/null 2>&1; then
+            echo "    $label — entfernt"
+        else
+            echo "    $label — war nicht eingetragen"
+        fi
+    }
+    unset_picker_block "root-home" hermes
     for profile in "${PROFILES[@]}"; do
         [ -d "$HERMES_HOME/profiles/$profile" ] || continue
-        if [ "${DRY_RUN:-0}" = "1" ]; then
-            echo "    [dry-run] hermes -p $profile config unset providers.$PLUGIN_NAME"
-        elif hermes -p "$profile" config unset "providers.$PLUGIN_NAME" >/dev/null 2>&1; then
-            echo "    $profile — entfernt"
-        else
-            echo "    $profile — war nicht eingetragen"
-        fi
+        unset_picker_block "profil:$profile" hermes -p "$profile"
     done
 fi
 

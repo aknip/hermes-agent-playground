@@ -32,15 +32,33 @@ hermes -p claude-dev config set model.default sonnet
 hermes -p claude-dev config set model.context_length 200000
 ```
 
-**Modellauswahl im Desktop füllen** (einmalig je Profil)
+**Modellauswahl im Desktop** — passiert seit 15.09.2026 **automatisch bei der
+Installation**, für das Root-Home und jedes genannte Profil:
 
 ```bash
-./install.sh --with-model-picker claude-dev   # trägt den providers:-Block ein
+./install.sh claude-dev developer          # Plugin + Modellauswahl, ohne zu aktivieren
+./install.sh --no-model-picker claude-dev  # nur das Plugin
 ```
 
 Danach bietet das Auswahlfeld `sonnet[1m]`, `opus[1m]`, `haiku` und `fable` an; die
 beiden `[1m]`-Einträge bringen ihr 1M-Fenster selbst mit. Rückbau: `./uninstall.sh` —
 oder gezielt `hermes -p claude-dev config unset providers.claude-code-mcp`.
+
+> **Der `providers:`-Block aktiviert nichts.** Er lässt `model.default` und
+> `model.provider` unberührt und füllt nur die Liste; `get_provider` bleibt
+> `source=plugin-profile`, `auth_type=external_process` (Lauf 13 in
+> [`VERIFIKATION.md`](VERIFIKATION.md)). Umgestellt wird weiterhin ausschließlich
+> mit `./switch-profile.sh <profil>`.
+>
+> Bis 15.09.2026 übersprang `--with-model-picker` jedes Home, das nicht ohnehin
+> schon auf `claude-code-mcp` stand — der Provider ließ sich also genau dort nicht
+> auswählen, wo man ihn erst noch auswählen wollte. Die Option wird weiterhin
+> akzeptiert (sie ist jetzt der Standard), neu ist `--no-model-picker`.
+>
+> **Nebeneffekt:** `hermes config set` schreibt die `config.yaml` neu und verliert
+> dabei auskommentierte Hilfetexte (gemessen 22–38 Zeilen je Datei). Lebende
+> Schlüssel bleiben vollständig — per Diff über alle fünf Homes geprüft, keine
+> einzige Nicht-Kommentarzeile verloren.
 
 **Prüfen**
 

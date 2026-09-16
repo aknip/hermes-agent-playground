@@ -47,7 +47,8 @@ auxiliary:
 **Orchestrator-Profil**: Modellblock wie oben, `platform_toolsets` für `cli`
 und `telegram` je mit `kanban`, eigener `OPENROUTER_API_KEY` in der
 Profil-`.env` (Schritt 2b), und `SOUL.md` = `SOUL.orchestrator.md` aus diesem
-Verzeichnis (77 Zeilen, Fassung v2).
+Verzeichnis (136 Zeilen, Fassung v4 — v4 ersetzt den ABLIEFERUNG-Block
+durch eine vierstufige Leiter für den Ablageort, siehe Abschnitt 18).
 
 ### Belegt
 
@@ -1275,3 +1276,182 @@ Gruppierung nach Konfiguration.
 **Endzustand:** beide Schlüssel entfernt. Es gibt keinen gemessenen Grund,
 sie zu behalten — aber auch keinen belegten Nachteil dadurch, sie entfernt zu
 haben.
+
+---
+
+## 18. Ablageort der Ergebnisse: `workspace_kind=dir` statt „Arbeitsverzeichnis"
+
+**Stand:** 15.09.2026 · Quellcode der installierten **v0.21.2**, Lauf real gemessen.
+
+### Der Befund
+
+Karte `t_075937a7` („Zusammenfassung DeepSeek-V4.1-Flash", Assignee `summarizer`)
+lief sauber durch, aber die Ergebnisdatei lag **nicht** in
+`~/hermes-working/summarizer`, sondern in
+`~/.hermes/kanban/attachments/t_075937a7/`. Systemweite Suche: genau eine Kopie.
+
+Ursache ist kein Fehler, sondern Absicht an zwei Stellen:
+
+1. Der Worker läuft im **Workspace der Karte**, nicht im `terminal.cwd` des
+   Profils. Der Dispatcher überschreibt `TERMINAL_CWD` explizit mit dem
+   Workspace (`hermes_cli/kanban_db_dispatch.py:2239-2240`, Kommentar: *„the
+   workspace is where the task's work actually happens"*). Das konfigurierte
+   `terminal.cwd: ./hermes-working/summarizer` ist für Karten damit wirkungslos.
+2. `workspace_kind` ist ohne Angabe `scratch` (`kanban_db.py:1271-1272`). Das
+   Verzeichnis wird nach `done` gelöscht; `kanban_complete(artifacts=[…])`
+   rettet die Dateien vorher in den Attachment-Store
+   (`kanban_db.py:2745`, `kanban_db_workspace.py:113-118`).
+
+Ein Profil hat für Karten also **kein** Arbeitsverzeichnis. Der bisherige
+ABLIEFERUNG-Satz der `SOUL` („in eine Datei im Arbeitsverzeichnis") wurde vom
+Modell trotzdem so gelesen — er ist wörtlich in den `body` von `t_075937a7`
+gewandert.
+
+### Die Änderung (SOUL v3)
+
+Der ABLIEFERUNG-Block ist durch eine **Zwei-Zweig-Regel** ersetzt:
+
+- **(a) Anfrage nennt einen Ablageort** → Orchestrator ermittelt den absoluten
+  Pfad (`hermes -p <assignee> config get terminal.cwd`, relativ gegen `$HOME`)
+  und legt die Karte mit `workspace_kind="dir"` + `workspace_path=<absolut>` an.
+  Der `body` nennt den Pfad wörtlich.
+- **(b) kein Ablageort genannt** → `scratch` wie bisher.
+
+Zwang zum kollisionsfreien Dateinamen, weil `dir` laut Schema ein *„shared
+directory"* ist: mehrere Karten auf dasselbe Verzeichnis teilen sich das cwd.
+
+### Belegt (Lauf `t_582dbca2`, 15.09.2026)
+
+Aufgabe per Chat („… => speichere im Arbeitsverzeichnis des ausgewählten
+Profils"). Der Orchestrator legte an:
+
+```
+workspace_kind = dir
+workspace_path = /Users/aknipschild/hermes-working/summarizer
+```
+
+Die Ergebnisdatei `zusammenfassung_ios-macos27-updates_2026-09-15.md` (3197 B)
+lag nach ~60 s im Zielverzeichnis. Die Karte erreichte nach **278 s** den Status
+`done` (`outcome = completed`, kein Fehler). **Damit ist der Kernpunkt belegt.**
+
+### ⚠ Fehler in SOUL v3, korrigiert in v3.1
+
+v3 wies den Worker an, zusätzlich `kanban_attach(path=<absoluter Pfad>)`
+aufzurufen. **Das Werkzeug hat keinen `path`-Parameter** — es verlangt
+`filename` + `content_base64` (`tools/kanban_tools_schemas.py:291-314`). Der
+Worker von `t_582dbca2` lief in die Fehlermeldung
+`content_base64 is not valid base64`, versuchte dann von Hand zu kodieren
+(`base64 -i … | tr -d '\n'` → exit 126, danach `execute_code`) und hing dort
+über zwei Minuten fest.
+
+Der Worker hat sich am Ende selbst befreit — aber teuer: Von 278 s Gesamtlaufzeit
+entfielen gut 200 s auf diesen Umweg (die Vergleichskarte `t_075937a7` mit
+`scratch` brauchte 133 s). Und er hängte die Datei **zweimal** an:
+
+| Anhang | Größe | Inhalt |
+|---|---|---|
+| `…2026-09-15.md` | 3215 B | ältere Fassung mit Dopplung („zustimmen müssen zustimmen müssen") |
+| `…2026-09-15 (1).md` | 3197 B | byte-identisch mit der Datei im Zielverzeichnis |
+
+Die erste, fehlerhafte Fassung bleibt dauerhaft an der Karte hängen. Der
+Base64-Umweg kostet also nicht nur Zeit, er produziert auch falsche Artefakte.
+
+v3.1 streicht den `kanban_attach`-Aufruf aus dem `dir`-Zweig: die Datei liegt
+dort ohnehin dauerhaft, und `kanban_complete(artifacts=[…])` trägt den
+absoluten Pfad in die `completed`-Ereignisnutzlast. Wer den Anhang zusätzlich
+will, nimmt im Terminal `hermes kanban attach $HERMES_KANBAN_TASK <Pfad>`.
+
+### Gegenprobe mit v3.1 (`t_41dc0447`, 15.09.2026)
+
+Identischer Auftrag, identischer Wortlaut, identischer Artikel — geändert war
+allein die `SOUL`-Fassung:
+
+| | Lauf 1 · v3 (`t_582dbca2`) | Lauf 2 · v3.1 (`t_41dc0447`) |
+|---|---|---|
+| Laufzeit | 278 s | **100 s** |
+| `kanban_attach`-Zeilen im Log | 8 | **0** |
+| Base64-Zeilen im Log | 7 | **0** |
+| Anhänge an der Karte | 2 (einer inhaltlich falsch) | 0 |
+| Ergebnisdatei im Zielverzeichnis | ja (3197 B) | ja (2402 B) |
+| Ausgang | `done` / `completed` | `done` / `completed` |
+
+Der Base64-Umweg war damit tatsächlich die Ursache der Mehrlaufzeit: ohne ihn
+liegt der Lauf bei 100 s und damit sogar unter der `scratch`-Vergleichskarte
+`t_075937a7` (133 s). Die Karte wählte von sich aus einen anderen Dateinamen
+(`zusammenfassung-ios-macos27-2026-09-15.md`), sodass die Datei aus Lauf 1
+nicht überschrieben wurde — die Regel zum kollisionsfreien Namen greift.
+`kanban_complete` trug den absoluten Pfad wie vorgesehen in
+`metadata["artifacts"]` ein.
+
+### v4: jede Karte bekommt einen Ablageort (15.09.2026)
+
+v3.1 ließ Karten **ohne** genannten Zielpfad weiter auf `scratch` laufen. Karte
+`t_6ff096d1` (Kommentar-Artikel, Text direkt im Chat) landete deshalb wieder im
+Attachment-Store statt im Arbeitsverzeichnis. Gewünscht ist: **immer** ein
+echtes Verzeichnis. v4 ersetzt die Zwei-Zweig-Regel durch eine Leiter, erste
+zutreffende Stufe gewinnt:
+
+| Stufe | Bedingung | `workspace_path` |
+|---|---|---|
+| 1 | Anfrage nennt einen Zielpfad | dieser Pfad (schlägt auch Stufe 2) |
+| 2 | Anfrage übergibt eine Eingabedatei **mit Pfad** | Verzeichnis dieser Datei |
+| 3 | sonst | `terminal.cwd` des **Assignees**, zu `$HOME/<Rest>` expandiert |
+| 4 | Stufe 3 nicht auflösbar | `scratch` wie bisher |
+
+Stufe 1 bis 3 setzen `workspace_kind="dir"`. Abgrenzung zu Stufe 2: ein im Chat
+**eingefügter** Text ohne Pfad ist Stufe 3, nicht Stufe 2 — das war der Fall
+`t_6ff096d1`.
+
+### Belegt (drei Karten, 15.09.2026)
+
+Geprüft wurde die Feldsetzung des Orchestrators, nicht erneut das Schreiben
+durch den Worker — das ist über `t_582dbca2`/`t_41dc0447` bereits belegt.
+
+| Karte | Auslöser | `workspace_kind` / `workspace_path` |
+|---|---|---|
+| `t_a43527d0` | Text im Chat, kein Pfad | `dir` / `~/hermes-working/summarizer` ✓ Stufe 3 |
+| `t_8fac3da3` | Eingabedatei `…/eingabe-test/deichwartung.txt` | `dir` / `…/eingabe-test` ✓ Stufe 2 |
+| `t_5c8c8940` | dieselbe Datei **plus** `=> speichere in …/orchestrator` | `dir` / `~/hermes-working/orchestrator` ✓ Stufe 1 schlägt Stufe 2 |
+
+Alle drei liefen zusätzlich vollständig durch, jede legte ihre Datei im
+erwarteten Verzeichnis ab:
+
+| Karte | Datei |
+|---|---|
+| `t_a43527d0` | `~/hermes-working/summarizer/zusammenfassung-deichwartung-2026-09-15.md` (374 B) |
+| `t_8fac3da3` | `…/eingabe-test/deichwartung-zusammenfassung-2026-09-15.txt` (347 B) — neben der Eingabedatei |
+| `t_5c8c8940` | `~/hermes-working/orchestrator/deichwartung-zusammenfassung-2026-09-15.txt` (387 B) — **nicht** neben der Eingabedatei |
+
+Damit ist auch die Vorrangregel praktisch belegt und nicht nur an der
+Feldsetzung: dieselbe Eingabedatei, einmal mit und einmal ohne expliziten
+Zielpfad, führt zu zwei verschiedenen Ablageorten. Alle drei endeten mit
+`outcome = completed`, ohne Fehler.
+
+Die Laufzeiten streuen dabei stark (`t_5c8c8940` 58 s gegen `t_8fac3da3` 235 s
+bei identischer Eingabedatei und identischer Aufgabe). Bei n = 1 je Stufe ist
+das **keine** belastbare Aussage über die Stufen — es ist vor allem eine
+Erinnerung daran, dass die Laufzeitstreuung des Modells groß genug ist, um
+Einzelvergleiche wertlos zu machen (vgl. Abschnitt 17).
+
+### Preis der Umstellung
+
+Da jetzt **jede** Karte `dir` ist, entsteht **kein `task_attachments`-Eintrag**
+mehr (`_scratch_workspace()` liefert für `dir` `None`, siehe oben). Das Board
+verliert damit die herunterladbaren Artefakte; die Provenienz bleibt über
+`metadata["artifacts"]` und die `completed`-Ereignisnutzlast erhalten. Wer den
+Anhang will, nimmt `hermes kanban attach $HERMES_KANBAN_TASK <Pfad>`.
+
+Zweiter Nebeneffekt bei Stufe 2: `TERMINAL_CWD` zeigt auf das Verzeichnis der
+Eingabedatei, und über `build_context_files_prompt` lädt der Worker eine dort
+liegende `AGENTS.md` als Kontext mit.
+
+### Was ich **nicht** verifiziert habe
+
+| Aussage | Warum offen |
+|---|---|
+| Ob der Zeitunterschied 278 s → 100 s allein am Base64-Umweg liegt | je ein Lauf pro Fassung; Modell-Laufzeitstreuung nicht ausgemittelt (vgl. Abschnitt 17 zum n = 3-Trugschluss) |
+| `hermes kanban attach $HERMES_KANBAN_TASK <Pfad>` im Worker | CLI-Signatur gelesen (`kanban_parser.py:270-276`), nicht ausgeführt |
+| Verhalten bei zwei gleichzeitigen `dir`-Karten auf dasselbe Verzeichnis | nicht provoziert; Kollisionsrisiko nur aus dem Schema abgeleitet |
+| Stufe 4 der v4-Leiter (`scratch`-Fallback) | **nicht testbar in dieser Installation** — alle vier Profile haben ein explizites `terminal.cwd`, die Stufe wird nie erreicht |
+| Ob Stufe 2 die `AGENTS.md` neben der Eingabedatei wirklich lädt | aus `kanban_db_dispatch.py:2233-2240` abgeleitet, nicht provoziert |
+| Ob `terminal.cwd` auf anderen Wegen (Cron, Gateway) doch greift | nur der Dispatcher-Pfad gelesen |
