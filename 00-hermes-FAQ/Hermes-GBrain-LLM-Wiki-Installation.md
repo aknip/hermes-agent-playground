@@ -1,7 +1,11 @@
 # GBrain als LLM-Wiki für Hermes: was wohin installiert wird
 
-**Stand:** 16.09.2026 · Reine Recherche — **nichts installiert, nichts angelegt.**
-Das Zielverzeichnis `~/github/hermes-llm-wiki-gbrain` existiert nicht.
+**Stand:** 16.09.2026 · Zuerst Recherche, am selben Tag **real installiert**.
+Das Zielverzeichnis `~/github/hermes-llm-wiki-gbrain` ist angelegt und läuft;
+der protokollierte Lauf steht in [Abschnitt 6](#6-der-reale-lauf-vom-16092026).
+Abschnitte 1 bis 5 sind unverändert die Analyse **vor** dem Lauf — was der Lauf
+widerlegt oder bestätigt hat, steht jeweils in Abschnitt 6, nicht rückwirkend
+eingearbeitet.
 
 **Ausgangsfrage:** [GBrain](https://github.com/garrytan/gbrain) soll als Wiki für
 Hermes Agent dienen, die Inhalte nach `~/github/hermes-llm-wiki-gbrain`. Was
@@ -18,11 +22,12 @@ Drei ungleiche Quellen sind im Spiel; sie werden hier nicht vermischt.
 | Quelle | Status |
 |---|---|
 | Hermes-Quelltext `~/.hermes/hermes-agent/` | **v0.21.2 (2026.9.11)** — nicht die im Repo festgeschriebene v0.20.0. Alle Hermes-Zitate gelten für 0.21.2. |
-| GBrain-Quelltext | Klon von `master`, `VERSION 0.50.5.0`, sha `668b9ba`, nach `/tmp`. **GBrain ist auf diesem Rechner nicht installiert.** Ein echter Install zieht `#latest-stable` und kann abweichen. |
+| GBrain-Quelltext | `VERSION 0.50.5.0`, sha `668b9ba`. Zur Analysezeit ein `master`-Klon nach `/tmp`; der Lauf hat dann gezeigt, dass Tag `latest-stable` **auf genau diesen Commit** zeigt — Analyse und Installation stehen auf demselben Stand. |
+| Protokollierter Lauf | 16.09.2026, `~/github/hermes-llm-wiki-gbrain`. Alles mit „Real gemessen" markierte in Abschnitt 6 stammt daher. |
 | `INSTALL_FOR_AGENTS.md`, `docs/mcp/HERMES.md` | Online-Doku, nach dem Verifikationsvertrag **keine Quelle.** Nur Abschnitt 1 referiert sie; Abschnitt 2 und 3 stehen am Code. |
 
-Vorhanden ist Bun (`/opt/homebrew/bin/bun`, via Homebrew) — der `curl | bash`-Schritt
-der Anleitung entfällt. `~/.gbrain` existiert nicht, `gbrain` ist nicht im PATH.
+Vorhanden war Bun (`/opt/homebrew/bin/bun`, via Homebrew) — der `curl | bash`-Schritt
+der Anleitung entfällt.
 
 ---
 
@@ -35,7 +40,37 @@ Neun Schritte, davon vier für den keyless-Pfad zwingend:
    blockiertem postinstall-Hook: `git clone ~/gbrain && bun install && bun link`.
 2. **API-Keys** — für den Einstieg übersprungen. Ohne Key bleibt Keyword-Suche;
    Voyage (Embedding + Reranker) bzw. Anthropic/OpenAI (Fakt-Extraktion,
-   Query-Expansion) sind opt-in.
+   Query-Expansion) sind opt-in. **Die Anleitung verschweigt eine dritte
+   Option — siehe unten.**
+
+### Nicht in der Anleitung: OpenRouter deckt alle vier Lanes
+
+`INSTALL_FOR_AGENTS.md` nennt in Schritt 2 nur Voyage, OpenAI und Anthropic.
+Der Code führt OpenRouter aber als vollwertiges Rezept, und zwar für **alle
+vier** Touchpoints (`src/core/ai/recipes/openrouter.ts:157-300`):
+
+| Lane | Was OpenRouter liefert |
+|---|---|
+| Embedding | `/v1/embeddings` proxyt `openai/text-embedding-3-small` (1536d, Matryoshka-Shrink auf 512/768/1024). Katalog zusätzlich `text-embedding-3-large` (3072d), `qwen3-embedding-8b` (4096d), `gemini-embedding-2-preview`, `bge-m3` |
+| Chat | `/v1/chat/completions` über den gesamten OpenRouter-Katalog; die kuratierte Liste ist nur ein Einstiegspunkt, die openai-compat-Ebene erzwingt sie nicht |
+| Expansion | dieselbe Lane wie Chat; empfohlenes Set `anthropic/claude-haiku-4.5`, `google/gemini-3-flash-preview`, `deepseek/deepseek-chat` |
+| Reranker | `/api/v1/rerank` mit Cohere v3.5 / 4-fast / 4-pro und NVIDIA Nemotron. **Hier gilt die Allowlist strikt**, kein openai-compat-Bypass |
+
+Das ist der praktische Weg, wenn wie in diesem Repo ohnehin ein
+`OPENROUTER_API_KEY` existiert: **ein Key deckt Embedding, Chat, Expansion und
+Reranking**, statt Voyage plus Anthropic nebeneinander zu betreiben.
+
+```bash
+gbrain init --pglite \
+  --embedding-model openrouter:openai/text-embedding-3-small \
+  --embedding-dimensions 1536 \
+  --expansion-model openrouter:anthropic/claude-haiku-4.5 \
+  --chat-model  openrouter:anthropic/claude-haiku-4.5
+```
+
+Zwei Stolpersteine, beide im Lauf aufgetreten und in Abschnitt 6 belegt: der
+Suchmodus-Automatismus erkennt OpenRouter nicht als expansionsfähig, und die
+Subagent-Lane braucht `agent.use_gateway_loop true`.
 3. **`gbrain init`** — PGLite, kein Server. Für Harness-Installs empfiehlt die
    Doku `--prefer-postgres` (Fünf-Stufen-Leiter bis zum PGLite-Boden).
 4. **Schritt 3.5 Suchmodus** — `conservative | balanced | tokenmax` muss beim
@@ -344,24 +379,143 @@ globale Installation sauber.
 
 ---
 
+## 6. Der reale Lauf vom 16.09.2026
+
+Installiert nach `~/github/hermes-llm-wiki-gbrain`, self-contained nach
+Abschnitt 3, Engine PGLite, Suchmodus `tokenmax`, alle Modell-Lanes über
+OpenRouter. Ergebnis: GBrain **0.50.5.0**, 68 Skills, Hermes-Profil `wiki-llm`
+mit 135 MCP-Tools, `doctor` ohne einen einzigen FAIL-Check.
+
+### Real gemessen: der Fußabdruck
+
+Die zentrale Behauptung aus Abschnitt 3 hält. Nach der vollständigen
+Installation:
+
+| geprüft | Ergebnis |
+|---|---|
+| `~/.gbrain` | **existiert nicht** — `GBRAIN_HOME` trägt vollständig |
+| `~/.hermes/config.yaml` | **0 Treffer** für `gbrain`; die globale Installation ist unberührt |
+| `~/.bun/install/global` | **0** gbrain-Pakete |
+| `~/Library/LaunchAgents` | **0** Einträge (kein `autopilot --install`) |
+| `~/.npmrc` | unverändert |
+
+Außerhalb liegen exakt die zwei vorhergesagten Dinge plus das Profil selbst:
+`~/.hermes/profiles/wiki-llm/` (47 MB, überwiegend durch `--clone`) und
+`~/.local/bin/wiki-llm` (69 Bytes Wrapper).
+
+Das Brain-Verzeichnis nach `init`:
+
+```
+.gbrain/config.json      539 B, database_path zeigt in den Zielpfad
+.gbrain/brain.pglite     43 MB
+.gbrain/.env             chmod 600, enthält den Provider-Key
+.gbrain/.gitignore       von gbrain selbst angelegt
+```
+
+Größe gesamt 535 MB, davon 490 MB `runtime/` — und genau das ist gitignored.
+Der Commit umfasst 126 Dateien; `git diff --cached -S'sk-or-v'` findet null
+Treffer, der Key ist nicht im Index.
+
+### Real gemessen: Ende-zu-Ende
+
+`gbrain remember` schrieb Fakt `#1`, ein **separater Prozess** las ihn per
+`gbrain recall` zurück. Danach durch Hermes hindurch:
+
+```
+hermes -p wiki-llm -z "… nenne mir die gespeicherte Testphrase …"
+→ bernstein-orbit-7Q4X          (exit 0)
+```
+
+`hermes mcp test gbrain`: verbunden in **1476 ms**, 135 Tools entdeckt.
+
+### Vier Abweichungen vom Plan
+
+**1. Der handgebaute Launcher trägt.** `bin/gbrain --version` meldet
+`gbrain 0.50.5.0`. Die Nachbildung von `renderAgentLauncher` samt Env-Abräumung
+funktioniert für Hermes, obwohl `setup-in-agent.sh` diesen Harness ablehnt.
+Konsequenz aus dem Abräumen: der Provider-Key **muss** in `.gbrain/.env`, aus
+der Shell wird er entfernt.
+
+**2. `bunfig.toml` verliert gegen `~/.npmrc`.** Ein `[install] registry = …` in
+`runtime/gbrain/bunfig.toml` blieb wirkungslos — bun zog weiter die Registry aus
+`~/.npmrc`. Erst eine verzeichnislokale `.npmrc` griff. Wer hinter einer
+Firmen-Registry sitzt, die gerade nicht auflöst, braucht also die `.npmrc`,
+nicht das `bunfig.toml`. (`BUN_CONFIG_REGISTRY` als Env-Variable wirkte
+ebenfalls.)
+
+**3. `init` wählte `conservative`, obwohl `tokenmax` gewünscht war.** Genau der
+Mechanismus aus Abschnitt 1: `hasExpansionKey` prüft ausschließlich
+`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GOOGLE_GENERATIVE_AI_API_KEY` und
+`GEMINI_API_KEY` (`init-mode-picker.ts:117-122`) — **OpenRouter steht dort
+nicht**, auch wenn Expansion über OpenRouter zur Laufzeit funktioniert. Wer
+OpenRouter fährt, bekommt automatisch den engsten Modus und muss ihn von Hand
+setzen:
+
+```bash
+gbrain config set search.mode tokenmax
+```
+
+**4. Zwei Konfigurationen mussten nachgezogen werden.** `doctor` fand beide:
+
+- `subagent_capability` warnte, dass `dream`, `agent run` und `autopilot` bei
+  der Job-Abgabe scheitern, weil das Chat-Modell nicht-Anthropic ist und kein
+  `ANTHROPIC_API_KEY` existiert. Fix: `gbrain config set agent.use_gateway_loop true`.
+- Der Reranker zeigte auf `voyage:rerank-2.5`, wofür es keinen Key gibt —
+  folgenlos, solange er deaktiviert ist, aber ein Blindgänger. Auf
+  `openrouter:cohere/rerank-v3.5` umgestellt.
+
+### Was `doctor` danach noch anmerkt
+
+Keine FAIL-Checks, Brain-Score 100/100. Vier Warnungen, alle erwartbar:
+`home_dir_in_worktree` (`.gbrain` liegt im Git-Worktree — hier Absicht, per
+`.gitignore` abgedeckt), `retrieval_reflex_health` (braucht ein laufendes
+`serve`, das liefert Hermes), `skill_preconditions` und `takes_count` (leeres
+Brain bzw. Opt-in-Funktion).
+
+### Was an Abschnitt 3 zu ergänzen ist
+
+**135 MCP-Tools** landen im Hermes-Kontext. Das ist viel; ein
+`mcp_servers.gbrain.tools.include`-Filter (`tools/mcp_tool_registration.py:208`)
+würde das eindämmen. Im Lauf nicht gesetzt.
+
+Und: `hermes profile create --clone` kopiert rund **47 MB** mit. Für ein reines
+Wiki-Profil ist `--no-skills` womöglich die bessere Wahl — ungetestet.
+
+---
+
+## Durch den Lauf erledigt
+
+Diese Punkte standen bis zum 16.09.2026 in der Tabelle unten und sind jetzt
+gemessen:
+
+| vormals offen | Ergebnis |
+|---|---|
+| Ob `gbrain init` mit `GBRAIN_HOME` außerhalb des Home durchläuft | ✅ läuft; `~/.gbrain` entsteht nicht |
+| Ob der handgebaute Launcher für Hermes funktioniert | ✅ `bin/gbrain --version` → `gbrain 0.50.5.0`, MCP-Handshake 1476 ms |
+| Ob Hermes die GBrain-Frontmatter klaglos lädt | ✅ `brain-ops`, `signal-detector` u. a. stehen als `local` im Index; Kategoriespalte bleibt leer, sonst unauffällig |
+| Ob `skills.external_dirs` mit einem Pfad außerhalb von HERMES_HOME greift | ✅ 111 lokale Skills im Profil, darunter die scaffoldeten |
+| Ob `skills.external_dirs` als Liste akzeptiert wird | ✅ `config set` schrieb eine echte YAML-Liste, der Loader nimmt sie |
+| Ob `--clone` eine ausreichende Modellkonfiguration liefert | ✅ vom aktiven Profil `default` (OpenRouter, `z-ai/glm-5.3-flash`); der `hermes -z`-Durchlauf gelang damit |
+| Der Befehlsblock aus Abschnitt 5 | ✅ ausgeführt, bis auf `--env GBRAIN_HOME` (bewusst weggelassen, der Launcher räumt `GBRAIN_*` ohnehin ab) |
+| Welche Version hinter `latest-stable` steht | ✅ Tag zeigt auf `668b9ba` — derselbe Commit wie die Analyse |
+
 ## Was ich **nicht** verifiziert habe
 
 | Aussage | Warum offen |
 |---|---|
-| Ob `gbrain init` mit `GBRAIN_HOME` auf ein Nicht-Home-Verzeichnis unter Hermes durchläuft | kein Lauf — GBrain ist nicht installiert; nur `config.ts` und `doctor.ts` gelesen |
-| Ob der handgebaute Launcher samt privater Bun-Laufzeit für Hermes funktioniert | von GBrain für Hermes nicht unterstützt; aus dem Grok/Muse-Pfad abgeleitet, nicht ausgeführt |
-| Portabilität von `brain.pglite` zwischen Rechnern und Architekturen | nicht getestet; Gegenmittel wäre der Rebuild aus `memory/` |
-| Ob Hermes die GBrain-Frontmatter (`triggers:`, `mutating:`, `sources:`) klaglos lädt | Formate sind kompatibel (`name`/`description` vorhanden), aber kein Ladetest |
-| Welche GBrain-Version `bun install -g github:garrytan/gbrain` tatsächlich liefert | die Analyse steht auf `master@668b9ba`; Anleitung und Bootstrap verweisen auf `#latest-stable` |
-| Kontextkosten von 85 Skills im Hermes-Index | GBrain hat dafür eine Drei-Ebenen-Doku (`docs/guides/scaling-skills.md`), ungelesen und ungeprüft |
-| Ob `skills.external_dirs` mit einem Pfad außerhalb von HERMES_HOME im Lauf greift | nur `skill_utils.py` gelesen, keine Sitzung gestartet |
-| Vollständigkeit der Liste „was außerhalb landet" | gezielte Suche nach `homedir()`-Aufrufen, LaunchAgents und Git-Hooks; keine erschöpfende Codesuche über alle 100+ Kommandos |
-| Verhalten der Fünf-Stufen-Postgres-Leiter (`init --prefer-postgres`) | nur die Doku gelesen, kein Codepfad verfolgt, kein Lauf |
-| Tatsächliche Kosten eines Re-Embed beim Provider-Wechsel | die Migrations-Skill nennt „a one-time re-embed", keine Messung und kein Lauf |
-| Ob `gbrain schema sync --apply` bestehende Seiten verlustfrei umtypt | nur Hilfetext und Auflösungskette in `schema.ts` gelesen |
-| Ob die Umbenennungs-Erkennung in `sync` im Lauf greift | `manifest.renamed` (`core/sync.ts:226`) gelesen, kein Lauf; die Aussage „`import` erkennt keine Umbenennungen" stützt sich auf `import.ts:988` und das Fehlen eines Reconcile-Pfads, nicht auf einen Gegentest |
-| Ob `sync` wirklich `git init` auslöst | `sync.ts:1515-1556` gelesen (Re-Probe-Logik, dann `git init --quiet` + Baseline-Commit), nicht ausgeführt |
-| Verhalten der gesamten empfohlenen Reihenfolge | kein einziger Schritt ausgeführt; alle Aussagen dieses Abschnitts sind Codelektüre an `master@668b9ba`, GBrain ist nicht installiert |
-| Der Befehlsblock aus Abschnitt 5 als Ganzes | **nicht ausgeführt** — `profile create` schreibt globale Profile, siehe `CLAUDE.md`. Geprüft sind nur die Einzelteile am Quelltext: Namensregel, `--clone`-Semantik aus `profile create --help`, Wrapper-Pfad, Wertecoercion, MCP-Flagreihenfolge |
-| Ob `--clone` eine für GBrain ausreichende Modellkonfiguration liefert | hängt am aktiven Profil zum Zeitpunkt des Aufrufs; nur `_load_config_impl` gelesen, kein Lauf. Für dispatchbare Profile verlangt `CLAUDE.md` alle vier Modell-Schlüssel |
-| Ob `skills.external_dirs` als Liste vom Skill-Loader im Lauf akzeptiert wird | Coercion (`config.py:3296`) und Leser (`skill_utils.py:337`) gelesen, nicht zusammen ausgeführt |
+| Ob eine **private** Bun-Laufzeit unter `runtime/` funktioniert | der Lauf nutzt das System-Bun (`/opt/homebrew/bin/bun`) über den Launcher-Pfad. Echte Isolation der Bun-Version ist ungetestet — auf einem Rechner ohne Bun schlägt `setup.sh` fehl statt nachzuinstallieren |
+| Portabilität von `brain.pglite` zwischen Rechnern und Architekturen | weiterhin nicht getestet — nur auf diesem Mac erzeugt. Gegenmittel bleibt der Rebuild aus `memory/` |
+| Welche GBrain-Version `bun install -g github:garrytan/gbrain` liefert | dieser Weg wurde nicht benutzt; installiert wurde per `git clone` + Tag |
+| Kontextkosten von 187 aktivierten Skills im Profil | gezählt, nicht gemessen. `docs/guides/scaling-skills.md` behandelt das, ungelesen |
+| Kosten und Nutzen des `tools.include`-Filters für die 135 MCP-Tools | nicht gesetzt; nur `tools/mcp_tool_registration.py:208` gelesen |
+| Ob `--no-skills` beim `profile create` die 47 MB vermeidet | nicht probiert |
+| Alles ab `import` in der Reihenfolge aus Abschnitt 4 | `memory/` ist leer — `import`, `embed --stale`, `schema detect/sync`, `extract links/timeline` sind nicht gelaufen |
+| Ob die semantische Suche über OpenRouter im Lauf trägt | `doctor` bestätigt Konfiguration und Schemabreite (1536d), aber ohne Inhalte wurde nie eingebettet oder semantisch gesucht |
+| Ob der Reranker über OpenRouter funktioniert | bewusst deaktiviert gelassen; nur das Modell umgestellt |
+| Verhalten der Fünf-Stufen-Postgres-Leiter (`init --prefer-postgres`) | PGLite gewählt; die Leiter blieb unberührt |
+| Tatsächliche Kosten eines Re-Embed beim Provider-Wechsel | weiterhin nur die Aussage der Migrations-Skill |
+| Ob `gbrain schema sync --apply` bestehende Seiten verlustfrei umtypt | leeres Brain, nichts umzutypen |
+| Ob die Umbenennungs-Erkennung in `sync` greift | kein `sync` gelaufen |
+| Ob `sync` wirklich `git init` auslöst | der Zielordner wurde **vorher** zum Git-Repo gemacht, genau um das zu vermeiden — der Pfad blieb ungetestet |
+| Vollständigkeit der Liste „was außerhalb landet" | der Lauf bestätigt sie für diesen Weg; ein `autopilot --install`, `sources harden`, `mounts add` oder `integrations` würde weitere Pfade anfassen, keiner davon wurde ausgeführt |
+| Ob `setup.sh` auf einem fremden Rechner durchläuft | nur `bash -n` geprüft; die Registry-Erkennung und der Profil-Zweig sind auf diesem Rechner nie in ihren jeweils anderen Ast gelaufen |
