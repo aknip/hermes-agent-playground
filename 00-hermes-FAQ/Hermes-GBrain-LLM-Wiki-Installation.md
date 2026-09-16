@@ -15,6 +15,86 @@ auf andere Rechner übertragbare Lösung entsteht?
 
 ---
 
+## 0. Benutzung: Chat oder CLI?
+
+Vorangestellt, weil es die erste Frage nach der Installation ist.
+
+**`gbrain search` im Hermes-Chat einzutippen funktioniert nicht.** Das ist ein
+Shell-Kommando; im Chat landet es als Text beim Modell, nicht als Aufruf. GBrain
+hängt als **MCP-Server** am Profil, seine Verben sind **Werkzeuge**.
+
+### Weg 1 — natürliche Sprache (der Normalfall)
+
+Beschreiben, was gebraucht wird; der Agent wählt das Werkzeug:
+
+```
+Durchsuche mein Wiki nach allem zu Kanban-Dispatch.
+Was weisst du ueber das Orchestrator-Profil?
+Merk dir: Wir nutzen OpenRouter statt direkter Provider-Keys.
+```
+
+### Weg 2 — Werkzeug beim Namen nennen
+
+Wenn der Agent danebengreift. Der Name trägt **zwei** Unterstriche:
+
+| CLI-Verb | Werkzeug in Hermes |
+|---|---|
+| `gbrain search` | `mcp__gbrain__search` |
+| `gbrain think` | `mcp__gbrain__think` |
+| `gbrain capture` | `mcp__gbrain__capture` |
+| `gbrain query` / `recall` / `remember` | `mcp__gbrain__query` / `__recall` / `__remember` |
+
+> **Doku-Abweichung.** `docs/mcp/HERMES.md` schreibt `mcp_gbrain_<tool>` mit
+> **einfachem** Unterstrich. Das ist falsch: `agent/anthropic_adapter.py:246`
+> setzt `_MCP_TOOL_PREFIX = "mcp__"`. Real gemessen — auf die Frage nach seinen
+> Werkzeugnamen antwortete das Profil `mcp__gbrain__query`,
+> `mcp__gbrain__get_page`, `mcp__gbrain__put_page`.
+
+Insgesamt registriert der Server **135** Werkzeuge.
+
+### Weg 3 — die CLI über das Terminal-Werkzeug
+
+`~/github/hermes-llm-wiki-gbrain/bin/gbrain search …` funktioniert, aber siehe
+die Warnung unten. Für den Alltag sind Weg 1 und 2 richtig.
+
+### Die Lock-Falle
+
+⚠ **Solange eine Hermes-Sitzung GBrain angeschlossen hält, scheitert jeder
+CLI-Aufruf am PGLite-Lock — und umgekehrt.** Das ist die Single-Writer-Schranke
+aus [Abschnitt 3](#eine-harte-designschranke-kein-fußnotenthema), und sie ist
+im Lauf wirklich zugeschlagen: siehe [Abschnitt 6](#der-lock-vorfall).
+
+Wenn Suche oder Chat plötzlich leer antworten:
+
+```bash
+ps aux | grep cli.ts     # haelt noch ein serve das Brain?
+ls ~/github/hermes-llm-wiki-gbrain/.gbrain/brain.pglite/postmaster.pid
+```
+
+Was der Befund bedeutet:
+
+- **Ein lebender Hermes-Prozess ist der Halter** (`--profile <name> serve` als
+  Elternprozess) — das ist der Normalzustand, kein Fehler. Dann Weg 1 oder 2
+  statt der CLI.
+- **Der Prozess ist verwaist** — beenden, dann geht beides wieder. Genau das war
+  im Lauf nötig.
+
+`gbrain pglite-repair` ist dafür **nicht** zuständig: es repariert ein
+zerrissenes WAL nach unsauberem Shutdown (`RuntimeError: Aborted()`), mit
+pg_resetwal-Semantik und möglichem Verlust nicht gecheckpointeter Transaktionen.
+Ein gehaltener Lock ist ein anderes Problem — dafür hilft nur, den Halter zu
+finden.
+
+### Seiten sind nicht Fakten
+
+`search` und `think` arbeiten auf **Seiten**, `recall` und `entity` auf
+**Fakten**. Real gemessen: `gbrain think "Was weisst du ueber
+projects/gbrain-setup?"` meldete `Pages: 0`, während `gbrain recall
+projects/gbrain-setup` denselben Fakt sauber lieferte. Wer über `remember`
+Gespeichertes sucht, braucht `recall`/`entity`, nicht `search`.
+
+---
+
 ## Beweislage
 
 Drei ungleiche Quellen sind im Spiel; sie werden hier nicht vermischt.
@@ -42,6 +122,28 @@ Neun Schritte, davon vier für den keyless-Pfad zwingend:
    Voyage (Embedding + Reranker) bzw. Anthropic/OpenAI (Fakt-Extraktion,
    Query-Expansion) sind opt-in. **Die Anleitung verschweigt eine dritte
    Option — siehe unten.**
+
+3. **`gbrain init`** — PGLite, kein Server. Für Harness-Installs empfiehlt die
+   Doku `--prefer-postgres` (Fünf-Stufen-Leiter bis zum PGLite-Boden).
+4. **Schritt 3.5 Suchmodus** — `conservative | balanced | tokenmax` muss beim
+   Operator *rückgefragt* werden; 25-fache Kostenspreizung über die
+   Neun-Felder-Matrix (Modus × nachgelagertes Modell).
+5. **`gbrain import` + `embed --stale`**, danach Schritt 4.5
+   `extract links|timeline` für den Graphen (bei leerem Brain überspringbar).
+6. **Skills** — `gbrain skillpack scaffold --all` in einen Workspace. Im Klon
+   sind es **85** Verzeichnisse unter `skills/`, nicht die genannten „50+".
+7. **MCP-Registrierung** —
+   `hermes mcp add gbrain --env GBRAIN_HOME=$HOME --connect-timeout 60 --command $(which gbrain) --args serve`,
+   Prüfung mit `hermes mcp test gbrain`.
+8. **Identität** (optional), **Cron** (sync / dream / doctor, oder
+   `gbrain autopilot --install`), **Integrationen**, **Verify**.
+
+Zwei Gotchas der Doku sind gegen den **installierten** Hermes 0.21.2 geprüft und
+gelten weiterhin: `hermes_cli/subcommands/mcp.py:34` deklariert `--args` als
+`nargs=argparse.REMAINDER` — alles danach wird verschluckt, es muss die letzte
+Option sein. `mcp.py:41` deklariert `--env` als `nargs="*"` — ein zweites `--env`
+**ersetzt** das erste, statt zu ergänzen; mehrere Variablen gehören hinter *ein*
+`--env`.
 
 ### Nicht in der Anleitung: OpenRouter deckt alle vier Lanes
 
@@ -71,27 +173,6 @@ gbrain init --pglite \
 Zwei Stolpersteine, beide im Lauf aufgetreten und in Abschnitt 6 belegt: der
 Suchmodus-Automatismus erkennt OpenRouter nicht als expansionsfähig, und die
 Subagent-Lane braucht `agent.use_gateway_loop true`.
-3. **`gbrain init`** — PGLite, kein Server. Für Harness-Installs empfiehlt die
-   Doku `--prefer-postgres` (Fünf-Stufen-Leiter bis zum PGLite-Boden).
-4. **Schritt 3.5 Suchmodus** — `conservative | balanced | tokenmax` muss beim
-   Operator *rückgefragt* werden; 25-fache Kostenspreizung über die
-   Neun-Felder-Matrix (Modus × nachgelagertes Modell).
-5. **`gbrain import` + `embed --stale`**, danach Schritt 4.5
-   `extract links|timeline` für den Graphen (bei leerem Brain überspringbar).
-6. **Skills** — `gbrain skillpack scaffold --all` in einen Workspace. Im Klon
-   sind es **85** Verzeichnisse unter `skills/`, nicht die genannten „50+".
-7. **MCP-Registrierung** —
-   `hermes mcp add gbrain --env GBRAIN_HOME=$HOME --connect-timeout 60 --command $(which gbrain) --args serve`,
-   Prüfung mit `hermes mcp test gbrain`.
-8. **Identität** (optional), **Cron** (sync / dream / doctor, oder
-   `gbrain autopilot --install`), **Integrationen**, **Verify**.
-
-Zwei Gotchas der Doku sind gegen den **installierten** Hermes 0.21.2 geprüft und
-gelten weiterhin: `hermes_cli/subcommands/mcp.py:34` deklariert `--args` als
-`nargs=argparse.REMAINDER` — alles danach wird verschluckt, es muss die letzte
-Option sein. `mcp.py:41` deklariert `--env` als `nargs="*"` — ein zweites `--env`
-**ersetzt** das erste, statt zu ergänzen; mehrere Variablen gehören hinter *ein*
-`--env`.
 
 ---
 
@@ -464,6 +545,67 @@ gbrain config set search.mode tokenmax
   folgenlos, solange er deaktiviert ist, aber ein Blindgänger. Auf
   `openrouter:cohere/rerank-v3.5` umgestellt.
 
+### Der Lock-Vorfall
+
+Nachgetragen am selben Tag, beim Abschalten der Skills. Zwischendurch schlug
+`hermes mcp test gbrain` fehl (`✗ Connection failed (10615ms): Connection
+closed`) und ein `hermes -z`-Durchlauf lieferte **leer bei Exit 0** — die
+tückischste Variante, weil nichts nach einem Fehler aussieht.
+
+Ursache, real gemessen:
+
+```
+PID 35816  bun … src/cli.ts --brain host serve
+PPID 35645 python -m hermes_cli.main --profile wiki-llm serve --host 127.0.0.1 --port 0
+.gbrain/brain.pglite/postmaster.pid  vorhanden
+```
+
+Ein hängengebliebener `gbrain serve`, Kind eines Hermes-`serve`, hielt das
+PGLite-Datenverzeichnis. Jeder zweite `serve` — und `mcp test` startet genau
+den — scheiterte am Lock. Nach `kill 35645` verschwand die `postmaster.pid`,
+CLI und Chat liefen sofort wieder, und der nächste `-z`-Durchlauf hinterließ
+**keinen** Halter mehr.
+
+Damit ist die Designschranke aus Abschnitt 3 nicht mehr Theorie. Die
+Betriebsanweisung daraus steht in [Abschnitt 0](#die-lock-falle).
+
+### Real gemessen: die OpenRouter-Chat-Lane trägt
+
+```
+gbrain think "Was weisst du ueber projects/gbrain-setup?"
+→ Model: openrouter:anthropic/claude-haiku-4.5 | Pages: 0 | … | exit 0
+```
+
+Chat und Expansion über OpenRouter funktionieren also nachweislich — was die
+Anleitung in Schritt 2 gar nicht als Option führt. Offen bleibt die
+**Embedding**-Lane: ohne Inhalte wurde nie eingebettet.
+
+Nebenbei zeigte derselbe Aufruf die Trennung von Seiten und Fakten: `Pages: 0`,
+obwohl `recall` den Fakt liefert. Siehe Abschnitt 0.
+
+### Real gemessen: Skills abschalten wirkt profil-lokal
+
+`--clone` schleppte 123 Skill-Verzeichnisse mit, die Hermes als 57 `builtin`,
+19 `official` und 47 eigene `local` einordnet; dazu die 64 GBrain-Verzeichnisse
+als weitere `local`. Abgeschaltet wurden die **48** lokalen Nicht-GBrain-Skills
+über `skills.disabled`:
+
+| | vorher | nachher |
+|---|---|---|
+| Profil `wiki-llm` | 187 aktiv | **139** aktiv (63 GBrain + 57 builtin + 19 official) |
+| Profil `default` | 133 | 133 — unberührt |
+| Profil `developer` | 70 | 70 — unberührt |
+
+Zwei Details: `hermes config set` warnt, `skills.disabled` sei „not a recognized
+config key" — der Schlüssel steht nicht in `DEFAULT_CONFIG`, wird aber von
+`get_disabled_skills` (`hermes_cli/skills_config.py:28`) gelesen; die Warnung
+ist folgenlos. Und GBrain liefert **63** Skills statt 64, weil `skills/conventions/`
+kein `SKILL.md` hat: es ist das Verzeichnis der geteilten Konventionsdateien,
+das andere Skills referenzieren.
+
+`hermes-agent` lässt sich nicht abschalten (`ESSENTIAL_SKILLS`,
+`agent/skill_utils.py:275`).
+
 ### Was `doctor` danach noch anmerkt
 
 Keine FAIL-Checks, Brain-Score 100/100. Vier Warnungen, alle erwartbar:
@@ -498,6 +640,10 @@ gemessen:
 | Ob `--clone` eine ausreichende Modellkonfiguration liefert | ✅ vom aktiven Profil `default` (OpenRouter, `z-ai/glm-5.3-flash`); der `hermes -z`-Durchlauf gelang damit |
 | Der Befehlsblock aus Abschnitt 5 | ✅ ausgeführt, bis auf `--env GBRAIN_HOME` (bewusst weggelassen, der Launcher räumt `GBRAIN_*` ohnehin ab) |
 | Welche Version hinter `latest-stable` steht | ✅ Tag zeigt auf `668b9ba` — derselbe Commit wie die Analyse |
+| Ob die PGLite-Single-Writer-Schranke im Betrieb wirklich beißt | ✅ zugeschlagen, inklusive der stillen Variante „leer bei Exit 0" — siehe [Der Lock-Vorfall](#der-lock-vorfall) |
+| Ob Chat und Expansion über OpenRouter tragen | ✅ `gbrain think` antwortete über `openrouter:anthropic/claude-haiku-4.5` |
+| Wie die GBrain-Werkzeuge im Agenten heißen | ✅ `mcp__gbrain__*` mit zwei Unterstrichen — die Doku schreibt einen |
+| Ob sich Skills profil-lokal abschalten lassen | ✅ 187 → 139 in `wiki-llm`, `default` und `developer` unverändert |
 
 ## Was ich **nicht** verifiziert habe
 
@@ -510,7 +656,11 @@ gemessen:
 | Kosten und Nutzen des `tools.include`-Filters für die 135 MCP-Tools | nicht gesetzt; nur `tools/mcp_tool_registration.py:208` gelesen |
 | Ob `--no-skills` beim `profile create` die 47 MB vermeidet | nicht probiert |
 | Alles ab `import` in der Reihenfolge aus Abschnitt 4 | `memory/` ist leer — `import`, `embed --stale`, `schema detect/sync`, `extract links/timeline` sind nicht gelaufen |
-| Ob die semantische Suche über OpenRouter im Lauf trägt | `doctor` bestätigt Konfiguration und Schemabreite (1536d), aber ohne Inhalte wurde nie eingebettet oder semantisch gesucht |
+| Ob die **Embedding**-Lane über OpenRouter trägt | die Chat-Lane ist belegt (`think`), die Embedding-Lane nicht: ohne Inhalte wurde nie eingebettet. `doctor` bestätigt nur Konfiguration und Schemabreite (1536d) |
+| Ob `search` und `query` sinnvolle Treffer liefern | leeres Brain — nur die Werkzeugnamen sind belegt, kein einziger Suchlauf mit Inhalten |
+| Ob `gbrain capture` funktioniert | als MCP-Werkzeug vorhanden, nie aufgerufen |
+| Woher der verwaiste `serve` im Lock-Vorfall stammte | der Elternprozess (`--profile wiki-llm serve --port 0`) war eindeutig, sein Auslöser nicht — weder `mcp add` noch `-z` hinterließen im Nachtest einen Halter |
+| Ob `skills.disabled` auch Hub- und Builtin-Skills abschaltet | nur an lokalen Skills erprobt; `skills opt-out --remove` ist laut Hilfetext die Lane für Bundled-Skills, ungetestet |
 | Ob der Reranker über OpenRouter funktioniert | bewusst deaktiviert gelassen; nur das Modell umgestellt |
 | Verhalten der Fünf-Stufen-Postgres-Leiter (`init --prefer-postgres`) | PGLite gewählt; die Leiter blieb unberührt |
 | Tatsächliche Kosten eines Re-Embed beim Provider-Wechsel | weiterhin nur die Aussage der Migrations-Skill |
