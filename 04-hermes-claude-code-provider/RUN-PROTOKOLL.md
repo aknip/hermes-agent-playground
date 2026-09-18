@@ -603,7 +603,7 @@ der Regressionsprobe belegt, nicht durch einen weiteren Live-Lauf.
 `tools.tool_search.enabled: false` gesetzt ist — dann stünden alle 175 Werkzeuge (rund
 35.000 Token Schemata) im Satz der CLI. Der Lauf 14d lief mit eingeschaltetem
 `tool_search`; in ihm war der `gbrain`-Server wegen der PGLite-Sperre ohnehin nicht
-verbunden (siehe `00-hermes-FAQ/Hermes-GBrain-PGLite-Lock.md`), der Fehlerpfad dadurch
+verbunden (siehe [GBrain-Wiki-README, FAQ 3.1](https://github.com/aknip/hermes-llm-wiki-gbrain#31-lock-und-betrieb)), der Fehlerpfad dadurch
 aber unverändert ausgelöst.
 
 ## Kosten

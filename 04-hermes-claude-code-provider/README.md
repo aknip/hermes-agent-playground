@@ -376,7 +376,7 @@ weiterzureichen.
 Wiki-Profil `wiki-llm`, wo Hermes' `tool_search` 153 von 175 Werkzeugen zurückstellt und
 das Modell zurückgestellte Namen direkt ruft. Der Client hält jetzt bei der **Ankunft**
 an, nicht beim ausgespielten Block. Hintergrund:
-[`00-hermes-FAQ/Hermes-GBrain-Wiki-Rendezvous-Fehler.md`](../00-hermes-FAQ/Hermes-GBrain-Wiki-Rendezvous-Fehler.md).
+FAQ 3.1 im [README des GBrain-Wikis](https://github.com/aknip/hermes-llm-wiki-gbrain#31-lock-und-betrieb) — die Analyse selbst steht in Lauf 14 des Run-Protokolls.
 
 **Offen** und ausdrücklich als solches vermerkt: Sitzungsfortsetzung über Hermes-Züge
 (`--resume` ist nicht umgesetzt), Token-Zahlen auf Werkzeug-Runden (dort meldet der Client Nullen),
