@@ -57,7 +57,7 @@ Deshalb rollt `install.sh` in **beide** Homes aus und prüft beide einzeln nach.
 
 ---
 
-## B — Nur durch protokollierte Läufe belegt (Claude Code CLI 2.1.270)
+## B — Nur durch protokollierte Läufe belegt (Claude Code CLI 2.1.270, Lauf 14: 2.1.274)
 
 Alle Läufe stehen mit Rohdaten in [RUN-PROTOKOLL.md](RUN-PROTOKOLL.md).
 
@@ -94,6 +94,12 @@ Alle Läufe stehen mit Rohdaten in [RUN-PROTOKOLL.md](RUN-PROTOKOLL.md).
 | Ein `providers:`-Block im Profil füllt die Auswahl und überschattet die Plugin-Registrierung **nicht** | 13 — vier Modelle in der Zeile, mit `refresh=False` und `True`; `get_provider("claude-code-mcp")` bleibt `source=plugin-profile`, `auth_type=external_process` |
 | Ein Kontextfenster aus diesem Block überlebt den Laufzeitwechsel — und wirkt schon beim Kaltstart | 13 — ohne Block fielen `haiku`/`fable` auf 256.000, mit Block 111.000/222.000; beim Kaltstart belegt durch die Zeichengrenze 26.640 = 111.000 × 0,24 (`agent/prompt_builder.py:1036-1041`) |
 | Die Meldung „Could not determine context length … falling back to 256,000" ist **kein** Beweis für das wirksame Fenster | 13 — sie erschien, während das Fenster nachweislich 111.000 war. Nachgestellt: derselbe Aufruf ohne `custom_providers` erzeugt genau diese Zeile und liefert 256.000, mit Liste den Wert aus dem Block; solche Aufrufer existieren (`agent/auxiliary_client.py:3975`), welcher beim Start protokollierte, ist **nicht** bestimmt. `agent/agent_init.py:1822` und `agent/context_compressor.py:1782` reichen die Liste durch |
+| Die CLI schickt **je Inhaltsblock ein eigenes `assistant`-Ereignis** — vier `tool_use`-Blöcke, vier Ereignisse | 14a |
+| Mehrere Blöcke einer Antwort gehen **nacheinander** an den MCP-Server: der nächste erst nach dem Ergebnis des vorigen | 14a |
+| Das Modell spielt sehr wohl mehrere Werkzeuge in **einem** Zug aus; der Client trägt das (vier Runden plus Schlussantwort in 5,2 s) | 14a |
+| Einen Aufruf auf ein Werkzeug, das sie nicht kennt oder nicht erlauben darf, beantwortet die CLI **selbst** — `system/permission_denied` bzw. `<tool_use_error>Error: No such tool available: …</tool_use_error>`, als `user`-Ereignis mit derselben `tool_use_id` | 14b, 14c |
+| Hermes' `tool_search` stellt bei 175 Werkzeugen 153 zurück; das Modell ruft zurückgestellte Namen (`mcp__gbrain__takes_search`) **direkt** statt über `tool_call` — und läuft damit in genau diese Abweisung | 14c |
+| Eine residente Sitzung trägt zehn Werkzeugrunden am Stück, wenn der Werkzeugsatz stabil bleibt | 14d |
 
 ---
 
@@ -101,15 +107,14 @@ Alle Läufe stehen mit Rohdaten in [RUN-PROTOKOLL.md](RUN-PROTOKOLL.md).
 
 | Punkt | Stand |
 |---|---|
-| **Echt paralleles Ausspielen mehrerer Werkzeuge in einem Zug** | Die Nebenläufigkeit des Rendezvous ist offline belegt (Lauf 2), die mehrrundige residente Fortsetzung live (Lauf 3, 4). Die **Kombination** — zwei `tool_use`-Blöcke in *einer* Modellantwort gegen die echte CLI — ist ungeprüft; das Modell hat in allen Läufen sequenziell gerufen. |
 | **Usage auf Werkzeug-Runden ist null** | Gemessen, nicht behoben: `usage` kommt erst mit dem `result`-Ereignis, also meldet der Client bei `finish_reason=tool_calls` `prompt_tokens=0, cached=0`. Hermes' Kompressionsschwelle (`compression.threshold: 0.5`) liest auf diesen Runden Nullen. Wirkung auf langlaufende Karten ungemessen. |
 | **Reichweite der Sitzungstabelle** | `_SESSIONS` liegt auf Modulebene und überlebt damit *Client-Neubauten innerhalb eines Agentenprozesses* — das ist der Fall, den `agent_runtime_helpers.py:1700-1760` beschreibt. Über Prozessgrenzen hinweg (jedes `hermes -p …` ist ein eigener Prozess) trägt sie nichts. Der Neubau-Fall ist **nicht** gezielt provoziert worden. |
 | **Sitzungsfortsetzung über Hermes-Züge** | `--resume` ist **nicht** umgesetzt. Jeder neue Hermes-Zug baut die CLI-Sitzung aus dem vollen Transkript neu auf. Der Cache-Gewinn liegt heute nur innerhalb eines Zuges. |
 | **Der Abbruchpfad, wenn der Hermes-Prozess stirbt** | Der Wachhund ist ein Daemon-Thread und stirbt mit. Was den geparkten Aufruf dann löst, ist das EOF auf dem Rendezvous-Socket bzw. die eigene Frist des MCP-Servers (`HERMES_CC_CALL_DEADLINE`, Wachhundfrist + 30 s). Claude Code bekommt daraufhin `isError` und **denkt weiter** — es kann noch eine ganze Antwort erzeugen, nachdem Hermes weg ist, und ohne `--max-budget-usd` bremst das nichts. Der Pfad ist gebaut, aber **nicht ausgelöst worden**. |
 | **`delegate_task` ist unter den 25 durchgereichten Werkzeugen** | Mit `delegation.max_concurrent_children: 10` und ohne Budgetgrenze kann eine einzige Karte auf zehn gleichzeitige residente `claude`-Prozesse auffächern. Ungetestet — und der Betriebsfall, in dem „ohne Budgetgrenze" aufhört, eine kleine Entscheidung zu sein. |
 | **Zwei Hermes-Prozesse auf einem Profil** | Beim Bau real eingetreten: Desktop-App und `hermes -p claude-dev -z …` schrieben gleichzeitig auf `profiles/claude-dev/state.db`. Ergebnis waren zurückgezogene WAL-Generationen und abgebrochene Züge (leere Assistentenantworten). **Kein Fehler dieses Plugins** — der Provider verhält sich in beiden Prozessen korrekt —, aber ein Betriebsfallstrick, der ohne die Testerei nicht aufgefallen wäre. |
-| **Verhalten des Wachhunds im Ernstfall** | Die Frist (`HERMES_CLAUDE_CODE_ORPHAN_TIMEOUT`, 300 s) und die gestaffelten Zeitlimits sind gesetzt, aber nie ausgelöst worden. |
-| **Große Werkzeugmengen** | 25 Werkzeuge sind belegt. Ob Hermes' `tool_search` (ab `threshold_pct: 10`) den Satz mitten im Zug ändert und wie oft das die Sitzung verwirft, ist ungemessen. |
+| **Verhalten des Wachhunds im Ernstfall** | Teilweise erledigt: in Lauf 14c real ausgelöst — `errors.log` führt *„Sitzung faf8d40d … verwaist (Hermes kam nicht zurück) — wird abgeräumt"*, der geparkte Aufruf bekam die Abschlussmeldung des Rendezvous (`[mcp] done … is_error=True`). **Ungeprüft** bleiben die gestaffelten Zeitlimits darüber (MCP-`timeout`, `agent.gateway_timeout`). |
+| **Große Werkzeugmengen** | 25 durchgereichte Werkzeuge sind belegt; mit `tool_search` bleibt der Satz stabil (Lauf 14d: zehn Runden auf einer Sitzung), zurückgestellte Namen ruft das Modell aber direkt (Lauf 14c). **Ungemessen:** der Betrieb mit `tools.tool_search.enabled: false`, also alle 175 Werkzeuge und rund 35.000 Token Schemata im Satz der CLI — Kosten, Cache-Verhalten und ob die Fehlgriffe damit verschwinden. |
 | **Hermes' System-Prompt ersetzt Claude Codes eigenen** | `--system-prompt-file` ist die Vorgabe. Ob Claude-Code-Verhalten am eigenen System-Prompt hängt, ist ungeprüft; `HERMES_CLAUDE_CODE_SYSTEM_PROMPT_MODE=append` bleibt als Schalter. |
 | **Kosten im Dauerbetrieb** | Einzelläufe 0,02–0,06 USD. Ohne `--max-budget-usd` gibt es **keine** Obergrenze je Aufruf; die Kostenbremse muss woanders sitzen. |
 | **Der Klick im Desktop-Auswähler** | Die Auswahlzeile ist als Nutzlast gemessen (Lauf 13), der Wechsel als `/model` im TUI. Der Weg über die Oberfläche selbst — sie schickt `provider.slug` plus Modell (`use-model-controls.ts:188`) in dasselbe `switch_model` — ist **nicht** geklickt worden. |
@@ -133,6 +138,8 @@ Was diese Umsetzung angefasst hat — und wie es zurückgeht:
 | Gateway zweimal neu gestartet | erledigt; `developer` und `summarizer` liefen beide Male durch |
 | Wegwerf-Boards `cc-probe`, `cc-model-probe` | gelöscht |
 | Wegwerf-Profile `cc-probe-dev`, `cc-ctx-probe`, `cc-win-probe`, `cc-pick-probe` | gelöscht |
+| Plugin-Stand 17.09.2026 (Lauf 14) in **alle** Homes ausgerollt: Root plus `claude-dev`, `developer`, `orchestrator`, `summarizer`, `wiki-llm` | **liegt** — `./install.sh --no-model-picker <profile>`; keine `config.yaml` angefasst |
+| `wiki-llm` mit `--resume` zweimal real weitergefahren (Diagnose, dann Prüfung) | erledigt; 0,30 + 0,30 USD, keine Schreibzugriffe aufs Wiki |
 
 ⚠ `./switch-profile.sh claude-dev --restore` spielt den Stand **vor** der Umstellung
 zurück — also auch das damalige Modell ohne `[1m]`, ohne `context_length` und ohne den

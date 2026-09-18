@@ -280,6 +280,30 @@ mit lesbarer Meldung scheitert.
 | `model.context_length` wird abgelehnt | Hermes erzwingt mindestens 64.000 |
 | `--continue` setzt die Sitzung nicht fort | Bekannt; `--resume <session-id>` benutzen |
 | `could not reach the claude-code-mcp API to validate …` | Erwartbar: der Provider hat keinen `/models`-Endpunkt. Kosmetik |
+| **„Die Werkzeugaufrufe der CLI sind nicht am Rendezvous angekommen"** | Seit 17.09.2026 behoben (Lauf 14). Tritt die Meldung weiter auf, hängt der Prozess an der **alten** Plugin-Kopie: `./install.sh --no-model-picker <profil>`, danach Hermes neu starten — Python lädt das Modul einmal je Prozess |
+
+### Wenn ein Werkzeugaufruf ins Leere geht
+
+Ein `tool_use`-Block des Modells ist **nicht** dasselbe wie ein zugestellter Aufruf. Die
+CLI weist Aufrufe auf Werkzeuge, die sie nicht kennt oder nicht erlauben darf, selbst ab
+und lässt das Modell nachbessern — am Rendezvous kommt dabei nie etwas an. Der Client
+liest seit Lauf 14 darüber hinweg; im Debug-Log sieht das so aus:
+
+```
+[client] tool_use: toolu_012v… mcp__gbrain__takes_search
+[client] von der CLI selbst beantwortet: toolu_012v… —
+         <tool_use_error>Error: No such tool available: mcp__gbrain__takes_search</tool_use_error>
+[client] tool_use: toolu_01Ar… mcp__hermes__tool_search
+```
+
+Häufigster Auslöser ist Hermes' `tool_search`: ab `tools.tool_search.threshold_pct: 10`
+stellt Hermes den Großteil der Werkzeuge zurück (im Profil `wiki-llm` mit dem
+`gbrain`-Server: 153 von 175), reicht der CLI nur den Rest und erwartet, dass
+zurückgestellte Werkzeuge über die Hülle `tool_call` laufen. Das Modell liest die Namen
+im Ergebnis von `tool_search` und ruft sie regelmäßig direkt. Das kostet jetzt eine
+Runde statt des Gesprächs. Wer die Fehlgriffe ganz vermeiden will, schaltet
+`tools.tool_search.enabled: false` — dann stehen alle Werkzeuge im Satz der CLI, mit
+entsprechend großem Schema-Anteil im Prompt (ungemessen, siehe VERIFIKATION.md).
 
 ---
 

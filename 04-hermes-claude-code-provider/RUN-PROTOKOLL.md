@@ -1,7 +1,8 @@
 # Run-Protokoll
 
-Läufe 1–12 vom **13.09.2026**, Lauf 13 vom **14.09.2026**; macOS, Hermes Agent v0.20.0 (2026.8.3),
-Claude Code CLI **2.1.270**. Modell `sonnet`, außer wo anders vermerkt (Lauf 7).
+Läufe 1–12 vom **13.09.2026**, Lauf 13 vom **14.09.2026**, Lauf 14 vom **17.09.2026**;
+macOS, Hermes Agent v0.20.0 (2026.8.3), Claude Code CLI **2.1.270** (Lauf 14: **2.1.274**).
+Modell `sonnet`, außer wo anders vermerkt (Lauf 7, 14).
 Rohdaten (gesäubert) unter
 [`probes/`](probes/).
 
@@ -482,10 +483,135 @@ Rohdaten: `probes/lauf13-modellauswahl.log`. Danach zurückgebaut: Profil
 getippt. Beide Wege landen im selben `switch_model`; die Oberfläche schickt
 `provider.slug` plus Modell (`use-model-controls.ts:188`).
 
+## Lauf 14 — Der Fehler aus dem Wiki-Profil: ein `tool_use`, der nie ankommt
+
+**Anlass:** Im Profil `wiki-llm` (GBrain als Wiki, MCP-Server `gbrain` mit 137 Werkzeugen)
+brach jede Bitte, etwas ins Wiki aufzunehmen, mit *„Provider error — Die Werkzeugaufrufe
+der CLI sind nicht am Rendezvous angekommen"* ab. Drei Wiederholungen, dann der Zug tot.
+Erste Sichtung am 17.09.2026, 13:25 und 13:32 (`profiles/wiki-llm/logs/errors.log`).
+
+### 14a — Was die CLI mit mehreren Blöcken macht
+
+Wegwerf-MCP-Server mit zwei Werkzeugen, Rendezvous antwortet nach 2 s, ein Prompt, der
+vier Aufrufe in **einem** Zug verlangt. Roher Strom mitgeschrieben:
+
+```
+ 2.74s  assistant  1 Block: tool_use probe_alpha      2.75s  am Rendezvous: A
+ 2.99s  assistant  1 Block: tool_use probe_alpha
+ 3.52s  assistant  1 Block: tool_use probe_beta
+ 3.52s  assistant  1 Block: tool_use probe_beta
+ 4.75s  beantwortet A                                 4.77s  am Rendezvous: B
+ 6.77s  beantwortet B                                 6.78s  am Rendezvous: C
+ 8.78s  beantwortet C                                 8.80s  am Rendezvous: D
+```
+
+Zwei Befunde, beide vorher offen:
+
+1. Die CLI schickt **je Inhaltsblock ein eigenes `assistant`-Ereignis** — vier Blöcke,
+   vier Ereignisse, nicht eines mit vier Blöcken.
+2. Sie stellt die Aufrufe **nacheinander** zu: der nächste geht erst raus, wenn das
+   Ergebnis des vorigen da ist. Wer auf das Eintreffen *aller* wartet, wartet auf etwas,
+   das erst nach der eigenen Antwort passiert.
+
+Damit ist der offene Punkt „echt paralleles Ausspielen" aus [VERIFIKATION.md](VERIFIKATION.md)
+erledigt: das Modell spielt sehr wohl mehrere Blöcke in einem Zug aus, und der Client
+trägt das — dieselbe Schleife, gefahren als Hermes-Ersatz (`create` → Ergebnisse →
+`create`), lief vier Werkzeugrunden plus Schlussantwort in 5,2 s durch.
+
+### 14b — Was die CLI mit einem Werkzeug macht, das sie nicht hat
+
+Dritter Eintrag in `tools.json`, aber **nicht** in `--allowedTools`. Antwort der CLI auf
+den Aufruf:
+
+```
+2.39s  assistant  1 Block: tool_use mcp__hermes__probe_gamma
+2.40s  system/permission_denied
+2.40s  user block={"type":"tool_result","content":"Permission for this tool use was denied…",
+                   "is_error":true,"tool_use_id":"toolu_…"}
+```
+
+Die CLI beantwortet den Aufruf **selbst**, mit derselben `tool_use_id`, und lässt das
+Modell weiterarbeiten. Am Rendezvous kommt nie etwas an.
+
+### 14c — Der echte Fehler, instrumentiert
+
+Die abgebrochene Desktop-Sitzung mit `--resume` fortgesetzt, Diagnose eingeschaltet
+(`HERMES_CLAUDE_CODE_DEBUG`). Reproduziert 3 von 3 Versuchen, jeder nach 60 s:
+
+```
+[client] resident: msgs=19 werkzeuge=25 fp=e0f459395cda122f sitzung=neu
+[client] tool_use: toolu_01Y9CvCMuF2kdkDoRCcnWdaC mcp__gbrain__takes_search
+[mcp] call toolu_01Rndygk2NByFxQZa2AMUAru tool_describe
+[client] Rendezvous leer: erwartet=['toolu_01Y9…'] angekommen=['toolu_01Rnd…']
+```
+
+Der ganze Vorgang in einer Zeile: **Hermes' `tool_search` stellt 153 der 175 Werkzeuge
+zurück** (`tools.tool_search: 22 core/visible tools kept, 153 deferred`), das Modell
+liest den zurückgestellten Namen `mcp__gbrain__takes_search` im Ergebnis von
+`tool_search` und ruft ihn **direkt** auf, statt ihn über Hermes' Hülle `tool_call` zu
+schicken. Die CLI kennt den Namen nicht, weist ab (14b), das Modell bessert im selben
+Prozess nach und ruft `tool_describe` — was ankommt, aber unter anderer Kennung. Der
+Client wartete derweil auf die Kennung des abgewiesenen Aufrufs, lief in die Frist und
+riss den Zug mit; der brauchbare Aufruf wurde samt Sitzung verworfen.
+
+Der Fehler lag also **nicht** an Hermes, nicht an GBrain und nicht am Wiki, sondern an
+einer zu starken Annahme des Clients: *ausgespielt* heißt nicht *zugestellt*.
+
+### 14d — Die Behebung, an derselben Sitzung geprüft
+
+`_read_turn` hält jetzt nicht beim `tool_use`-Block an, sondern bei der **Ankunft am
+Rendezvous**; offene Blöcke liegen in `session.outstanding`, und was die CLI selbst
+beantwortet hat, fällt still heraus. Dieselbe Sitzung, dieselbe Frage:
+
+```
+[client] tool_use: toolu_012v1CLDvXXBeLABia8Cwtgd mcp__gbrain__takes_search
+[client] von der CLI selbst beantwortet: toolu_012v1… —
+         <tool_use_error>Error: No such tool available: mcp__gbrain__takes_search</tool_use_error>
+[client] tool_use: toolu_01ArUiE5i27jvB6AJ9W5B41Y mcp__hermes__tool_search
+[client] resident: … sitzung=weiter ebd0fcdb
+…
+[client] Zugende: prompt=592.519 (cached 558.682) completion=2.999 cost=0,299
+```
+
+Der Zug läuft durch: zehn Werkzeugrunden auf **einer** residenten Sitzung, keine
+Abbrüche. Die Abweisung kostet jetzt eine Runde statt des Gesprächs. Rohdaten:
+`probes/lauf14-rendezvous-fehler.log` (vorher), `probes/lauf14-rendezvous-behoben.log`
+(nachher).
+
+Dazu sechs Fälle ohne Modell und ohne CLI, als Regressionsprobe im Repo
+(`probes/rendezvous-leseschleife.py`, läuft in rund 5 s und kostet nichts):
+
+| Fall | Erwartung | Ergebnis |
+|---|---|---|
+| Aufruf kommt am Rendezvous an | Werkzeugaufruf an Hermes | OK, 0,1 s |
+| CLI weist ab, Modell bessert nach | der **nachgebesserte** Aufruf geht an Hermes | OK, 0,4 s |
+| nichts passiert | lesbarer Fehler nach der Frist | OK, 2,0 s (Frist im Test auf 2 s gesetzt) |
+| CLI weist ab, danach nur Text | normale Textantwort | OK |
+| Prozess beendet, Lesethread hinkt hinterher | der letzte Zugabschluss zählt, kein Absturz | OK, 0,3 s |
+| Prozess beendet, Strom bleibt leer | lesbarer Fehler nach der Nachfrist | OK |
+
+Die letzten beiden gehören zum Fix dazu: der Puls der Schleife liegt bei offenen Blöcken
+auf 0,05 s, und ohne Nachfrist (`_EOF_GRACE_S`, 1 s) läse er einen sauberen Zugabschluss
+als „Die Claude-Code-CLI endete unerwartet", sobald `poll()` vor dem Lesethread fertig
+ist.
+
+**Reihenfolge der Belege, zur Redlichkeit:** der Live-Lauf 14d fuhr den Fix *ohne* die
+Nachfrist `_EOF_GRACE_S`; die kam danach dazu und ist nur durch die beiden letzten Fälle
+der Regressionsprobe belegt, nicht durch einen weiteren Live-Lauf.
+
+**Nicht gemessen:** ob das Modell den zurückgestellten Namen seltener direkt ruft, wenn
+`tools.tool_search.enabled: false` gesetzt ist — dann stünden alle 175 Werkzeuge (rund
+35.000 Token Schemata) im Satz der CLI. Der Lauf 14d lief mit eingeschaltetem
+`tool_search`; in ihm war der `gbrain`-Server wegen der PGLite-Sperre ohnehin nicht
+verbunden (siehe `00-hermes-FAQ/Hermes-GBrain-PGLite-Lock.md`), der Fehlerpfad dadurch
+aber unverändert ausgelöst.
+
 ## Kosten
 
 Die Einzelläufe lagen meist zwischen 0,02 und 0,06 USD; die gesamte Prüfleiter
-inklusive der Kanban-Karte blieb unter 1 USD. Der Ausreißer steht in Lauf 13: ein
+inklusive der Kanban-Karte blieb unter 1 USD. Lauf 14 fällt aus dem Rahmen: die
+Wiki-Sitzung trägt rund 590.000 Prompt-Token (zu 94 % aus dem Cache) und kostet je
+Durchgang 0,30–0,37 USD — nicht wegen des Fehlers, sondern wegen der Historie. Der Ausreißer steht in Lauf 13: ein
 einziger Fable-Zug mit kaltem Cache kostete **0,60 USD**, derselbe Zug in Durchgang B
 mit warmem Cache (30.136 von 30.138 Token) nur **0,009 USD** — der Faktor 68 ist das
 beste Argument für den residenten Betrieb, das dieses Protokoll enthält. `--max-budget-usd` war **nicht** gesetzt

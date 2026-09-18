@@ -359,17 +359,27 @@ rollt deshalb in beide Homes aus und prüft beide einzeln nach.
 
 ## Stand
 
-**Belegt** (dreizehn protokollierte Läufe): Einbau, Profilumstellung, interaktiver Lauf,
+**Belegt** (vierzehn protokollierte Läufe): Einbau, Profilumstellung, interaktiver Lauf,
 Werkzeug-Umlauf mit Hermes' echtem 25-Werkzeug-Satz, eine Kanban-Karte Ende zu Ende;
 Modell und Denktiefe über alle vier Umschaltwege (`model.default`, `-m`, `/model`,
 `kanban set-model`), zur Laufzeit und ohne Neustart; das 1M-Kontextfenster auf beiden
 Seiten, samt Nachweis, dass ein größeres Fenster die Kompression wirklich nach hinten
 schiebt; und dass ein `providers:`-Block im Profil die Modellauswahl im Desktop füllt
-und das Kontextfenster je Modell über den Laufzeitwechsel rettet.
+und das Kontextfenster je Modell über den Laufzeitwechsel rettet. Dazu seit Lauf 14
+(17.09.2026, CLI 2.1.274): mehrere Werkzeugaufrufe in *einer* Modellantwort — die CLI
+schickt je Block ein eigenes `assistant`-Ereignis und stellt die Aufrufe nacheinander
+zu —, und dass sie Aufrufe auf ihr unbekannte Werkzeuge selbst abweist, statt sie
+weiterzureichen.
 
-**Offen** und ausdrücklich als solches vermerkt: echt paralleles Ausspielen mehrerer
-Werkzeuge in *einer* Modellantwort, Sitzungsfortsetzung über Hermes-Züge (`--resume`
-ist nicht umgesetzt), Token-Zahlen auf Werkzeug-Runden (dort meldet der Client Nullen),
+**Behoben in Lauf 14:** Genau diese Abweisung riss vorher den ganzen Zug mit
+(„Die Werkzeugaufrufe der CLI sind nicht am Rendezvous angekommen") — aufgefallen im
+Wiki-Profil `wiki-llm`, wo Hermes' `tool_search` 153 von 175 Werkzeugen zurückstellt und
+das Modell zurückgestellte Namen direkt ruft. Der Client hält jetzt bei der **Ankunft**
+an, nicht beim ausgespielten Block. Hintergrund:
+[`00-hermes-FAQ/Hermes-GBrain-Wiki-Rendezvous-Fehler.md`](../00-hermes-FAQ/Hermes-GBrain-Wiki-Rendezvous-Fehler.md).
+
+**Offen** und ausdrücklich als solches vermerkt: Sitzungsfortsetzung über Hermes-Züge
+(`--resume` ist nicht umgesetzt), Token-Zahlen auf Werkzeug-Runden (dort meldet der Client Nullen),
 `delegate_task`-Auffächerung ohne Budgetgrenze, und ob der Desktop-Modellauswähler den
 kanonischen Modellnamen zurückschreibt. Die vollständige Liste steht in
 [VERIFIKATION.md](VERIFIKATION.md).

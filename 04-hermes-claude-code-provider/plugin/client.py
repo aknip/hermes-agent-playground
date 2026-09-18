@@ -56,8 +56,14 @@ _DEFAULT_MCP_TIMEOUT_MS = 600_000
 # damit ein verwaister Aufruf schnell und lesbar scheitert.
 _DEFAULT_ORPHAN_TIMEOUT_S = 300.0
 # Wie lange auf das Eintreffen der MCP-Aufrufe gewartet wird, nachdem das Modell die
-# tool_use-Blöcke ausgespielt hat.
+# tool_use-Blöcke ausgespielt hat. Der schnelle Weg aus einem abgewiesenen Aufruf ist das
+# eigene ``tool_result`` der CLI (gemessen: 0,3 s); diese Frist greift nur, wenn gar
+# nichts mehr passiert.
 _RENDEZVOUS_ARRIVAL_TIMEOUT_S = 60.0
+# Nachfrist, bevor ein beendeter CLI-Prozess als Absturz gilt: ``poll()`` kann schon
+# None-frei sein, während der Lesethread die letzten Zeilen noch in die Warteschlange
+# schiebt. Ohne sie läse der kurze Puls (0,05 s) einen sauberen Zugabschluss als Absturz.
+_EOF_GRACE_S = 1.0
 
 # (mtime der config.yaml, gelesener Wert) — an der mtime aufgehaengt, damit ein
 # langlebiger Gateway eine Config-Aenderung mitbekommt statt sie ewig zu cachen.
@@ -199,7 +205,6 @@ class _Rendezvous:
         self._server.bind(path)
         self._server.listen(16)
         self._lock = threading.Lock()
-        self._arrived = threading.Condition(self._lock)
         self.pending: dict[str, socket.socket] = {}
         self._closed = False
         threading.Thread(target=self._accept_loop, daemon=True).start()
@@ -218,20 +223,19 @@ class _Rendezvous:
             conn.close()
             return
         call_id = str(request.get("call_id") or "")
-        with self._arrived:
+        with self._lock:
             self.pending[call_id] = conn
-            self._arrived.notify_all()
 
-    def wait_for(self, call_ids: list[str], timeout: float) -> bool:
-        """Warten, bis alle genannten Aufrufe geparkt sind."""
-        deadline = time.monotonic() + timeout
-        with self._arrived:
-            while not all(cid in self.pending for cid in call_ids):
-                remaining = deadline - time.monotonic()
-                if remaining <= 0:
-                    return False
-                self._arrived.wait(remaining)
-        return True
+    def arrived(self, call_ids: list[str]) -> list[str]:
+        """Welche der genannten Aufrufe liegen geparkt am Rendezvous — nur nachsehen.
+
+        Kein Warten auf *alle*: die CLI spielt mehrere ``tool_use``-Bloecke zwar in einem
+        Zug aus, reicht sie aber **nacheinander** an den MCP-Server (gemessen 17.09.2026,
+        vier Bloecke, jeder erst nach dem Ergebnis des vorigen). Wer auf alle wartet,
+        wartet auf etwas, das erst nach der eigenen Antwort passiert.
+        """
+        with self._lock:
+            return [cid for cid in call_ids if cid in self.pending]
 
     def answer(self, call_id: str, content: str, is_error: bool = False) -> bool:
         with self._lock:
@@ -289,6 +293,9 @@ class _Session:
         self.history_len = 0
         self.prefix_sig = ""
         self.parked: list[str] = []
+        # Vom Modell ausgespielte tool_use-Bloecke, die noch nicht am Rendezvous sind.
+        # Ueberlebt den einzelnen Zug: die CLI stellt mehrere Bloecke nacheinander zu.
+        self.outstanding: list[dict[str, Any]] = []
         self.turn_started = False
         self.logged_model = ""
         self._closed = False
@@ -566,24 +573,66 @@ class ClaudeCodeClient:
     def _read_turn(self, session: _Session, *, timeout: float) -> dict[str, Any]:
         """Bis zum nächsten Halt lesen.
 
-        Halt ist entweder ein Satz Werkzeugaufrufe (dann sind sie am Rendezvous geparkt)
-        oder das Abschlussereignis der CLI.
+        Halt ist ein Satz Werkzeugaufrufe, die **am Rendezvous angekommen** sind, oder
+        das Abschlussereignis der CLI. Dass das Modell einen ``tool_use``-Block ausspielt,
+        ist dafür nicht hinreichend — und genau daran starb der Zug vorher:
+
+        * Die CLI weist einen Aufruf auf ein Werkzeug, das sie nicht kennt oder nicht
+          erlauben darf, **selbst** ab (``system/permission_denied`` plus ein eigenes
+          ``tool_result``) und lässt das Modell im selben Prozess nachbessern. Am
+          Rendezvous kommt dann nie etwas an. Gemessen 17.09.2026: Hermes' ``tool_search``
+          stellt 153 Werkzeuge zurück, das Modell spielt den zurückgestellten Namen
+          ``mcp__gbrain__takes_search`` direkt aus, die CLI weist ab und reicht
+          ``tool_describe`` nach.
+        * Mehrere Blöcke einer Antwort gehen **nacheinander** an den MCP-Server, jeder
+          erst nach dem Ergebnis des vorigen. Wer auf alle wartet, wartet vergeblich.
+
+        Deshalb wird hier nur gesammelt (``session.outstanding``) und weitergelesen, bis
+        etwas ankommt. Was die CLI selbst beantwortet hat, fällt still heraus.
         """
         deadline = time.monotonic() + timeout
         text_parts: list[str] = []
+        # Frist für offene Blöcke — auch für die aus dem vorigen Zug übernommenen: die
+        # CLI stellt den nächsten erst zu, wenn sie das Ergebnis des vorigen hat, also
+        # beginnt die Frist bei jedem Eintritt neu.
+        stalled_at = time.monotonic() + _RENDEZVOUS_ARRIVAL_TIMEOUT_S
+        dead_since = 0.0
 
         while True:
             remaining = deadline - time.monotonic()
             if remaining <= 0:
                 raise TimeoutError("Zeitüberschreitung beim Warten auf die Claude-Code-CLI.")
+
+            # Angekommene Aufrufe sind der eigentliche Halt.
+            if session.outstanding:
+                ids = [str(b.get("id") or "") for b in session.outstanding]
+                if ready := set(session.rendezvous.arrived(ids)):
+                    calls = [b for b in session.outstanding if str(b.get("id") or "") in ready]
+                    session.outstanding = [b for b in session.outstanding
+                                           if str(b.get("id") or "") not in ready]
+                    return {"stop": "tool_calls", "calls": calls,
+                            "text": "\n".join(t for t in text_parts if t.strip())}
+                if time.monotonic() > stalled_at:
+                    # Weder angekommen noch von der CLI beantwortet: echter Stillstand.
+                    bridge.debug_log(f"[client] Rendezvous leer: offen={ids}")
+                    raise RuntimeError(
+                        "Die Werkzeugaufrufe der CLI sind nicht am Rendezvous angekommen.")
+
             try:
-                event = session.events.get(timeout=min(remaining, 1.0))
+                # Kurzer Puls, solange Blöcke offen sind: die Ankunft ist kein Ereignis
+                # des Stroms, sie wird oben nachgesehen.
+                event = session.events.get(
+                    timeout=min(remaining, 0.05 if session.outstanding else 1.0))
             except queue.Empty:
                 if session.proc is not None and session.proc.poll() is not None:
-                    # Prozess ist weg und der Strom leer.
-                    raise RuntimeError(self._exit_error(session))
+                    # Prozess ist weg — aber erst nach der Nachfrist auch der Strom.
+                    now = time.monotonic()
+                    dead_since = dead_since or now
+                    if now - dead_since > _EOF_GRACE_S:
+                        raise RuntimeError(self._exit_error(session))
                 continue
 
+            dead_since = 0.0
             kind = event.get("type")
 
             if kind == "__eof__":
@@ -613,8 +662,26 @@ class ClaudeCodeClient:
                     elif block.get("type") == "tool_use":
                         calls.append(block)
                 if calls:
-                    return {"stop": "tool_calls", "calls": calls,
-                            "text": "\n".join(t for t in text_parts if t.strip())}
+                    bridge.debug_log("[client] tool_use: " + ", ".join(
+                        f"{c.get('id')} {c.get('name')}" for c in calls))
+                    session.outstanding += calls
+                    stalled_at = time.monotonic() + _RENDEZVOUS_ARRIVAL_TIMEOUT_S
+                continue
+
+            if kind == "user":
+                # Ein ``tool_result``, das die CLI selbst erzeugt hat — abgewiesener oder
+                # unbekannter Werkzeugname. Der Block ist damit erledigt, ohne uns.
+                for block in (event.get("message") or {}).get("content") or []:
+                    if not isinstance(block, dict) or block.get("type") != "tool_result":
+                        continue
+                    call_id = str(block.get("tool_use_id") or "")
+                    if any(str(b.get("id") or "") == call_id for b in session.outstanding):
+                        session.outstanding = [b for b in session.outstanding
+                                               if str(b.get("id") or "") != call_id]
+                        bridge.debug_log(
+                            f"[client] von der CLI selbst beantwortet: {call_id} — "
+                            f"{bridge.render_content(block.get('content'))[:160]}")
+                        stalled_at = time.monotonic() + _RENDEZVOUS_ARRIVAL_TIMEOUT_S
                 continue
 
             if kind == "result":
@@ -624,6 +691,7 @@ class ClaudeCodeClient:
                     raise RuntimeError(
                         f"Die Claude-Code-CLI brach ab ({subtype or 'unbekannt'}): "
                         f"{str(event.get('result') or '').strip() or '(ohne Meldung)'}")
+                session.outstanding = []
                 return {"stop": "result", "event": event,
                         "text": str(event.get("result") or "").strip()
                                 or "\n".join(t for t in text_parts if t.strip())}
@@ -698,10 +766,14 @@ class ClaudeCodeClient:
                       model: str, timeout: float, effort: str = "") -> Any:
         tools_fp = bridge.tools_fingerprint(snapshot)
         session = self._match_session(messages, tools_fp)
+        bridge.debug_log(
+            f"[client] resident: msgs={len(messages)} werkzeuge={len(snapshot)} fp={tools_fp} "
+            f"sitzung={'weiter ' + session.uuid[:8] if session else 'neu'}")
 
         if session is not None:
             tail = messages[session.history_len:]
             results = _tool_results(tail)
+            bridge.debug_log(f"[client] geparkt={session.parked} ergebnisse={list(results)}")
             for call_id in session.parked:
                 session.rendezvous.answer(call_id, results.get(call_id, ""),
                                           is_error=call_id not in results)
@@ -724,10 +796,6 @@ class ClaudeCodeClient:
         if outcome["stop"] == "tool_calls":
             blocks = outcome["calls"]
             call_ids = [str(b.get("id") or "") for b in blocks]
-            if not session.rendezvous.wait_for(call_ids, _RENDEZVOUS_ARRIVAL_TIMEOUT_S):
-                _drop_session_object(session)
-                raise RuntimeError(
-                    "Die Werkzeugaufrufe der CLI sind nicht am Rendezvous angekommen.")
             session.parked = call_ids
             session.history_len = len(messages)
             session.prefix_sig = _signature(messages)
@@ -755,23 +823,30 @@ class ClaudeCodeClient:
         """Die Sitzung finden, die genau diese Historie fortsetzt — oder nichts."""
         with _SESSIONS_LOCK:
             candidates = list(_SESSIONS.items())
+        bridge.debug_log(f"[client] Sitzungstabelle: {len(candidates)} Eintrag/Einträge")
         for key, session in candidates:
             # Erst die Zugehörigkeit prüfen, dann verwerfen: ein Abräumen nach
             # Werkzeug-Fingerabdruck allein würde die Sitzungen *anderer* Gespräche
             # mit anderem Toolset mit abräumen.
             if len(messages) <= session.history_len:
+                bridge.debug_log(f"[client]   {session.uuid[:8]}: Historie zu kurz")
                 continue
             if _signature(messages[:session.history_len]) != session.prefix_sig:
+                bridge.debug_log(f"[client]   {session.uuid[:8]}: Präfix passt nicht")
                 continue
             if session.tools_fp != tools_fp:
                 # Unsere Sitzung, aber der Werkzeugsatz hat sich geändert
                 # (tool_search, disabled_toolsets): der laufende Prozess hat seine
                 # Liste beim Start gelesen und kennt die neue nicht.
+                bridge.debug_log(f"[client]   {session.uuid[:8]}: Werkzeugsatz geändert "
+                                 f"({session.tools_fp} -> {tools_fp})")
                 _drop_session(key)
                 continue
             results = _tool_results(messages[session.history_len:])
             if set(results) != set(session.parked):
                 # Kompression, Retry oder ein neuer Nutzerzug: nicht fortsetzbar.
+                bridge.debug_log(f"[client]   {session.uuid[:8]}: Ergebnisse passen nicht "
+                                 f"({list(results)} != {session.parked})")
                 _drop_session(key)
                 continue
             with _SESSIONS_LOCK:
